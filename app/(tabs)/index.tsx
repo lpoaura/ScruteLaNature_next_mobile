@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import {  Platform, StyleSheet } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { HelloWave } from '@/src/components/hello-wave';
+import ParallaxScrollView from '@/src/components/parallax-scroll-view';
+import { ThemedText } from '@/src/components/themed-text';
+import { ThemedView } from '@/src/components/themed-view';
 import { Link } from 'expo-router';
+import { Button, ButtonText } from '@/src/components/ui/button';
 
 export default function HomeScreen() {
   return (
@@ -74,6 +75,10 @@ export default function HomeScreen() {
           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
         </ThemedText>
       </ThemedView>
+      <HelloWave />
+        <Button size="md" variant="solid" action="primary">
+          <ButtonText>Mon Super Bouton</ButtonText>
+        </Button>
     </ParallaxScrollView>
   );
 }
