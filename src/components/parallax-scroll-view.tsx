@@ -6,6 +6,7 @@ import Animated, {
   useAnimatedStyle,
   useScrollOffset,
 } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedView } from '@/src/components/themed-view';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
@@ -14,8 +15,8 @@ import { useThemeColor } from '@/src/hooks/use-theme-color';
 const HEADER_HEIGHT = 250;
 
 type Props = PropsWithChildren<{
-  headerImage: ReactElement;
-  headerBackgroundColor: { dark: string; light: string };
+  headerImage?: ReactElement | null;  // Optionnel : si absent, pas de header
+  headerBackgroundColor?: { dark: string; light: string };
 }>;
 
 export default function ParallaxScrollView({
@@ -49,14 +50,20 @@ export default function ParallaxScrollView({
       ref={scrollRef}
       style={{ backgroundColor, flex: 1 }}
       scrollEventThrottle={16}>
-      <Animated.View
-        style={[
-          styles.header,
-          { backgroundColor: headerBackgroundColor[colorScheme] },
-          headerAnimatedStyle,
-        ]}>
-        {headerImage}
-      </Animated.View>
+      {headerImage ? (
+        <Animated.View
+          style={[
+            styles.header,
+            { backgroundColor: headerBackgroundColor?.[colorScheme] ?? 'transparent' },
+            headerAnimatedStyle,
+          ]}>
+          {headerImage}
+        </Animated.View>
+      ) : (
+        // Pas de header → on protège le contenu avec SafeAreaView
+        // pour éviter que ça passe sous le Dynamic Island / encoche
+        <SafeAreaView edges={['top']} />
+      )}
       <ThemedView style={styles.content}>{children}</ThemedView>
     </Animated.ScrollView>
   );

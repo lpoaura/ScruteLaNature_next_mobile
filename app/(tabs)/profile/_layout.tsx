@@ -5,10 +5,10 @@ export default function ProfileLayout() {
   return (
     <>
       <Stack>
-        <Stack.Screen name="index" options={{ title: 'Profile' }} />
-        <Stack.Screen name="seetings" options={{ presentation: 'card', title: 'Settings' }} />
+        <Stack.Screen name="index" options={{ title: 'Profile' , headerShown: false }} />
+        <Stack.Screen name="seetings" options={{ presentation: 'modal', title: 'Settings', headerShown: false }} />
       </Stack>
-      <StatusBar style="auto" />    
+      <StatusBar style="auto" />
     </>
   );
 }
