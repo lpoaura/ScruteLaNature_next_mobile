@@ -9,7 +9,7 @@ export default function TabLayout() {
     <Tabs
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
-        headerShown: true,
+        headerShown: false,
       }}>
       <Tabs.Screen
         name="index"
@@ -35,6 +35,15 @@ export default function TabLayout() {
           title: 'Explore',
           tabBarIcon: ({ color, size }) => (
             <IconSymbol size={size} name="paperplane.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <IconSymbol size={size} name="person.fill" color={color} />
           ),
         }}
       />
