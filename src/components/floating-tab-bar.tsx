@@ -1,6 +1,8 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import { useRouter, useSegments } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -32,9 +34,6 @@ function TabButton({
     const bgOpacity = useSharedValue(0);
 
     useEffect(() => {
-        // Quand l'onglet devient actif :
-        // - L'icône grossit avec un ressort élastique
-        // - Le fond blanc apparaît progressivement
         scale.value = withSpring(isFocused ? 1.15 : 1, {
             damping: 12,
             stiffness: 180,
@@ -71,16 +70,79 @@ function TabButton({
     );
 }
 
+// Bouton retour animé
+function BackButton({ onPress }: { onPress: () => void }) {
+    const scale = useSharedValue(0);
+    const opacity = useSharedValue(0);
+
+    useEffect(() => {
+        scale.value = withSpring(1, { damping: 14, stiffness: 200 });
+        opacity.value = withTiming(1, { duration: 200 });
+    }, []);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+        opacity: opacity.value,
+    }));
+
+    return (
+        <Animated.View style={animatedStyle}>
+            <Pressable
+                onPress={() => {
+                    if (Platform.OS === 'ios') {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }
+                    onPress();
+                }}
+                style={styles.backButton}
+                accessibilityRole="button"
+                accessibilityLabel="Retour"
+            >
+                <MaterialIcons name="chevron-left" size={28} color="#111" />
+            </Pressable>
+        </Animated.View>
+    );
+}
+
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+    const router = useRouter();
+    const segments = useSegments();
+
+    // Vérifier si on peut revenir en arrière
+    // On regarde l'état du Stack Navigator de l'onglet actif :
+    // - nestedState existe (l'onglet a un Stack interne avec _layout.tsx)
+    // - Le Stack a plus d'1 écran dans son historique (routes.length > 1)
+    // - L'index actuel est > 0 (on n'est pas sur le premier écran)
+    const activeRoute = state.routes[state.index];
+    const nestedState = activeRoute.state;
+    const canGoBack = !!(
+        nestedState &&
+        nestedState.routes &&
+        nestedState.routes.length > 1 &&
+        nestedState.index !== undefined &&
+        nestedState.index > 0
+    );
+
+    const handleGoBack = () => {
+        if (canGoBack) {
+            router.back();
+        }
+    };
+
     return (
         <View style={styles.wrapper}>
-            {/* BlurView pour l'effet glassmorphism */}
             <BlurView
                 intensity={60}
                 tint="light"
                 style={styles.blurContainer}
             >
                 <View style={styles.container}>
+                    {/* Bouton retour conditionnel */}
+                    {canGoBack && (
+                        <BackButton onPress={handleGoBack} />
+                    )}
+
+                    {/* Les onglets */}
                     {state.routes.map((route, index) => {
                         const { options } = descriptors[route.key];
                         const isFocused = state.index === index;
@@ -132,7 +194,6 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
 }
 
 const styles = StyleSheet.create({
-    // Wrapper absolu centré en bas de l'écran
     wrapper: {
         position: 'absolute',
         bottom: Platform.OS === 'ios' ? 28 : 20,
@@ -140,11 +201,9 @@ const styles = StyleSheet.create({
         right: 0,
         alignItems: 'center',
     },
-    // BlurView qui forme la pilule
     blurContainer: {
         borderRadius: 40,
-        overflow: 'hidden', // Nécessaire pour que le blur reste dans la pilule
-        // Ombre extérieure portée (shadow)
+        overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.15,
@@ -153,25 +212,22 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(255, 255, 255, 0.6)',
     },
-    // Rangée de boutons à l'intérieur du blur
     container: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 8,
+        paddingHorizontal: 4,
         paddingVertical: 6,
-        gap: 4,
+        gap: 2,
         backgroundColor: 'rgba(255, 255, 255, 0.4)',
     },
-    // Chaque zone cliquable d'un onglet
     tabButton: {
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 22,
+        paddingHorizontal: 14,
         paddingVertical: 13,
         borderRadius: 30,
     },
-    // Fond blanc qui apparaît derrière l'icône active
     activeBackground: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(255, 255, 255, 0.85)',
@@ -181,5 +237,14 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 6,
         elevation: 4,
+    },
+    // Bouton retour — même taille que les onglets pour l'harmonie
+    backButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 13,
+        borderRadius: 30,
+        marginRight: 2,
     },
 });
