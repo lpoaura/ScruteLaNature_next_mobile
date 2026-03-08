@@ -70,7 +70,7 @@ function TabButton({
     );
 }
 
-// Bouton retour animé
+// Bouton retour animé — dans sa propre pilule séparée
 function BackButton({ onPress }: { onPress: () => void }) {
     const scale = useSharedValue(0);
     const opacity = useSharedValue(0);
@@ -87,19 +87,25 @@ function BackButton({ onPress }: { onPress: () => void }) {
 
     return (
         <Animated.View style={animatedStyle}>
-            <Pressable
-                onPress={() => {
-                    if (Platform.OS === 'ios') {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }
-                    onPress();
-                }}
-                style={styles.backButton}
-                accessibilityRole="button"
-                accessibilityLabel="Retour"
+            <BlurView
+                intensity={60}
+                tint="light"
+                style={styles.backPill}
             >
-                <MaterialIcons name="chevron-left" size={28} color="#111" />
-            </Pressable>
+                <Pressable
+                    onPress={() => {
+                        if (Platform.OS === 'ios') {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }
+                        onPress();
+                    }}
+                    style={styles.backButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retour"
+                >
+                    <MaterialIcons name="chevron-left" size={28} color="#111" />
+                </Pressable>
+            </BlurView>
         </Animated.View>
     );
 }
@@ -109,10 +115,6 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     const segments = useSegments();
 
     // Vérifier si on peut revenir en arrière
-    // On regarde l'état du Stack Navigator de l'onglet actif :
-    // - nestedState existe (l'onglet a un Stack interne avec _layout.tsx)
-    // - Le Stack a plus d'1 écran dans son historique (routes.length > 1)
-    // - L'index actuel est > 0 (on n'est pas sur le premier écran)
     const activeRoute = state.routes[state.index];
     const nestedState = activeRoute.state;
     const canGoBack = !!(
@@ -131,18 +133,18 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
 
     return (
         <View style={styles.wrapper}>
+            {/* Bouton retour — pilule séparée à gauche */}
+            {canGoBack && (
+                <BackButton onPress={handleGoBack} />
+            )}
+
+            {/* Pilule principale — les onglets */}
             <BlurView
                 intensity={60}
                 tint="light"
                 style={styles.blurContainer}
             >
                 <View style={styles.container}>
-                    {/* Bouton retour conditionnel */}
-                    {canGoBack && (
-                        <BackButton onPress={handleGoBack} />
-                    )}
-
-                    {/* Les onglets */}
                     {state.routes.map((route, index) => {
                         const { options } = descriptors[route.key];
                         const isFocused = state.index === index;
@@ -194,13 +196,37 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
 }
 
 const styles = StyleSheet.create({
+    // Wrapper — flex row pour aligner bouton retour + pilule onglets
     wrapper: {
         position: 'absolute',
         bottom: Platform.OS === 'ios' ? 28 : 20,
         left: 0,
         right: 0,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
     },
+    // Pilule du bouton retour — séparée
+    backPill: {
+        borderRadius: 40,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 15,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255, 255, 255, 0.6)',
+    },
+    backButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    },
+    // Pilule principale des onglets
     blurContainer: {
         borderRadius: 40,
         overflow: 'hidden',
@@ -238,13 +264,5 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 4,
     },
-    // Bouton retour — même taille que les onglets pour l'harmonie
-    backButton: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 13,
-        borderRadius: 30,
-        marginRight: 2,
-    },
 });
+
