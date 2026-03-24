@@ -1,6 +1,6 @@
 # 📋 Documentation du Projet — tp-expo-project
 
-> **Dernière mise à jour** : 7 mars 2026  
+> **Dernière mise à jour** : 24 mars 2026  
 > **Stack technique** : React Native (Expo SDK 54) + Expo Router v6 + Gluestack UI v3 + NativeWind (TailwindCSS)
 
 ---
@@ -353,16 +353,23 @@ npm run reset-project
 
 2. **Imports** : Toujours utiliser `@/src/...` pour les fichiers dans `src/`.
 
-3. **Floating Tab Bar** : Ne jamais centrer avec `tabBarStyle` + `position: absolute` + `width` fixe → toujours utiliser le composant custom `FloatingTabBar`.
+3. **Floating Tab Bar & Liquid Glass (`expo-glass-effect`)** :
+   - **Piège de l'opacité** : Ne **JAMAIS** mettre `opacity: 0` sur un parent direct ou indirect de `<GlassView>`. C'est une limitation native d'Apple sur `UIVisualEffectView` : l'effet de verre est alors désactivé. Si besoin d'animer une apparition, utiliser `translateX` et `scale`.
+   - **Mise à jour iOS/Xcode** : L'API de Liquid Glass nécessite Xcode 26+ (Swift >= 6.2) pour compiler. Si l'effet ne marche pas (`isLiquidGlassAvailable()` retourne `false` sur iOS 26+), c'est souvent un problème de cache de build. Solution : `rm -rf ios/build ios/Pods && cd ios && pod install`, puis relancer le build.
+   - Toujours éviter de centrer avec `tabBarStyle` + `position: absolute` + `width` fixe → conserver le système actuel `FloatingTabBar`.
 
-4. **`paddingBottom` sur les pages** : Géré automatiquement dans `ParallaxScrollView` (100px). Si tu crées une page sans `ParallaxScrollView`, pense à ajouter le padding toi-même.
+4. **`paddingBottom` sur les pages** : Géré automatiquement dans `ParallaxScrollView` (100px). Si tu crées une page sans `ParallaxScrollView`, pense à ajouter le padding toi-même pour éviter que le contenu ne passe sous le FloatingTabBar.
 
-5. **Gluestack UI Provider** : Déclaré **une seule fois** dans `app/_layout.tsx`. Ne pas le re-déclarer dans les layouts enfants.
+5. **Scroll & `ParallaxScrollView`** : 
+   - Attention aux styles appliqués au conteneur enfant (le `content`). Mettre `overflow: 'hidden'` ou `flex: 1` sur ce conteneur à l'intérieur du ScrollView peut dans certains cas bloquer totalement le défilement naturel ou couper le contenu.
 
-6. **Icônes SF Symbols** : Chaque icône utilisée doit avoir son mapping dans `src/components/ui/icon-symbol.tsx` sinon elle sera invisible sur Android/Web.
+6. **Gluestack UI Provider** : Déclaré **une seule fois** dans `app/_layout.tsx`. Ne pas le re-déclarer dans les layouts enfants.
 
-7. **`headerShown: false`** : Utiliser uniquement sur les pages racines avec un header visuel custom. Sur les sous-pages, laisser `true` pour avoir le bouton retour natif.
+7. **Icônes SF Symbols** : Chaque icône utilisée doit avoir son mapping dans `src/components/ui/icon-symbol.tsx` sinon elle sera invisible sur Android/Web.
 
-8. **SafeAreaView** : Toujours importer depuis `react-native-safe-area-context` (✅) et jamais depuis `react-native` (❌ deprecated).
+8. **`headerShown: false`** : Utiliser uniquement sur les pages racines avec un header visuel custom. Sur les sous-pages, laisser `true` pour avoir le bouton retour natif.
 
-9. **Nommage des onglets avec sous-dossiers** : `name` dans `<Tabs.Screen>` = nom du **dossier** (`"profile"`) et non le chemin du fichier (`"profile/index"`).
+9. **SafeAreaView** : Toujours importer depuis `react-native-safe-area-context` (✅) et jamais depuis `react-native` (❌ deprecated).
+
+10. **Nommage des onglets avec sous-dossiers** : `name` dans `<Tabs.Screen>` = nom du **dossier** (`"profile"`) et non le chemin du fichier (`"profile/index"`).
+
