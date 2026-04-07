@@ -10,7 +10,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useRouter, useSegments } from 'expo-router';
 import React, { useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -34,6 +34,7 @@ function TabButton({
     onLongPress,
     accessibilityLabel,
     testID,
+    label,
     children,
 }: {
     isFocused: boolean;
@@ -41,6 +42,7 @@ function TabButton({
     onLongPress: () => void;
     accessibilityLabel?: string;
     testID?: string;
+    label?: string;
     children: React.ReactNode;
 }) {
     const scale = useSharedValue(1);
@@ -79,6 +81,16 @@ function TabButton({
             <Animated.View style={animatedIconStyle}>
                 {children}
             </Animated.View>
+
+            {/* Label sous l'icône */}
+            {label && (
+                <Text style={[
+                    styles.tabLabel,
+                    isFocused ? styles.tabLabelActive : styles.tabLabelInactive,
+                ]}>
+                    {label}
+                </Text>
+            )}
         </Pressable>
     );
 }
@@ -204,10 +216,11 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                         onLongPress={onLongPress}
                         accessibilityLabel={options.tabBarAccessibilityLabel}
                         testID={options.tabBarButtonTestID}
+                        label={options.title ?? route.name}
                     >
                         {options.tabBarIcon?.({
                             focused: isFocused,
-                            color: isFocused ? '#111' : '#A0A0A0',
+                            color: isFocused ? '#007AFF' : '#111',
                             size: 24,
                         })}
                     </TabButton>
@@ -312,8 +325,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 14,
-        paddingVertical: 13,
+        paddingTop: 10,
+        paddingBottom: 8,
         borderRadius: 30,
+        gap: 3,
+    },
+    tabLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 0.1,
+    },
+    tabLabelActive: {
+        color: '#007AFF',
+    },
+    tabLabelInactive: {
+        color: '#111',
     },
     activeBackground: {
         ...StyleSheet.absoluteFillObject,
