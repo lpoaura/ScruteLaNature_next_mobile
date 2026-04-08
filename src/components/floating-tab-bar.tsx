@@ -143,13 +143,15 @@ function BackButton({ onPress }: { onPress: () => void }) {
                 </GlassView>
             ) : (
                 // Fallback BlurView (iOS < 26, Android, Web)
-                <BlurView
-                    intensity={60}
-                    tint="light"
-                    style={styles.blurPill}
-                >
-                    {backContent}
-                </BlurView>
+                <View style={styles.shadowContainer}>
+                    <BlurView
+                        intensity={70}
+                        tint="light"
+                        style={styles.blurPill}
+                    >
+                        {backContent}
+                    </BlurView>
+                </View>
             )}
         </Animated.View>
     );
@@ -258,13 +260,15 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
             )}
 
             {/* Pilule principale — les onglets */}
-            <BlurView
-                intensity={60}
-                tint="light"
-                style={styles.blurPill}
-            >
-                {tabButtons}
-            </BlurView>
+            <View style={styles.shadowContainer}>
+                <BlurView
+                    intensity={70}
+                    tint="light"
+                    style={styles.blurPill}
+                >
+                    {tabButtons}
+                </BlurView>
+            </View>
         </View>
     );
 }
@@ -298,13 +302,17 @@ const styles = StyleSheet.create({
     blurPill: {
         borderRadius: 40,
         overflow: 'hidden',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(0, 0, 0, 0.15)', // Plus sombre pour mieux découper sur fond blanc
+    },
+    shadowContainer: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.15,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.12,
         shadowRadius: 20,
         elevation: 15,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255, 255, 255, 0.6)',
+        borderRadius: 40,
+        backgroundColor: 'transparent',
     },
 
     // ─── Contenu des onglets ───
