@@ -1,43 +1,47 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet, ScrollView } from 'react-native';
 
-import { ExternalLink } from '@/src/components/external-link';
-import ParallaxScrollView from '@/src/components/parallax-scroll-view';
+import { ScreenWrapper } from '@/src/components/screen-wrapper';
 import { ThemedText } from '@/src/components/themed-text';
 import { ThemedView } from '@/src/components/themed-view';
-import { Collapsible } from '@/src/components/ui/collapsible';
-import { IconSymbol } from '@/src/components/ui/icon-symbol';
 import { Fonts } from '@/src/theme/theme';
 import { Link } from 'expo-router';
 
 export default function ProfileScreen() {
   return (
-    <ParallaxScrollView
-          headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }} >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          PROFILE    
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Link href="/(tabs)/profile/seetings">seetings</Link>
-    </ParallaxScrollView>
+    <ScreenWrapper>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ThemedView style={styles.titleContainer}>
+          <ThemedText
+            type="title"
+            style={{
+              fontFamily: Fonts.rounded,
+            }}>
+            PROFILE    
+          </ThemedText>
+        </ThemedView>
+        
+        <ThemedText>This app includes example code to help you get started.</ThemedText>
+        
+        <Link href="/(tabs)/profile/seetings">
+          <ThemedText type="link" style={styles.linkText}>Go to settings (seetings)</ThemedText>
+        </Link>
+      </ScrollView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  scrollContent: {
+    padding: 32,
+    paddingBottom: 110,
+    gap: 16,
   },
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
   },
+  linkText: {
+    marginTop: 20,
+    fontSize: 16,
+  }
 });

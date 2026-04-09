@@ -1,10 +1,22 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { ScreenWrapper } from '@/src/components/screen-wrapper';
+import { ThemedText } from '@/src/components/themed-text';
 
 export default function SeetingsScreen() {
   return (
-    <SafeAreaView >
-      <Text>SeetingsScreen</Text>
-    </SafeAreaView>
+    <ScreenWrapper style={styles.container}>
+      <ThemedText type="title">Settings Screen</ThemedText>
+      <ThemedText>
+        Cette page montre que même sans ScrollView, les bordures 
+        et le mode sombre fonctionnent très bien avec le ScreenWrapper !
+      </ThemedText>
+    </ScreenWrapper>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 32,
+    gap: 16,
+  },
+});
