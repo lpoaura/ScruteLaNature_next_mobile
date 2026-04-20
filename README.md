@@ -1,51 +1,25 @@
-# Welcome to your Expo app 👋
+# Scrute La Nature - App Mobile 📱🦅
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Application mobile du projet "Scrute La Nature" pour la LPO, conçue spécialement pour fonctionner en pleine forêt, en mode **Hors-Ligne (Local-First)**.
 
-## Get started
+## 🛠️ Stack Technique
 
-1. Install dependencies
+- **Framework** : React Native & Expo
+- **Stockage Local** : `expo-sqlite` pour la mémorisation du jeu, des textes et de la file d'attente hors-ligne.
+- **Médias et Cartes** : `expo-file-system` pour la mise en cache des images, des sons, et des tuiles OpenStreetMap.
+- **Géolocalisation** : Déclencheurs natifs GPS "Triggers" à proximité des étapes de jeu (10 mètres).
 
-   ```bash
-   npm install
-   ```
+## 🧩 Fonctionnalités
 
-2. Start the app
+- **Téléchargement Hors-Ligne** : Possibilité de télécharger une balade intégrale avant de partir en forêt.
+- **Micro-Jeux** : Modules interactifs empilables (QCM, Charades, Code Caesar, Lecteur sonore de chants d'oiseaux).
+- **Sciences Participatives** : Prise de photos via l'appareil du téléphone et envois différés (Synchronisation) dès le retour du réseau 4G/Wifi.
+- **Gamification** : Profil explorateur, suivi de CO2 économisé, Points d'XP et badges (L'Herbier virtuel).
 
-   ```bash
-   npx expo start
-   ```
+## 🚀 Démarrage Rapide
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-# react-native-expo-started
+1. Assurez-vous d'avoir l'application [Expo Go](https://expo.dev/client) sur votre téléphone portable, ou d'avoir configuré le SDK Android/iOS sur votre machine.
+2. Clonez le projet.
+3. Installez les dépendances : `npm install`
+4. Démarrez l'application localement sur votre terminal : `npx expo start`
+5. Scannez le QR Code depuis votre application mobile (ou lancez l'émulateur avec la touche 'i' ou 'a').
