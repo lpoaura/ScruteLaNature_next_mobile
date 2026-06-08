@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "tp-expo-project",
-    "slug": "tp-expo-project",
+    "name": "Scrute La Nature",
+    "slug": "scrute-la-nature",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tpexpoproject",
+    "scheme": "scrutelanature",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.tp-expo-project"
+      "bundleIdentifier": "fr.lpo.scrutelanature"
     },
     "android": {
       "adaptiveIcon": {
@@ -39,7 +39,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

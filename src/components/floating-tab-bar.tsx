@@ -9,10 +9,9 @@ import {
 } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
 import { useRouter, useSegments } from 'expo-router';
-import React, { useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { LayoutChangeEvent, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
-import { Colors } from '@/src/theme/theme';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -29,11 +28,27 @@ if (!USE_GLASS && Platform.OS === 'ios') {
     console.warn('⚠️ Liquid Glass non disponible sur iOS. Vérifiez que l\'app est compilée avec Xcode 26+ (Swift >= 6.2) et que l\'iPhone tourne sous iOS 26+.');
 }
 
+// Palette façon App Store iOS : bleu actif, items inactifs quasi-noirs,
+// pilule active gris translucide (et non blanc vif).
+const TAB_COLORS = {
+    light: {
+        active: '#007AFF',                        // bleu iOS
+        inactive: '#1C1C1E',                      // quasi-noir (label / icône)
+        activePill: 'rgba(120, 120, 128, 0.16)',  // gris translucide système
+    },
+    dark: {
+        active: '#0A84FF',                        // bleu iOS (mode sombre)
+        inactive: '#EBEBF5',                      // blanc cassé
+        activePill: 'rgba(255, 255, 255, 0.14)',  // surbrillance discrète
+    },
+};
+
 // Composant animé pour chaque bouton d'onglet
 function TabButton({
     isFocused,
     onPress,
     onLongPress,
+    onLayout,
     accessibilityLabel,
     testID,
     label,
@@ -42,6 +57,7 @@ function TabButton({
     isFocused: boolean;
     onPress: () => void;
     onLongPress: () => void;
+    onLayout?: (e: LayoutChangeEvent) => void;
     accessibilityLabel?: string;
     testID?: string;
     label?: string;
@@ -49,25 +65,20 @@ function TabButton({
 }) {
     const colorScheme = useColorScheme() ?? 'light';
     const isDark = colorScheme === 'dark';
-    const themeColors = Colors[colorScheme];
+    const tabColors = TAB_COLORS[isDark ? 'dark' : 'light'];
 
     const scale = useSharedValue(1);
-    const bgOpacity = useSharedValue(0);
 
     useEffect(() => {
-        scale.value = withSpring(isFocused ? 1.15 : 1, {
-            damping: 12,
-            stiffness: 180,
+        // Pop d'icône très léger façon App Store (pas de gros zoom)
+        scale.value = withSpring(isFocused ? 1.06 : 1, {
+            damping: 14,
+            stiffness: 200,
         });
-        bgOpacity.value = withTiming(isFocused ? 1 : 0, { duration: 200 });
     }, [isFocused]);
 
     const animatedIconStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
-    }));
-
-    const animatedBgStyle = useAnimatedStyle(() => ({
-        opacity: bgOpacity.value,
     }));
 
     return (
@@ -78,15 +89,9 @@ function TabButton({
             testID={testID}
             onPress={onPress}
             onLongPress={onLongPress}
+            onLayout={onLayout}
             style={styles.tabButton}
         >
-            {/* Fond animé dynamique (sombre/clair) selon le thème */}
-            <Animated.View style={[
-                styles.activeBackground, 
-                { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.85)' },
-                animatedBgStyle
-            ]} />
-
             {/* Icône animée avec scale spring */}
             <Animated.View style={animatedIconStyle}>
                 {children}
@@ -96,7 +101,7 @@ function TabButton({
             {label && (
                 <Text style={[
                     styles.tabLabel,
-                    isFocused ? { color: themeColors.tint } : { color: themeColors.icon },
+                    isFocused ? { color: tabColors.active } : { color: tabColors.inactive },
                 ]}>
                     {label}
                 </Text>
@@ -175,7 +180,48 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     const segments = useSegments();
     const colorScheme = useColorScheme() ?? 'light';
     const isDark = colorScheme === 'dark';
-    const themeColors = Colors[colorScheme];
+    const tabColors = TAB_COLORS[isDark ? 'dark' : 'light'];
+
+    // ─── Indicateur actif unique qui glisse horizontalement (translateX) ───
+    // On mesure la position/largeur de chaque onglet, puis UNE seule pilule se
+    // déplace vers l'onglet actif via un spring (pas de fondu disparaître/réapparaître).
+    const [tabLayouts, setTabLayouts] = useState<Record<number, { x: number; width: number }>>({});
+    const indicatorX = useSharedValue(0);
+    const indicatorWidth = useSharedValue(0);
+    const indicatorOpacity = useSharedValue(0);
+    const hasPositioned = useRef(false);
+
+    const handleTabLayout = useCallback((index: number, e: LayoutChangeEvent) => {
+        const { x, width } = e.nativeEvent.layout;
+        setTabLayouts((prev) => {
+            const cur = prev[index];
+            if (cur && cur.x === x && cur.width === width) return prev;
+            return { ...prev, [index]: { x, width } };
+        });
+    }, []);
+
+    useEffect(() => {
+        const layout = tabLayouts[state.index];
+        if (!layout) return;
+        // Spring fluide façon « verre » : glisse sans rebond excessif
+        const config = { damping: 18, stiffness: 200, mass: 0.9 };
+        if (!hasPositioned.current) {
+            // Premier rendu : on place la pilule directement (sans glissement depuis 0)
+            indicatorX.value = layout.x;
+            indicatorWidth.value = layout.width;
+            indicatorOpacity.value = withTiming(1, { duration: 180 });
+            hasPositioned.current = true;
+        } else {
+            indicatorX.value = withSpring(layout.x, config);
+            indicatorWidth.value = withSpring(layout.width, config);
+        }
+    }, [state.index, tabLayouts]);
+
+    const indicatorStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: indicatorX.value }],
+        width: indicatorWidth.value,
+        opacity: indicatorOpacity.value,
+    }));
 
     const activeRoute = state.routes[state.index];
     const nestedState = activeRoute.state;
@@ -198,6 +244,16 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
             styles.container,
             !USE_GLASS && (isDark ? styles.containerFallbackBgDark : styles.containerFallbackBg),
         ]}>
+            {/* Indicateur actif unique — glisse vers l'onglet sélectionné (translateX + spring) */}
+            <Animated.View
+                pointerEvents="none"
+                style={[
+                    styles.slidingIndicator,
+                    { backgroundColor: tabColors.activePill },
+                    indicatorStyle,
+                ]}
+            />
+
             {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
                 const isFocused = state.index === index;
@@ -231,13 +287,14 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                         isFocused={isFocused}
                         onPress={onPress}
                         onLongPress={onLongPress}
+                        onLayout={(e) => handleTabLayout(index, e)}
                         accessibilityLabel={options.tabBarAccessibilityLabel}
                         testID={options.tabBarButtonTestID}
                         label={options.title ?? route.name}
                     >
                         {options.tabBarIcon?.({
                             focused: isFocused,
-                            color: isFocused ? themeColors.tint : themeColors.icon,
+                            color: isFocused ? tabColors.active : tabColors.inactive,
                             size: 24,
                         })}
                     </TabButton>
@@ -377,16 +434,15 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         letterSpacing: 0.1,
     },
-    // tabLabelActive et tabLabelInactive supprimés : on utilise le hook dynamique themeColors.tint / icon
-    activeBackground: {
-        ...StyleSheet.absoluteFillObject,
-        // backgroundColor défini dynamiquement selon isDark dans <Animated.View>
-        borderRadius: 30,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 4,
+    // Indicateur actif unique : capsule qui glisse (translateX) vers l'onglet actif.
+    // Positionné en absolu dans la pilule de verre, légèrement plus opaque que le fond.
+    slidingIndicator: {
+        position: 'absolute',
+        left: 0,
+        top: 6,      // = container paddingVertical
+        bottom: 6,   // = container paddingVertical
+        borderRadius: 30, // capsule (>= demi-hauteur)
+        // backgroundColor défini dynamiquement via tabColors.activePill dans <Animated.View>
     },
     backButton: {
         alignItems: 'center',
