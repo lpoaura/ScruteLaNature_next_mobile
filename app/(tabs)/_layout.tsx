@@ -14,7 +14,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Accueil',
           tabBarIcon: ({ color, size }) => (
             <IconSymbol size={size} name="house.fill" color={color} />
           ),
@@ -23,27 +23,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: 'search',
+          title: 'Carte',
           tabBarIcon: ({ color, size }) => (
-            <IconSymbol size={size} name="magnifyingglass" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color, size }) => (
-            <IconSymbol size={size} name="paperplane.fill" color={color} />
+            <IconSymbol size={size} name="map.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: 'Profil',
           tabBarIcon: ({ color, size }) => (
-            <IconSymbol size={size} name="person" color={color} />
+            <IconSymbol size={size} name="person.fill" color={color} />
           ),
         }}
       />

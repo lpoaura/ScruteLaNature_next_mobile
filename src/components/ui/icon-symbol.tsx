@@ -22,6 +22,11 @@ const MAPPING = {
   'person.fill': 'person',
   'person.2.badge': 'people',
   'person': 'person',
+  'map.fill': 'map',
+  'cloud.fill': 'cloud',
+  'checkmark.circle.fill': 'check-circle',
+  'play.fill': 'play-arrow',
+  'star.fill': 'star',
 } as IconMapping;
 
 /**

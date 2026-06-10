@@ -1,0 +1,167 @@
+// expo-file-system v19 a renommé l'API classique dans le sous-module /legacy
+import * as FileSystem from 'expo-file-system/legacy';
+import { API_BASE_URL } from '@/src/constants/config';
+
+// ─── Répertoires de base ──────────────────────────────────────────────────────
+
+const BASE_DIR = FileSystem.documentDirectory ?? 'file:///';
+
+/**
+ * Retourne le chemin du dossier local d'un parcours téléchargé.
+ * Structure : {documentDirectory}/parcours/{parcoursId}/
+ */
+export function getParcoursDir(parcoursId: string): string {
+  return `${BASE_DIR}parcours/${parcoursId}/`;
+}
+
+/**
+ * Retourne le chemin du dossier local des observations photo.
+ * Structure : {documentDirectory}/observations/
+ */
+export function getObservationsDir(): string {
+  return `${BASE_DIR}observations/`;
+}
+
+// ─── Utilitaires ──────────────────────────────────────────────────────────────
+
+/**
+ * Crée un répertoire s'il n'existe pas encore (avec parents).
+ */
+export async function ensureDir(dirPath: string): Promise<void> {
+  const info = await FileSystem.getInfoAsync(dirPath);
+  if (!info.exists) {
+    await FileSystem.makeDirectoryAsync(dirPath, { intermediates: true });
+  }
+}
+
+/**
+ * Résout une URL de média : si relative, la préfixe avec l'API_BASE_URL.
+ */
+export function resolveMediaUrl(url: string): string {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+/**
+ * Extrait l'extension d'une URL de fichier (ignore les query params).
+ */
+function getExtension(url: string, fallback: string): string {
+  const cleanUrl = url.split('?')[0];
+  const parts = cleanUrl.split('.');
+  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : fallback;
+}
+
+// ─── Téléchargement de médias ─────────────────────────────────────────────────
+
+/**
+ * Télécharge un fichier média (image ou audio) dans le dossier local du parcours.
+ *
+ * - Si le fichier existe déjà localement → retourne son URI sans re-télécharger
+ * - Sinon → télécharge depuis le backend et sauvegarde localement
+ *
+ * @param url        URL du fichier (relative ou absolue)
+ * @param parcoursId Id du parcours (organisation en sous-dossiers)
+ * @param filename   Nom du fichier local (ex: "image_jeu123.jpg")
+ * @returns URI local du fichier
+ */
+export async function downloadMedia(
+  url: string,
+  parcoursId: string,
+  filename: string
+): Promise<string> {
+  const dir = getParcoursDir(parcoursId);
+  await ensureDir(dir);
+
+  const localPath = `${dir}${filename}`;
+
+  // Vérifier si déjà téléchargé → évite les re-téléchargements inutiles
+  const info = await FileSystem.getInfoAsync(localPath);
+  if (info.exists) return localPath;
+
+  const resolvedUrl = resolveMediaUrl(url);
+  const result = await FileSystem.downloadAsync(resolvedUrl, localPath);
+
+  if (result.status !== 200) {
+    throw new Error(`Échec téléchargement (${result.status}): ${resolvedUrl}`);
+  }
+
+  return result.uri;
+}
+
+/**
+ * Télécharge l'image de couverture d'un parcours.
+ * Retourne l'URI local ou null si pas de coverImage.
+ */
+export async function downloadCoverImage(
+  coverImageUrl: string | undefined,
+  parcoursId: string
+): Promise<string | null> {
+  if (!coverImageUrl) return null;
+  const ext = getExtension(coverImageUrl, 'jpg');
+  const filename = `cover.${ext}`;
+  return downloadMedia(coverImageUrl, parcoursId, filename);
+}
+
+/**
+ * Génère un nom de fichier local unique pour un jeu.
+ */
+export function getMediaFilename(
+  jeuId: string,
+  type: 'image' | 'audio',
+  url: string
+): string {
+  const ext = getExtension(url, type === 'audio' ? 'mp3' : 'jpg');
+  return `${type}_${jeuId}.${ext}`;
+}
+
+// ─── Gestion du stockage ──────────────────────────────────────────────────────
+
+/**
+ * Supprime tous les fichiers locaux d'un parcours (images, audios).
+ * À appeler quand l'utilisateur supprime un parcours téléchargé.
+ */
+export async function deleteParcoursFiles(parcoursId: string): Promise<void> {
+  const dir = getParcoursDir(parcoursId);
+  const info = await FileSystem.getInfoAsync(dir);
+  if (info.exists) {
+    await FileSystem.deleteAsync(dir, { idempotent: true });
+  }
+}
+
+/**
+ * Calcule la taille totale des fichiers d'un parcours (en octets).
+ */
+export async function getParcoursFilesSize(parcoursId: string): Promise<number> {
+  const dir = getParcoursDir(parcoursId);
+  const info = await FileSystem.getInfoAsync(dir);
+  if (!info.exists) return 0;
+
+  const files = await FileSystem.readDirectoryAsync(dir);
+  let totalSize = 0;
+
+  for (const file of files) {
+    const fileInfo = await FileSystem.getInfoAsync(`${dir}${file}`);
+    if (fileInfo.exists && 'size' in fileInfo && fileInfo.size) {
+      totalSize += fileInfo.size;
+    }
+  }
+
+  return totalSize;
+}
+
+/**
+ * Sauvegarde une photo d'observation dans le dossier local.
+ * Retourne l'URI local du fichier.
+ */
+export async function saveObservationPhoto(
+  sourceUri: string,
+  syncId: string
+): Promise<string> {
+  const dir = getObservationsDir();
+  await ensureDir(dir);
+  const localPath = `${dir}${syncId}.jpg`;
+  await FileSystem.copyAsync({ from: sourceUri, to: localPath });
+  return localPath;
+}

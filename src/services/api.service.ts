@@ -40,15 +40,26 @@ async function refreshAccessToken(): Promise<string> {
 
   const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${refreshToken}`,
+    },
   });
 
   if (!response.ok) throw new Error('Token refresh failed');
 
   const data = await response.json();
-  _onTokenRefreshed?.(data.accessToken, data.refreshToken);
-  return data.accessToken;
+
+  // Le backend renvoie { access_token, refresh_token } en snake_case
+  const newAccessToken: string | undefined = data.access_token;
+  const newRefreshToken: string | undefined = data.refresh_token;
+
+  if (!newAccessToken || !newRefreshToken) {
+    throw new Error('Invalid refresh response: missing tokens');
+  }
+
+  _onTokenRefreshed?.(newAccessToken, newRefreshToken);
+  return newAccessToken;
 }
 
 // ─── Fonction de requête principale ──────────────────────────────────────────

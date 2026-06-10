@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Linking from 'expo-linking';
 import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { GluestackUIProvider } from '@/src/components/ui/gluestack-ui-provider';
@@ -30,15 +31,21 @@ function AuthGuard() {
   useEffect(() => {
     if (!isInitialized) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
+    // Utilisation de setTimeout pour éviter les conflits de cycle de rendu avec React Navigation
+    // qui peuvent causer l'erreur "Couldn't find a navigation context".
+    const timeout = setTimeout(() => {
+      const inAuthGroup = segments[0] === '(auth)';
 
-    if (isAuthenticated && inAuthGroup) {
-      // Connecté mais sur une page auth → aller sur les tabs
-      router.replace('/(tabs)');
-    } else if (!isAuthenticated && !inAuthGroup) {
-      // Non connecté et pas sur une page auth → aller sur login
-      router.replace('/(auth)/login');
-    }
+      if (isAuthenticated && inAuthGroup) {
+        // Connecté mais sur une page auth → aller sur les tabs
+        router.replace('/(tabs)');
+      } else if (!isAuthenticated && !inAuthGroup) {
+        // Non connecté et pas sur une page auth → aller sur login
+        router.replace('/(auth)/login');
+      }
+    }, 0);
+
+    return () => clearTimeout(timeout);
   }, [isAuthenticated, isInitialized, segments]);
 
   return null;
@@ -85,21 +92,30 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GluestackUIProvider mode="light">
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AuthGuard />
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="light" />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <GluestackUIProvider mode="light">
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <AuthGuard />
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="parcours/[id]"
+              options={{
+                headerShown: false,
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style="light" />
 
-        {/* Écran de démarrage animé — affiché par-dessus tout */}
-        {showSplash && (
-          <AppSplashScreen onFinished={() => setShowSplash(false)} />
-        )}
-      </ThemeProvider>
-    </GluestackUIProvider>
+          {/* Écran de démarrage animé — affiché par-dessus tout */}
+          {showSplash && (
+            <AppSplashScreen onFinished={() => setShowSplash(false)} />
+          )}
+        </ThemeProvider>
+      </GluestackUIProvider>
+    </GestureHandlerRootView>
   );
 }

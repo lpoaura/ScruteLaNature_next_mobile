@@ -93,11 +93,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({ isLoading: true });
       try {
         const response = await authService.login(payload);
-        await _persistAuth(response.accessToken, response.refreshToken, response.user);
+        await _persistAuth(response.access_token, response.refresh_token, response.user);
         set({
           user: response.user,
-          accessToken: response.accessToken,
-          refreshToken: response.refreshToken,
+          accessToken: response.access_token,
+          refreshToken: response.refresh_token,
           isGuest: false,
           isAuthenticated: true,
           isLoading: false,
@@ -113,11 +113,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({ isLoading: true });
       try {
         const response = await authService.loginAsGuest();
-        await _persistAuth(response.accessToken, response.refreshToken, response.user);
+        await _persistAuth(response.access_token, response.refresh_token, response.user);
         set({
           user: response.user,
-          accessToken: response.accessToken,
-          refreshToken: response.refreshToken,
+          accessToken: response.access_token,
+          refreshToken: response.refresh_token,
           isGuest: true,
           isAuthenticated: true,
           isLoading: false,
@@ -135,11 +135,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
         const response = await authService.register(payload);
         // Après inscription, l'utilisateur doit vérifier son email
         // On stocke quand même ses tokens pour qu'il puisse naviguer
-        await _persistAuth(response.accessToken, response.refreshToken, response.user);
+        await _persistAuth(response.access_token, response.refresh_token, response.user);
         set({
           user: response.user,
-          accessToken: response.accessToken,
-          refreshToken: response.refreshToken,
+          accessToken: response.access_token,
+          refreshToken: response.refresh_token,
           isGuest: false,
           isAuthenticated: true,
           isLoading: false,
@@ -188,6 +188,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
 
     setTokens: (accessToken: string, refreshToken: string) => {
+      // Protection : SecureStore exige des strings non-vides
+      if (!accessToken || !refreshToken) {
+        console.warn('setTokens appelé avec des valeurs invalides, ignoré.', { accessToken: !!accessToken, refreshToken: !!refreshToken });
+        return;
+      }
       saveSecure(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
       saveSecure(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       set({ accessToken, refreshToken });
