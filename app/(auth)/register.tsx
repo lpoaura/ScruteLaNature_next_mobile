@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -12,10 +13,12 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/src/store/auth.store';
 
 const GREEN = '#2D6A4F';
 const ERROR_COLOR = '#C62828';
+const RGPD_URL = 'https://auvergne-rhone-alpes.lpo.fr/projets/scrute-la-nature-politique-de-confidentialite/';
 
 // ─── Validation locale ────────────────────────────────────────────────────────
 
@@ -26,6 +29,29 @@ function validateEmail(email: string): boolean {
 function validatePassword(password: string): string | null {
   if (password.length < 8) return 'Le mot de passe doit faire au moins 8 caractères.';
   return null;
+}
+
+// ─── Composant Checkbox ───────────────────────────────────────────────────────
+
+function Checkbox({
+  checked,
+  onChange,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={() => !disabled && onChange(!checked)}
+      style={[styles.checkbox, checked && styles.checkboxChecked]}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+    >
+      {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
+    </Pressable>
+  );
 }
 
 // ─── Écran d'inscription ──────────────────────────────────────────────────────
@@ -39,6 +65,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [rgpdAccepted, setRgpdAccepted] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
@@ -67,9 +94,18 @@ export default function RegisterScreen() {
       setError('Les mots de passe ne correspondent pas.');
       return;
     }
+    if (!rgpdAccepted) {
+      setError('Vous devez accepter la politique de confidentialité pour créer un compte.');
+      return;
+    }
 
     try {
-      await register({ email: email.trim().toLowerCase(), password, pseudo: pseudo.trim() });
+      await register({
+        email: email.trim().toLowerCase(),
+        password,
+        pseudo: pseudo.trim(),
+        rgpdAccepted: true,
+      });
       setSuccess(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
@@ -123,6 +159,7 @@ export default function RegisterScreen() {
         {/* Erreur */}
         {error ? (
           <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle-outline" size={16} color={ERROR_COLOR} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
@@ -191,8 +228,35 @@ export default function RegisterScreen() {
             />
           </View>
 
+          {/* ── Consentement RGPD ── */}
           <Pressable
-            style={[styles.submitButton, isLoading && styles.buttonDisabled]}
+            style={styles.rgpdRow}
+            onPress={() => !isLoading && setRgpdAccepted((v) => !v)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: rgpdAccepted }}
+          >
+            <Checkbox
+              checked={rgpdAccepted}
+              onChange={setRgpdAccepted}
+              disabled={isLoading}
+            />
+            <Text style={styles.rgpdText}>
+              J'ai lu et j'accepte la{' '}
+              <Text
+                style={styles.rgpdLink}
+                onPress={() => Linking.openURL(RGPD_URL)}
+              >
+                politique de confidentialité
+              </Text>{' '}
+              de Scrute La Nature (LPO).
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.submitButton,
+              (isLoading || !rgpdAccepted) && styles.buttonDisabled,
+            ]}
             onPress={handleRegister}
             disabled={isLoading}
           >
@@ -223,14 +287,21 @@ const styles = StyleSheet.create({
   backText: { color: GREEN, fontSize: 15, fontWeight: '500' },
   title: { fontSize: 26, fontWeight: '700', color: '#111' },
   subtitle: { fontSize: 15, color: '#666', lineHeight: 22 },
+
+  // Erreur
   errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: '#FFEBEE',
     borderRadius: 10,
     padding: 12,
     borderLeftWidth: 3,
     borderLeftColor: ERROR_COLOR,
   },
-  errorText: { color: ERROR_COLOR, fontSize: 14 },
+  errorText: { color: ERROR_COLOR, fontSize: 14, flex: 1 },
+
+  // Formulaire
   form: { gap: 14, marginTop: 8 },
   fieldGroup: { gap: 6 },
   label: { fontSize: 14, fontWeight: '600', color: '#333' },
@@ -244,6 +315,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111',
   },
+
+  // RGPD
+  rgpdRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginTop: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#BDBDBD',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+    backgroundColor: '#fff',
+    flexShrink: 0,
+  },
+  checkboxChecked: {
+    backgroundColor: GREEN,
+    borderColor: GREEN,
+  },
+  rgpdText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 20,
+  },
+  rgpdLink: {
+    color: GREEN,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+
+  // Bouton
   submitButton: {
     height: 54,
     backgroundColor: GREEN,
@@ -253,11 +361,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   submitButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  buttonDisabled: { opacity: 0.6 },
+  buttonDisabled: { opacity: 0.5 },
+
+  // Connexion
   loginRow: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
   loginText: { color: '#666', fontSize: 15 },
   loginLink: { color: GREEN, fontSize: 15, fontWeight: '600' },
-  // ─── Succès ──────────────────────────────────────────────────────
+
+  // Succès
   successContainer: {
     flex: 1,
     backgroundColor: '#FAFAFA',

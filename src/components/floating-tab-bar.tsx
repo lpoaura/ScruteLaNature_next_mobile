@@ -9,9 +9,8 @@ import {
 } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
 import { useRouter, useSegments } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { LayoutChangeEvent, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useColorScheme } from '@/src/hooks/use-color-scheme';
+import React, { useEffect } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -28,27 +27,11 @@ if (!USE_GLASS && Platform.OS === 'ios') {
     console.warn('⚠️ Liquid Glass non disponible sur iOS. Vérifiez que l\'app est compilée avec Xcode 26+ (Swift >= 6.2) et que l\'iPhone tourne sous iOS 26+.');
 }
 
-// Palette façon App Store iOS : bleu actif, items inactifs quasi-noirs,
-// pilule active gris translucide (et non blanc vif).
-const TAB_COLORS = {
-    light: {
-        active: '#007AFF',                        // bleu iOS
-        inactive: '#1C1C1E',                      // quasi-noir (label / icône)
-        activePill: 'rgba(120, 120, 128, 0.16)',  // gris translucide système
-    },
-    dark: {
-        active: '#0A84FF',                        // bleu iOS (mode sombre)
-        inactive: '#EBEBF5',                      // blanc cassé
-        activePill: 'rgba(255, 255, 255, 0.14)',  // surbrillance discrète
-    },
-};
-
 // Composant animé pour chaque bouton d'onglet
 function TabButton({
     isFocused,
     onPress,
     onLongPress,
-    onLayout,
     accessibilityLabel,
     testID,
     label,
@@ -57,28 +40,28 @@ function TabButton({
     isFocused: boolean;
     onPress: () => void;
     onLongPress: () => void;
-    onLayout?: (e: LayoutChangeEvent) => void;
     accessibilityLabel?: string;
     testID?: string;
     label?: string;
     children: React.ReactNode;
 }) {
-    const colorScheme = useColorScheme() ?? 'light';
-    const isDark = colorScheme === 'dark';
-    const tabColors = TAB_COLORS[isDark ? 'dark' : 'light'];
-
     const scale = useSharedValue(1);
+    const bgOpacity = useSharedValue(0);
 
     useEffect(() => {
-        // Pop d'icône très léger façon App Store (pas de gros zoom)
-        scale.value = withSpring(isFocused ? 1.06 : 1, {
-            damping: 14,
-            stiffness: 200,
+        scale.value = withSpring(isFocused ? 1.15 : 1, {
+            damping: 12,
+            stiffness: 180,
         });
+        bgOpacity.value = withTiming(isFocused ? 1 : 0, { duration: 200 });
     }, [isFocused]);
 
     const animatedIconStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
+    }));
+
+    const animatedBgStyle = useAnimatedStyle(() => ({
+        opacity: bgOpacity.value,
     }));
 
     return (
@@ -89,9 +72,11 @@ function TabButton({
             testID={testID}
             onPress={onPress}
             onLongPress={onLongPress}
-            onLayout={onLayout}
             style={styles.tabButton}
         >
+            {/* Fond animé de l'onglet actif */}
+            <Animated.View style={[styles.activeBackground, animatedBgStyle]} />
+
             {/* Icône animée avec scale spring */}
             <Animated.View style={animatedIconStyle}>
                 {children}
@@ -101,7 +86,7 @@ function TabButton({
             {label && (
                 <Text style={[
                     styles.tabLabel,
-                    isFocused ? { color: tabColors.active } : { color: tabColors.inactive },
+                    isFocused ? styles.tabLabelActive : styles.tabLabelInactive,
                 ]}>
                     {label}
                 </Text>
@@ -115,9 +100,6 @@ function TabButton({
 // cela désactive complètement l'effet glass natif (limitation UIVisualEffectView d'Apple).
 // On utilise translateX + scale pour l'animation d'entrée à la place.
 function BackButton({ onPress }: { onPress: () => void }) {
-    const colorScheme = useColorScheme() ?? 'light';
-    const isDark = colorScheme === 'dark';
-    
     const scale = useSharedValue(0.3);
     const translateX = useSharedValue(-20);
 
@@ -143,12 +125,12 @@ function BackButton({ onPress }: { onPress: () => void }) {
             }}
             style={[
                 styles.backButton,
-                !USE_GLASS && (isDark ? styles.backButtonFallbackBgDark : styles.backButtonFallbackBg),
+                !USE_GLASS && styles.backButtonFallbackBg,
             ]}
             accessibilityRole="button"
             accessibilityLabel="Retour"
         >
-            <MaterialIcons name="chevron-left" size={28} color={isDark ? '#FFF' : '#111'} />
+            <MaterialIcons name="chevron-left" size={28} color="#111" />
         </Pressable>
     );
 
@@ -161,11 +143,11 @@ function BackButton({ onPress }: { onPress: () => void }) {
                 </GlassView>
             ) : (
                 // Fallback BlurView (iOS < 26, Android, Web)
-                <View style={[styles.shadowContainer, isDark && styles.shadowContainerDark]}>
+                <View style={styles.shadowContainer}>
                     <BlurView
                         intensity={70}
-                        tint={isDark ? 'dark' : 'light'}
-                        style={[styles.blurPill, isDark && styles.blurPillDark]}
+                        tint="light"
+                        style={styles.blurPill}
                     >
                         {backContent}
                     </BlurView>
@@ -178,50 +160,6 @@ function BackButton({ onPress }: { onPress: () => void }) {
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     const router = useRouter();
     const segments = useSegments();
-    const colorScheme = useColorScheme() ?? 'light';
-    const isDark = colorScheme === 'dark';
-    const tabColors = TAB_COLORS[isDark ? 'dark' : 'light'];
-
-    // ─── Indicateur actif unique qui glisse horizontalement (translateX) ───
-    // On mesure la position/largeur de chaque onglet, puis UNE seule pilule se
-    // déplace vers l'onglet actif via un spring (pas de fondu disparaître/réapparaître).
-    const [tabLayouts, setTabLayouts] = useState<Record<number, { x: number; width: number }>>({});
-    const indicatorX = useSharedValue(0);
-    const indicatorWidth = useSharedValue(0);
-    const indicatorOpacity = useSharedValue(0);
-    const hasPositioned = useRef(false);
-
-    const handleTabLayout = useCallback((index: number, e: LayoutChangeEvent) => {
-        const { x, width } = e.nativeEvent.layout;
-        setTabLayouts((prev) => {
-            const cur = prev[index];
-            if (cur && cur.x === x && cur.width === width) return prev;
-            return { ...prev, [index]: { x, width } };
-        });
-    }, []);
-
-    useEffect(() => {
-        const layout = tabLayouts[state.index];
-        if (!layout) return;
-        // Spring fluide façon « verre » : glisse sans rebond excessif
-        const config = { damping: 18, stiffness: 200, mass: 0.9 };
-        if (!hasPositioned.current) {
-            // Premier rendu : on place la pilule directement (sans glissement depuis 0)
-            indicatorX.value = layout.x;
-            indicatorWidth.value = layout.width;
-            indicatorOpacity.value = withTiming(1, { duration: 180 });
-            hasPositioned.current = true;
-        } else {
-            indicatorX.value = withSpring(layout.x, config);
-            indicatorWidth.value = withSpring(layout.width, config);
-        }
-    }, [state.index, tabLayouts]);
-
-    const indicatorStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: indicatorX.value }],
-        width: indicatorWidth.value,
-        opacity: indicatorOpacity.value,
-    }));
 
     const activeRoute = state.routes[state.index];
     const nestedState = activeRoute.state;
@@ -239,21 +177,12 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         }
     };
 
+    // Contenu des onglets (partagé entre les deux rendus)
     const tabButtons = (
         <View style={[
             styles.container,
-            !USE_GLASS && (isDark ? styles.containerFallbackBgDark : styles.containerFallbackBg),
+            !USE_GLASS && styles.containerFallbackBg,
         ]}>
-            {/* Indicateur actif unique — glisse vers l'onglet sélectionné (translateX + spring) */}
-            <Animated.View
-                pointerEvents="none"
-                style={[
-                    styles.slidingIndicator,
-                    { backgroundColor: tabColors.activePill },
-                    indicatorStyle,
-                ]}
-            />
-
             {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
                 const isFocused = state.index === index;
@@ -287,14 +216,13 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                         isFocused={isFocused}
                         onPress={onPress}
                         onLongPress={onLongPress}
-                        onLayout={(e) => handleTabLayout(index, e)}
                         accessibilityLabel={options.tabBarAccessibilityLabel}
                         testID={options.tabBarButtonTestID}
                         label={options.title ?? route.name}
                     >
                         {options.tabBarIcon?.({
                             focused: isFocused,
-                            color: isFocused ? tabColors.active : tabColors.inactive,
+                            color: isFocused ? '#007AFF' : '#111',
                             size: 24,
                         })}
                     </TabButton>
@@ -306,7 +234,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     // ─── Rendu Liquid Glass (iOS 26+) ───
     if (USE_GLASS) {
         return (
-            <View style={styles.wrapper} pointerEvents="box-none">
+            <View style={styles.wrapper}>
                 {/* GlassContainer regroupe les GlassView pour l'effet de fusion */}
                 <GlassContainer spacing={12} style={styles.glassWrapper}>
                     {/* Bouton retour — pilule glass séparée */}
@@ -325,18 +253,18 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
 
     // ─── Rendu Fallback BlurView (iOS < 26, Android, Web) ───
     return (
-        <View style={styles.wrapper} pointerEvents="box-none">
+        <View style={styles.wrapper}>
             {/* Bouton retour — pilule séparée */}
             {canGoBack && (
                 <BackButton onPress={handleGoBack} />
             )}
 
             {/* Pilule principale — les onglets */}
-            <View style={[styles.shadowContainer, isDark && styles.shadowContainerDark]}>
+            <View style={styles.shadowContainer}>
                 <BlurView
                     intensity={70}
-                    tint={isDark ? 'dark' : 'light'}
-                    style={[styles.blurPill, isDark && styles.blurPillDark]}
+                    tint="light"
+                    style={styles.blurPill}
                 >
                     {tabButtons}
                 </BlurView>
@@ -350,11 +278,8 @@ const styles = StyleSheet.create({
     wrapper: {
         position: 'absolute',
         bottom: Platform.OS === 'ios' ? 28 : 20,
-        // Centrage absolu intelligent et responsive au lieu de left/right: 0
-        alignSelf: 'center',
-        width: '100%',
-        maxWidth: 500, // Sur iPad/Web, ça ne dépassera pas 420px de large
-        paddingHorizontal: 20, // Sur petit écran, garantit une marge sur les côtés
+        left: 0,
+        right: 0,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -380,10 +305,6 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(0, 0, 0, 0.15)', // Plus sombre pour mieux découper sur fond blanc
     },
-    blurPillDark: {
-        borderColor: 'rgba(255, 255, 255, 0.1)', // Bordure très discrète en Dark Mode
-        backgroundColor: 'rgba(0, 0, 0, 0.3)', // Fond de base plus assombri pour ressortir du fond
-    },
     shadowContainer: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 10 },
@@ -393,11 +314,6 @@ const styles = StyleSheet.create({
         borderRadius: 40,
         backgroundColor: 'transparent',
     },
-    shadowContainerDark: {
-        shadowColor: '#000',
-        shadowOpacity: 0.3, // Ombre plus marquée contre fond foncé
-        elevation: 20,
-    },
 
     // ─── Contenu des onglets ───
     container: {
@@ -406,43 +322,42 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingHorizontal: 4,
         paddingVertical: 6,
-        gap: 4,
-        flexShrink: 1, // Permet à la pilule de shrinker sans dépasser de l'écran si beaucoup d'onglets
+        gap: 2,
     },
     containerFallbackBg: {
         backgroundColor: 'rgba(255, 255, 255, 0.4)',
     },
-    containerFallbackBgDark: {
-        backgroundColor: 'rgba(0, 0, 0, 0.2)', // Empêche le voile laiteux blanc
-    },
 
     // ─── Boutons ───
     tabButton: {
-        // En enlevant la largeur fixe et ajoutant flex: 1, ils se partagent l'espace de la pilule
-        // ou flexShrink pour s'adapter à la taille de l'écran sans créer d'horreurs
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 12,
+        paddingHorizontal: 14,
         paddingTop: 10,
         paddingBottom: 8,
         borderRadius: 30,
         gap: 3,
-        flexShrink: 1,
     },
     tabLabel: {
         fontSize: 10,
         fontWeight: '700',
         letterSpacing: 0.1,
     },
-    // Indicateur actif unique : capsule qui glisse (translateX) vers l'onglet actif.
-    // Positionné en absolu dans la pilule de verre, légèrement plus opaque que le fond.
-    slidingIndicator: {
-        position: 'absolute',
-        left: 0,
-        top: 6,      // = container paddingVertical
-        bottom: 6,   // = container paddingVertical
-        borderRadius: 30, // capsule (>= demi-hauteur)
-        // backgroundColor défini dynamiquement via tabColors.activePill dans <Animated.View>
+    tabLabelActive: {
+        color: '#007AFF',
+    },
+    tabLabelInactive: {
+        color: '#111',
+    },
+    activeBackground: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        borderRadius: 30,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 4,
     },
     backButton: {
         alignItems: 'center',
@@ -452,8 +367,5 @@ const styles = StyleSheet.create({
     },
     backButtonFallbackBg: {
         backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    },
-    backButtonFallbackBgDark: {
-        backgroundColor: 'rgba(0, 0, 0, 0.2)', // Rend le bouton retour élégant en sombre
     },
 });

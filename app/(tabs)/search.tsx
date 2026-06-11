@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  InteractionManager,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -20,9 +21,9 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useIsFocused } from '@react-navigation/native';
 
 // ============================================================================
 // Types & Données
@@ -52,22 +53,37 @@ const CATEGORIES: Category[] = [
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Snap positions (distance depuis le bas)
-const SNAP_LOW = SCREEN_HEIGHT * 0.3;   // 30% visible
-const SNAP_MID = SCREEN_HEIGHT * 0.55;  // 55% visible
-const SNAP_HIGH = SCREEN_HEIGHT * 0.88; // 88% visible
+const SNAP_LOW = SCREEN_HEIGHT * 0.3;
+const SNAP_MID = SCREEN_HEIGHT * 0.55;
+const SNAP_HIGH = SCREEN_HEIGHT * 0.88;
+
+// Position par défaut (centre de la France) — utilisée pendant que le GPS résout
+const DEFAULT_REGION = {
+  latitude: 46.2276,
+  longitude: 2.2137,
+  latitudeDelta: 10,
+  longitudeDelta: 10,
+};
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
+  const isFocused = useIsFocused();
 
-  // État local
+  // ── État ──
   const [mode, setMode] = useState<SearchMode>('parcours');
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [parcours, setParcours] = useState<Parcours[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ── Bottom Panel Animation ──────────────────────────────────────────────────
+  // Lazy loading : on attend la fin des animations de navigation avant de monter
+  // les composants lourds (MapView). Cela empêche le blocage du thread JS
+  // qui rendait le menu tactile non-réactif.
+  const [isReady, setIsReady] = useState(false);
+  const hasLoadedLocation = useRef(false);
+
+  // ── Bottom Panel Animation ──
   const panelHeight = useSharedValue(SNAP_MID);
   const startHeight = useSharedValue(SNAP_MID);
 
@@ -85,25 +101,20 @@ export default function SearchScreen() {
       startHeight.value = panelHeight.value;
     })
     .onUpdate((event) => {
-      // Dragging down decreases height, dragging up increases it
       const newHeight = startHeight.value - event.translationY;
       panelHeight.value = Math.max(SNAP_LOW * 0.5, Math.min(SNAP_HIGH, newHeight));
     })
     .onEnd((event) => {
       const currentH = panelHeight.value;
-      const velocity = -event.velocityY; // positive = swiping up
+      const velocity = -event.velocityY;
 
-      // Determine closest snap point, biased by velocity
       if (velocity > 500) {
-        // Fast swipe up → go to next higher snap
         if (currentH < SNAP_MID) snapTo(SNAP_MID);
         else snapTo(SNAP_HIGH);
       } else if (velocity < -500) {
-        // Fast swipe down → go to next lower snap
         if (currentH > SNAP_MID) snapTo(SNAP_MID);
         else snapTo(SNAP_LOW);
       } else {
-        // Snap to nearest
         const distLow = Math.abs(currentH - SNAP_LOW);
         const distMid = Math.abs(currentH - SNAP_MID);
         const distHigh = Math.abs(currentH - SNAP_HIGH);
@@ -118,52 +129,82 @@ export default function SearchScreen() {
     height: panelHeight.value,
   }));
 
-  // ============================================================================
-  // Logique
-  // ============================================================================
-
-  // 1. Initialiser la position de l'utilisateur au montage
+  // ── Lazy mount : attend la fin des animations de transition ──
   useEffect(() => {
+    // InteractionManager.runAfterInteractions attend que toutes les animations
+    // de transition (tab switch, stack push, etc.) soient terminées avant
+    // d'exécuter le callback. Cela évite de bloquer le thread JS pendant
+    // le montage de composants lourds comme MapView.
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+    });
+    return () => task.cancel();
+  }, []);
+
+  // ── Localisation — lancée APRÈS le montage des composants lourds ──
+  useEffect(() => {
+    if (!isReady || hasLoadedLocation.current) return;
+    hasLoadedLocation.current = true;
+
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          console.log('Permission localisation refusée, utilisation de Paris');
-          setUserLocation({ lat: 48.8566, lng: 2.3522 });
+          setUserLocation({ lat: 46.2276, lng: 2.2137 });
           return;
         }
 
-        const pos = await Location.getCurrentPositionAsync({});
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserLocation(loc);
+        // getLastKnownPositionAsync est INSTANTANÉ (cache GPS du système)
+        // et ne bloque jamais le thread JS contrairement à getCurrentPositionAsync
+        const lastKnown = await Location.getLastKnownPositionAsync();
+        if (lastKnown) {
+          const loc = { lat: lastKnown.coords.latitude, lng: lastKnown.coords.longitude };
+          setUserLocation(loc);
+          mapRef.current?.animateToRegion({
+            latitude: loc.lat,
+            longitude: loc.lng,
+            latitudeDelta: 0.1,
+            longitudeDelta: 0.1,
+          }, 600);
+        }
 
-        mapRef.current?.animateToRegion({
-          latitude: loc.lat,
-          longitude: loc.lng,
-          latitudeDelta: 0.1,
-          longitudeDelta: 0.1,
-        });
-      } catch (e) {
-        console.log('Erreur de localisation, fallback sur Paris');
-        const fallbackLoc = { lat: 48.8566, lng: 2.3522 };
-        setUserLocation(fallbackLoc);
+        // Ensuite, en arrière-plan, on demande une position précise avec timeout
+        // pour mettre à jour si la position cached était trop vieille
+        try {
+          const pos = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+            timeInterval: 5000,
+          });
+          const freshLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserLocation(freshLoc);
 
-        mapRef.current?.animateToRegion({
-          latitude: fallbackLoc.lat,
-          longitude: fallbackLoc.lng,
-          latitudeDelta: 0.1,
-          longitudeDelta: 0.1,
-        });
+          if (!lastKnown) {
+            mapRef.current?.animateToRegion({
+              latitude: freshLoc.lat,
+              longitude: freshLoc.lng,
+              latitudeDelta: 0.1,
+              longitudeDelta: 0.1,
+            }, 600);
+          }
+        } catch {
+          // Si getCurrentPosition échoue (timeout), on garde la position cached
+          if (!lastKnown) {
+            setUserLocation({ lat: 46.2276, lng: 2.2137 });
+          }
+        }
+      } catch {
+        setUserLocation({ lat: 46.2276, lng: 2.2137 });
       }
     })();
-  }, []);
+  }, [isReady]);
 
-  // 2. Recharger les parcours quand le mode change
+  // ── Chargement des parcours ──
   useEffect(() => {
+    if (!isReady) return;
     loadParcours();
-  }, [mode, userLocation]);
+  }, [mode, userLocation, isReady]);
 
-  const loadParcours = async () => {
+  const loadParcours = useCallback(async () => {
     setIsLoading(true);
     try {
       if (mode === 'nearby' && userLocation) {
@@ -182,15 +223,27 @@ export default function SearchScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [mode, userLocation]);
 
-  const handleParcoursSelect = (id: string) => {
+  const handleParcoursSelect = useCallback((id: string) => {
     router.push({ pathname: '/parcours/[id]', params: { id } });
-  };
+  }, []);
 
   // ============================================================================
   // Rendu
   // ============================================================================
+
+  // Phase de chargement — afficher un placeholder léger au lieu de bloquer le menu
+  if (!isReady) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingPlaceholder}>
+          <ActivityIndicator size="large" color="#2D6A4F" />
+          <Text style={styles.loadingPlaceholderText}>Chargement de la carte…</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -198,14 +251,15 @@ export default function SearchScreen() {
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
-        initialRegion={{
-          latitude: 46.8566,
-          longitude: 2.3522,
-          latitudeDelta: 10,
-          longitudeDelta: 10,
-        }}
+        initialRegion={DEFAULT_REGION}
         showsUserLocation
         showsMyLocationButton={false}
+        // Optimisations MapView pour ne pas bloquer les gestures du tab bar
+        rotateEnabled={false}
+        pitchEnabled={false}
+        loadingEnabled
+        loadingIndicatorColor="#2D6A4F"
+        loadingBackgroundColor="#F5F7F5"
       >
         {parcours.map((p) => {
           const lat = (p as any).startLat as number | undefined;
@@ -366,7 +420,7 @@ export default function SearchScreen() {
                       {p.title}
                     </Text>
                     <Text style={styles.parcoursCardMeta}>
-                      {p.difficulty ?? 'Non défini'} • {p.estimatedDuration ?? '?'} min
+                      {p.difficulty ?? 'Non défini'} • {p.durationMin ?? '?'} min
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
@@ -388,6 +442,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  // ── Loading placeholder ──
+  loadingPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F7F5',
+    gap: 16,
+  },
+  loadingPlaceholderText: {
+    fontSize: 15,
+    color: '#888',
+    fontWeight: '500',
   },
   // ── Panel ──
   panel: {

@@ -102,8 +102,7 @@ interface ParcoursSQLite {
   durationMin: number | null;
   coverImage: string | null;
   pathGeoJSON: string | null;
-  mascotteNom: string | null;
-  mascotteImg: string | null;
+  // mascotteNom/mascotteImg retirés du backend mais colonnes SQL gardées pour compatibilité
   isPMRFriendly: number;
   isChildFriendly: number;
   isMentalHandicapFriendly: number;
@@ -118,7 +117,7 @@ interface EtapeSQLite {
   lat: number;
   lng: number;
   title: string;
-  transitionText: string | null;
+  // transitionText retiré du backend mais colonne SQL gardée pour compatibilité
 }
 
 interface JeuSQLite {
@@ -155,8 +154,6 @@ function rowToParcours(row: ParcoursSQLite): Parcours & { downloadedAt: number; 
     durationMin: row.durationMin ?? undefined,
     coverImage: row.coverImage ?? undefined,
     pathGeoJSON: row.pathGeoJSON ?? undefined,
-    mascotteNom: row.mascotteNom ?? undefined,
-    mascotteImg: row.mascotteImg ?? undefined,
     isPMRFriendly: row.isPMRFriendly === 1,
     isChildFriendly: row.isChildFriendly === 1,
     isMentalHandicapFriendly: row.isMentalHandicapFriendly === 1,
@@ -177,7 +174,6 @@ function rowToEtape(row: EtapeSQLite): Etape {
     lat: row.lat,
     lng: row.lng,
     title: row.title,
-    transitionText: row.transitionText ?? undefined,
     jeux: [],
   };
 }
@@ -219,10 +215,10 @@ export async function insertParcours(parcours: Parcours): Promise<void> {
   await db.runAsync(
     `INSERT OR REPLACE INTO parcours
       (id, title, description, difficulty, distanceKm, durationMin,
-       coverImage, pathGeoJSON, mascotteNom, mascotteImg,
+       coverImage, pathGeoJSON,
        isPMRFriendly, isChildFriendly, isMentalHandicapFriendly,
        downloadedAt, isCompleted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
     [
       parcours.id,
       parcours.title,
@@ -232,8 +228,6 @@ export async function insertParcours(parcours: Parcours): Promise<void> {
       parcours.durationMin ?? null,
       parcours.coverImage ?? null,
       parcours.pathGeoJSON ?? null,
-      parcours.mascotteNom ?? null,
-      parcours.mascotteImg ?? null,
       parcours.isPMRFriendly ? 1 : 0,
       parcours.isChildFriendly ? 1 : 0,
       parcours.isMentalHandicapFriendly ? 1 : 0,
@@ -303,8 +297,8 @@ export async function insertEtape(etape: Etape): Promise<void> {
   const db = getDb();
   await db.runAsync(
     `INSERT OR REPLACE INTO etapes
-      (id, parcoursId, orderNum, lat, lng, title, transitionText)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      (id, parcoursId, orderNum, lat, lng, title)
+     VALUES (?, ?, ?, ?, ?, ?)`,
     [
       etape.id,
       etape.parcoursId,
@@ -312,7 +306,6 @@ export async function insertEtape(etape: Etape): Promise<void> {
       etape.lat,
       etape.lng,
       etape.title,
-      etape.transitionText ?? null,
     ]
   );
 }

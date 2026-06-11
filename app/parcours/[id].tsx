@@ -1,4 +1,6 @@
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
+  Dimensions,
   Image,
   Pressable,
   ScrollView,
@@ -6,31 +8,191 @@ import {
   Text,
   View,
   Alert,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedScrollHandler,
+  interpolate,
+  Extrapolation,
+  withSpring,
+  withTiming,
+  FadeIn,
+  FadeInDown,
+} from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { apiService } from '@/src/services/api.service';
 import { DownloadButton } from '@/src/components/features/parcours/DownloadButton';
-import type { Parcours } from '@/src/types/api.types';
+import { useGameStore } from '@/src/store/game.store';
+import type { Parcours, Etape } from '@/src/types/api.types';
 
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const HERO_HEIGHT = 340;
 const GREEN = '#2D6A4F';
+const GREEN_LIGHT = '#E8F5E9';
+const GREEN_MID = '#52B788';
 
 const DIFFICULTY_CONFIG = {
-  FACILE: { label: 'Facile', color: '#2E7D32', bg: '#E8F5E9', icon: '🟢' },
-  MOYEN: { label: 'Moyen', color: '#F57F17', bg: '#FFF8E1', icon: '🟡' },
-  DIFFICILE: { label: 'Difficile', color: '#B71C1C', bg: '#FFEBEE', icon: '🔴' },
+  FACILE: { label: 'Facile', color: '#1B5E20', bg: '#DCEDC8', dot: '#4CAF50' },
+  MOYEN:  { label: 'Moyen',  color: '#E65100', bg: '#FFF3E0', dot: '#FF9800' },
+  DIFFICILE: { label: 'Difficile', color: '#B71C1C', bg: '#FFEBEE', dot: '#F44336' },
 } as const;
+
+// ─── Types locaux ─────────────────────────────────────────────────────────────
+
+interface ParcoursWithEtapes extends Parcours {
+  etapes?: Etape[];
+  _count?: { reviews?: number };
+  averageRating?: number;
+}
+
+// ─── Composant EtapeRow ───────────────────────────────────────────────────────
+
+function EtapeRow({
+  etape,
+  index,
+  total,
+}: {
+  etape: Etape;
+  index: number;
+  total: number;
+}) {
+  const isLast = index === total - 1;
+
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(index * 60).duration(350).springify()}
+      style={styles.etapeRow}
+    >
+      {/* Ligne verticale + numéro */}
+      <View style={styles.etapeIndicator}>
+        <View style={styles.etapeNumberBubble}>
+          <Text style={styles.etapeNumber}>{index + 1}</Text>
+        </View>
+        {!isLast && <View style={styles.etapeLine} />}
+      </View>
+
+      {/* Contenu */}
+      <View style={[styles.etapeContent, isLast && { marginBottom: 0 }]}>
+        <Text style={styles.etapeTitle} numberOfLines={2}>
+          {etape.title}
+        </Text>
+        {etape.jeux && etape.jeux.length > 0 && (
+          <View style={styles.etapeJeuxRow}>
+            <Ionicons name="game-controller-outline" size={13} color="#9E9E9E" />
+            <Text style={styles.etapeJeuxCount}>
+              {etape.jeux.length} jeu{etape.jeux.length > 1 ? 'x' : ''}
+            </Text>
+          </View>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+// ─── Composant StatCard ───────────────────────────────────────────────────────
+
+function StatCard({
+  icon,
+  value,
+  label,
+  delay = 0,
+}: {
+  icon: string;
+  value: string;
+  label: string;
+  delay?: number;
+}) {
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(delay).duration(400).springify()}
+      style={styles.statCard}
+    >
+      <Text style={styles.statIcon}>{icon}</Text>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </Animated.View>
+  );
+}
+
+// ─── Écran principal ──────────────────────────────────────────────────────────
 
 export default function ParcoursDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [parcours, setParcours] = useState<Parcours | null>(null);
+  const [parcours, setParcours] = useState<ParcoursWithEtapes | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { downloadedParcoursIds, activeParcoursId, startParcours, downloadParcours: addDownloaded } = useGameStore();
+  const isDownloaded = id ? downloadedParcoursIds.includes(id) : false;
+  const isActive = id ? activeParcoursId === id : false;
+
+  // Animation de scroll pour l'effet parallax hero
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  // Styles animés
+  const heroImageStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: interpolate(
+          scrollY.value,
+          [-HERO_HEIGHT, 0, HERO_HEIGHT],
+          [-HERO_HEIGHT / 2, 0, HERO_HEIGHT * 0.4],
+          Extrapolation.CLAMP
+        ),
+      },
+      {
+        scale: interpolate(
+          scrollY.value,
+          [-HERO_HEIGHT, 0],
+          [1.5, 1],
+          Extrapolation.CLAMP
+        ),
+      },
+    ],
+  }));
+
+  const heroOverlayStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [0, HERO_HEIGHT * 0.5],
+      [0.35, 0.75],
+      Extrapolation.CLAMP
+    ),
+  }));
+
+  const navBarStyle = useAnimatedStyle(() => ({
+    backgroundColor: `rgba(45,106,79,${interpolate(
+      scrollY.value,
+      [HERO_HEIGHT - 100, HERO_HEIGHT - 50],
+      [0, 1],
+      Extrapolation.CLAMP
+    )})`,
+  }));
+
+  const titleBarOpacityStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [HERO_HEIGHT - 100, HERO_HEIGHT - 40],
+      [0, 1],
+      Extrapolation.CLAMP
+    ),
+  }));
+
+  // Chargement
   useEffect(() => {
     if (id) loadParcours(id);
   }, [id]);
@@ -38,7 +200,8 @@ export default function ParcoursDetailScreen() {
   const loadParcours = async (parcoursId: string) => {
     try {
       setLoading(true);
-      const data = await apiService.get<Parcours>(`/mobile/parcours/${parcoursId}`);
+      setError(null);
+      const data = await apiService.get<ParcoursWithEtapes>(`/mobile/parcours/${parcoursId}`);
       setParcours(data);
     } catch {
       setError('Impossible de charger ce parcours.');
@@ -47,286 +210,596 @@ export default function ParcoursDetailScreen() {
     }
   };
 
-  const handlePlay = () => {
+  const handlePlay = useCallback(() => {
+    if (!id) return;
+    startParcours(id);
     // Sprint 3 : navigation vers le gameplay
-    Alert.alert('Bientôt disponible', 'Le mode de jeu arrivera dans la prochaine mise à jour !');
-  };
+    Alert.alert(
+      '🎮 Bientôt disponible',
+      'Le mode de jeu arrive dans la prochaine mise à jour !',
+      [{ text: 'OK' }]
+    );
+  }, [id, startParcours]);
 
-  const diff = parcours?.difficulty ? DIFFICULTY_CONFIG[parcours.difficulty] : null;
+  const handleDownloaded = useCallback(() => {
+    if (id) addDownloaded(id);
+  }, [id, addDownloaded]);
 
-  // ─── Chargement ──────────────────────────────────────────────────────────
+  // ─── États de chargement / erreur ─────────────────────────────────────────
+
   if (loading) {
     return (
-      <View style={styles.loadingScreen}>
-        <Text style={styles.loadingText}>Chargement…</Text>
+      <View style={styles.centeredScreen}>
+        <View style={styles.loadingSpinner}>
+          <Ionicons name="leaf-outline" size={32} color={GREEN} />
+        </View>
+        <Text style={styles.loadingText}>Chargement du parcours…</Text>
       </View>
     );
   }
 
-  // ─── Erreur ──────────────────────────────────────────────────────────────
   if (error || !parcours) {
     return (
-      <View style={[styles.errorScreen, { paddingTop: insets.top }]}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backIcon}>←</Text>
+      <View style={[styles.centeredScreen, { paddingTop: insets.top }]}>
+        <Pressable
+          style={[styles.floatingBackBtn, { top: insets.top + 12, backgroundColor: GREEN_LIGHT }]}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="chevron-back" size={22} color={GREEN} />
         </Pressable>
-        <Text style={styles.errorIcon}>😕</Text>
+        <Text style={{ fontSize: 56 }}>😕</Text>
         <Text style={styles.errorTitle}>Parcours introuvable</Text>
         <Text style={styles.errorSub}>{error ?? 'Une erreur est survenue.'}</Text>
-        <Pressable style={styles.retryBtn} onPress={() => id && loadParcours(id)}>
+        <Pressable
+          style={styles.retryBtn}
+          onPress={() => id && loadParcours(id)}
+        >
           <Text style={styles.retryText}>Réessayer</Text>
         </Pressable>
       </View>
     );
   }
 
+  const diff = parcours.difficulty ? DIFFICULTY_CONFIG[parcours.difficulty] : null;
   const accessItems = [
-    { icon: '♿', label: 'Accessible PMR', active: parcours.isPMRFriendly },
-    { icon: '👶', label: 'Famille / Enfants', active: parcours.isChildFriendly },
-    { icon: '🧩', label: 'Handicap mental', active: parcours.isMentalHandicapFriendly },
+    { icon: 'accessibility', label: 'PMR', active: parcours.isPMRFriendly, color: '#1565C0' },
+    { icon: 'happy-outline', label: 'Familles', active: parcours.isChildFriendly, color: '#6A1B9A' },
+    { icon: 'heart-outline', label: 'Inclusif', active: parcours.isMentalHandicapFriendly, color: '#AD1457' },
   ].filter((a) => a.active);
 
-  // ─── Rendu principal ─────────────────────────────────────────────────────
+  const etapes = parcours.etapes ?? [];
+  const nbJeux = etapes.reduce((acc, e) => acc + (e.jeux?.length ?? 0), 0);
+  const hasRatings = (parcours.averageRating ?? 0) > 0;
+
+  // ─── Rendu principal ──────────────────────────────────────────────────────
+
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      {/* ── Barre de navigation flottante (apparaît au scroll) ────────────── */}
+      <Animated.View
+        style={[styles.stickyNav, { paddingTop: insets.top }, navBarStyle]}
+      >
+        <Pressable style={styles.stickyBackBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={22} color="#fff" />
+        </Pressable>
+        <Animated.Text style={[styles.stickyTitle, titleBarOpacityStyle]} numberOfLines={1}>
+          {parcours.title}
+        </Animated.Text>
+        <View style={{ width: 40 }} />
+      </Animated.View>
 
-        {/* ── Image héro ─────────────────────────────────────────────────── */}
-        <View style={styles.heroContainer}>
-          {parcours.coverImage ? (
-            <Image source={{ uri: parcours.coverImage }} style={styles.heroImage} resizeMode="cover" />
-          ) : (
-            <View style={styles.heroPlaceholder}>
-              <Text style={styles.heroPlaceholderIcon}>🌲</Text>
-            </View>
-          )}
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+      >
+        {/* ── Image hero avec parallax ─────────────────────────────────── */}
+        <View style={styles.heroWrapper}>
+          <Animated.View style={[styles.heroImageContainer, heroImageStyle]}>
+            {parcours.coverImage ? (
+              <Image
+                source={{ uri: parcours.coverImage }}
+                style={styles.heroImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.heroPlaceholder}>
+                <Text style={{ fontSize: 90 }}>🌿</Text>
+              </View>
+            )}
+          </Animated.View>
 
-          {/* Overlay gradient simulé */}
-          <View style={styles.heroOverlay} />
+          {/* Overlay gradient */}
+          <Animated.View style={[styles.heroGradient, heroOverlayStyle]} />
 
-          {/* Bouton retour */}
+          {/* Bouton retour (sur le hero) */}
           <Pressable
-            style={[styles.backBtn, { top: insets.top + 12 }]}
+            style={[styles.floatingBackBtn, { top: insets.top + 12, left: 16 }]}
             onPress={() => router.back()}
           >
-            <Text style={styles.backIcon}>←</Text>
+            <Ionicons name="chevron-back" size={22} color="#fff" />
           </Pressable>
 
-          {/* Titre sur l'image */}
-          <View style={[styles.heroTitleContainer, { paddingBottom: insets.bottom > 0 ? 0 : 20 }]}>
+          {/* Badge difficulté + titre */}
+          <View style={[styles.heroBottom, { paddingBottom: 24 }]}>
             {diff && (
               <View style={[styles.diffBadge, { backgroundColor: diff.bg }]}>
-                <Text style={styles.diffIcon}>{diff.icon}</Text>
-                <Text style={[styles.diffText, { color: diff.color }]}>{diff.label}</Text>
+                <View style={[styles.diffDot, { backgroundColor: diff.dot }]} />
+                <Text style={[styles.diffText, { color: diff.color }]}>
+                  {diff.label}
+                </Text>
               </View>
             )}
             <Text style={styles.heroTitle}>{parcours.title}</Text>
+            {parcours.zonage && (
+              <View style={styles.zonageRow}>
+                <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.zonageText}>{parcours.zonage.nom}</Text>
+              </View>
+            )}
           </View>
         </View>
 
-        {/* ── Corps ─────────────────────────────────────────────────────── */}
+        {/* ── Corps ───────────────────────────────────────────────────────── */}
         <View style={styles.body}>
 
-          {/* Méta : distance, durée */}
-          <View style={styles.metaRow}>
+          {/* Stats (distance / durée / étapes / jeux) */}
+          <Animated.View entering={FadeInDown.duration(400).springify()} style={styles.statsRow}>
             {parcours.distanceKm != null && (
-              <View style={styles.metaCard}>
-                <Text style={styles.metaCardIcon}>📍</Text>
-                <Text style={styles.metaCardValue}>{parcours.distanceKm.toFixed(1)} km</Text>
-                <Text style={styles.metaCardLabel}>Distance</Text>
-              </View>
+              <StatCard icon="📍" value={`${parcours.distanceKm.toFixed(1)} km`} label="Distance" delay={0} />
             )}
             {parcours.durationMin != null && (
-              <View style={styles.metaCard}>
-                <Text style={styles.metaCardIcon}>⏱</Text>
-                <Text style={styles.metaCardValue}>{parcours.durationMin} min</Text>
-                <Text style={styles.metaCardLabel}>Durée estimée</Text>
-              </View>
+              <StatCard icon="⏱" value={`${parcours.durationMin} min`} label="Durée" delay={60} />
             )}
-          </View>
+            {etapes.length > 0 && (
+              <StatCard icon="🗺" value={`${etapes.length}`} label="Étapes" delay={120} />
+            )}
+            {nbJeux > 0 && (
+              <StatCard icon="🎮" value={`${nbJeux}`} label="Jeux" delay={180} />
+            )}
+            {hasRatings && (
+              <StatCard icon="⭐" value={parcours.averageRating!.toFixed(1)} label="Note" delay={240} />
+            )}
+          </Animated.View>
 
-          {/* Description */}
-          {parcours.description && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>À propos</Text>
-              <Text style={styles.description}>{parcours.description}</Text>
-            </View>
-          )}
-
-          {/* Mascotte */}
-          {parcours.mascotteNom && (
-            <View style={styles.mascotteCard}>
-              {parcours.mascotteImg ? (
-                <Image source={{ uri: parcours.mascotteImg }} style={styles.mascotteImg} resizeMode="contain" />
-              ) : (
-                <View style={styles.mascotteImgPlaceholder}>
-                  <Text style={{ fontSize: 40 }}>🐾</Text>
-                </View>
-              )}
-              <View style={styles.mascotteInfo}>
-                <Text style={styles.mascotteLabel}>Votre guide</Text>
-                <Text style={styles.mascotteName}>{parcours.mascotteNom}</Text>
-                <Text style={styles.mascotteDesc}>M'accompagnera tout au long de la balade</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Accessibilité */}
-          {accessItems.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Accessibilité</Text>
-              <View style={styles.accessGrid}>
-                {accessItems.map((a) => (
-                  <View key={a.icon} style={styles.accessChip}>
-                    <Text style={styles.accessChipIcon}>{a.icon}</Text>
-                    <Text style={styles.accessChipLabel}>{a.label}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* ─── Téléchargement / Jouer ─────────────────────────────────── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Mode hors-ligne</Text>
+          {/* ── Section : Télécharger / Jouer ──────────────────────────── */}
+          <Animated.View
+            entering={FadeInDown.delay(100).duration(400).springify()}
+            style={styles.section}
+          >
             {id && (
               <DownloadButton
                 parcoursId={id}
                 onPlay={handlePlay}
-                onDownloaded={() => {/* optionnel: rafraîchir l'état parent */}}
+                onDownloaded={handleDownloaded}
               />
             )}
-          </View>
+            <Text style={styles.offlineNote}>
+              <Ionicons name="wifi-outline" size={12} color="#BDBDBD" />{' '}
+              Téléchargez une fois, jouez partout — même sans réseau.
+            </Text>
+          </Animated.View>
 
-          {/* Note légale */}
-          <Text style={styles.legalNote}>
-            📶 Le téléchargement nécessite une connexion. Une fois téléchargé, jouez partout sans réseau.
-          </Text>
+          {/* ── Section : À propos ──────────────────────────────────────── */}
+          {parcours.description && (
+            <Animated.View
+              entering={FadeInDown.delay(150).duration(400).springify()}
+              style={styles.section}
+            >
+              <Text style={styles.sectionTitle}>À propos</Text>
+              <Text style={styles.description}>{parcours.description}</Text>
+            </Animated.View>
+          )}
+
+          {/* ── Section : Accessibilité ─────────────────────────────────── */}
+          {accessItems.length > 0 && (
+            <Animated.View
+              entering={FadeInDown.delay(200).duration(400).springify()}
+              style={styles.section}
+            >
+              <Text style={styles.sectionTitle}>Accessibilité</Text>
+              <View style={styles.accessRow}>
+                {accessItems.map((a) => (
+                  <View key={a.label} style={[styles.accessChip, { borderColor: `${a.color}30`, backgroundColor: `${a.color}0D` }]}>
+                    <Ionicons name={a.icon as any} size={16} color={a.color} />
+                    <Text style={[styles.accessChipLabel, { color: a.color }]}>{a.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </Animated.View>
+          )}
+
+          {/* ── Section : Parcours (étapes) ─────────────────────────────── */}
+          {etapes.length > 0 && (
+            <Animated.View
+              entering={FadeInDown.delay(250).duration(400).springify()}
+              style={styles.section}
+            >
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Le parcours</Text>
+                <View style={styles.etapeCountBadge}>
+                  <Text style={styles.etapeCountText}>{etapes.length} étapes</Text>
+                </View>
+              </View>
+
+              <View style={styles.etapeList}>
+                {etapes.map((etape, i) => (
+                  <EtapeRow
+                    key={etape.id}
+                    etape={etape}
+                    index={i}
+                    total={etapes.length}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+          )}
+
+          {/* ── CTA final si déjà téléchargé ───────────────────────────── */}
+          {isDownloaded && (
+            <Animated.View
+              entering={FadeInDown.delay(300).duration(400).springify()}
+              style={styles.ctaCard}
+            >
+              <View style={styles.ctaCardLeft}>
+                <Text style={styles.ctaCardEmoji}>🎒</Text>
+              </View>
+              <View style={styles.ctaCardContent}>
+                <Text style={styles.ctaCardTitle}>Prêt pour l'aventure !</Text>
+                <Text style={styles.ctaCardSub}>
+                  Ce parcours est disponible hors-ligne.
+                </Text>
+              </View>
+            </Animated.View>
+          )}
 
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAF8' },
-  scrollContent: { paddingBottom: 120 },
-
-  // Chargement / Erreur
-  loadingScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAF8' },
-  loadingText: { fontSize: 16, color: '#888' },
-  errorScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12, backgroundColor: '#F8FAF8' },
-  errorIcon: { fontSize: 56 },
-  errorTitle: { fontSize: 22, fontWeight: '700', color: '#333' },
-  errorSub: { fontSize: 14, color: '#888', textAlign: 'center' },
-  retryBtn: { backgroundColor: GREEN, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  retryText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-
-  // Héro
-  heroContainer: { height: 300, position: 'relative' },
-  heroImage: { width: '100%', height: '100%' },
-  heroPlaceholder: { flex: 1, backgroundColor: '#C8E6C9', alignItems: 'center', justifyContent: 'center' },
-  heroPlaceholderIcon: { fontSize: 80 },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F7F5',
   },
 
-  // Bouton retour
-  backBtn: {
+  // ── Navigation flottante ──
+  stickyNav: {
     position: 'absolute',
-    left: 16,
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  stickyBackBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  stickyTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+    marginHorizontal: 8,
+  },
+
+  // ── Hero ──
+  heroWrapper: {
+    height: HERO_HEIGHT,
+    overflow: 'hidden',
+  },
+  heroImageContainer: {
+    position: 'absolute',
+    top: -HERO_HEIGHT * 0.4,
+    left: 0,
+    right: 0,
+    height: HERO_HEIGHT * 1.8,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroPlaceholder: {
+    flex: 1,
+    backgroundColor: '#C8E6C9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroGradient: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000',
+  },
+  floatingBackBtn: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
   },
-  backIcon: { color: '#fff', fontSize: 20, fontWeight: '700' },
-
-  // Titre héro
-  heroTitleContainer: {
+  heroBottom: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
+    paddingHorizontal: 20,
     gap: 8,
   },
   diffBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 20,
   },
-  diffIcon: { fontSize: 12 },
-  diffText: { fontSize: 12, fontWeight: '700' },
-  heroTitle: { fontSize: 26, fontWeight: '800', color: '#fff', lineHeight: 32, letterSpacing: -0.3 },
+  diffDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  diffText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#fff',
+    lineHeight: 34,
+    letterSpacing: -0.5,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  zonageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  zonageText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+  },
 
-  // Corps
-  body: { padding: 20, gap: 24 },
+  // ── Corps ──
+  body: {
+    padding: 20,
+    gap: 28,
+  },
 
-  // Méta
-  metaRow: { flexDirection: 'row', gap: 12 },
-  metaCard: {
+  // ── Stats ──
+  statsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  statCard: {
     flex: 1,
+    minWidth: 70,
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
+    padding: 14,
     alignItems: 'center',
     gap: 4,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  metaCardIcon: { fontSize: 24 },
-  metaCardValue: { fontSize: 18, fontWeight: '800', color: '#111' },
-  metaCardLabel: { fontSize: 11, color: '#999', fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
+  statIcon: { fontSize: 22 },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    letterSpacing: -0.3,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: '#9E9E9E',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
 
-  // Sections
-  section: { gap: 12 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111' },
-  description: { fontSize: 15, color: '#555', lineHeight: 24 },
-
-  // Mascotte
-  mascotteCard: {
+  // ── Sections ──
+  section: { gap: 14 },
+  sectionHeader: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  mascotteImg: { width: 100, height: 100 },
-  mascotteImgPlaceholder: { width: 100, height: 100, backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center' },
-  mascotteInfo: { flex: 1, padding: 16, justifyContent: 'center', gap: 4 },
-  mascotteLabel: { fontSize: 11, color: GREEN, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  mascotteName: { fontSize: 18, fontWeight: '800', color: '#111' },
-  mascotteDesc: { fontSize: 13, color: '#777' },
+  sectionTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    letterSpacing: -0.3,
+  },
+  description: {
+    fontSize: 15,
+    color: '#555',
+    lineHeight: 24,
+  },
 
-  // Accessibilité
-  accessGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  // ── Download / Play ──
+  offlineNote: {
+    fontSize: 12,
+    color: '#BDBDBD',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+
+  // ── Accessibilité ──
+  accessRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
   accessChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#E8F5E9',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  accessChipIcon: { fontSize: 16 },
-  accessChipLabel: { fontSize: 13, color: GREEN, fontWeight: '600' },
+  accessChipLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
 
-  // Note légale
-  legalNote: { fontSize: 12, color: '#AAA', textAlign: 'center', lineHeight: 18 },
+  // ── Étapes ──
+  etapeCountBadge: {
+    backgroundColor: GREEN_LIGHT,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  etapeCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: GREEN,
+  },
+  etapeList: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  etapeRow: {
+    flexDirection: 'row',
+    gap: 14,
+    minHeight: 56,
+  },
+  etapeIndicator: {
+    alignItems: 'center',
+    width: 28,
+  },
+  etapeNumberBubble: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: GREEN,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+  },
+  etapeNumber: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  etapeLine: {
+    flex: 1,
+    width: 2,
+    backgroundColor: '#E8F5E9',
+    marginVertical: 4,
+    marginBottom: 0,
+    borderRadius: 1,
+  },
+  etapeContent: {
+    flex: 1,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F7F5',
+    gap: 4,
+    marginBottom: 0,
+  },
+  etapeTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    lineHeight: 20,
+  },
+  etapeJeuxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  etapeJeuxCount: {
+    fontSize: 12,
+    color: '#9E9E9E',
+    fontWeight: '500',
+  },
+
+  // ── CTA final ──
+  ctaCard: {
+    backgroundColor: GREEN_LIGHT,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  ctaCardLeft: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(45,106,79,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaCardEmoji: { fontSize: 24 },
+  ctaCardContent: { flex: 1, gap: 2 },
+  ctaCardTitle: { fontSize: 15, fontWeight: '700', color: GREEN },
+  ctaCardSub: { fontSize: 13, color: '#558B2F' },
+
+  // ── États de chargement / erreur ──
+  centeredScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F7F5',
+    padding: 32,
+    gap: 12,
+  },
+  loadingSpinner: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: GREEN_LIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  loadingText: { fontSize: 15, color: '#888', fontWeight: '500' },
+  errorTitle: { fontSize: 22, fontWeight: '700', color: '#333', textAlign: 'center' },
+  errorSub: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 20 },
+  retryBtn: {
+    marginTop: 8,
+    backgroundColor: GREEN,
+    paddingHorizontal: 28,
+    paddingVertical: 13,
+    borderRadius: 14,
+  },
+  retryText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

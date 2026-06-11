@@ -67,8 +67,7 @@ export interface Parcours {
   coverImage?: string;
   status: PublishStatus;
   pathGeoJSON?: string;
-  mascotteNom?: string;
-  mascotteImg?: string;
+  // ⚠️ mascotteNom et mascotteImg supprimés du backend (décision Béa — Sprint 1)
   isPMRFriendly: boolean;
   isChildFriendly: boolean;
   isMentalHandicapFriendly: boolean;
@@ -87,8 +86,7 @@ export interface Etape {
   lat: number;
   lng: number;
   title: string;
-  description?: string;
-  transitionText?: string;
+  // ⚠️ description et transitionText supprimés du backend (décision Béa — Sprint 1)
   jeux: Jeu[];
 }
 
@@ -187,6 +185,7 @@ export interface RegisterPayload {
   email: string;
   password: string;
   pseudo: string;
+  rgpdAccepted: boolean; // Obligatoire — loi RGPD
 }
 
 export interface ForgotPasswordPayload {

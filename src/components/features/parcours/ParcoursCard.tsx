@@ -89,10 +89,7 @@ export function ParcoursCard({ parcours, isDownloaded = false }: ParcoursCardPro
           </View>
         )}
 
-        {/* Mascotte */}
-        {parcours.mascotteNom && (
-          <Text style={styles.mascotte}>🐾 {parcours.mascotteNom}</Text>
-        )}
+
       </View>
     </Pressable>
   );
@@ -158,5 +155,4 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 12, color: '#555', fontWeight: '500' },
   accessRow: { flexDirection: 'row', gap: 6 },
   accessIcon: { fontSize: 16 },
-  mascotte: { fontSize: 12, color: GREEN, fontWeight: '500' },
 });
