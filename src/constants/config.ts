@@ -5,7 +5,10 @@ import Constants from 'expo-constants';
 // URL de base de l'API backend NestJS
 // Utilise la variable d'environnement EXPO_PUBLIC_API_URL si définie
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000/api';
+
+export const EXPO_PUBLIC_API_IMAGES =
+  process.env.EXPO_PUBLIC_API_IMAGES ?? 'http://localhost:3000';
 
 // Scheme de l'application (utilisé pour les deep links)
 // Deep link : scrutelanature://email-verified

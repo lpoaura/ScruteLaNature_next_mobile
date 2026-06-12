@@ -1,6 +1,6 @@
 // expo-file-system v19 a renommé l'API classique dans le sous-module /legacy
 import * as FileSystem from 'expo-file-system/legacy';
-import { API_BASE_URL } from '@/src/constants/config';
+import { EXPO_PUBLIC_API_IMAGES } from '@/src/constants/config';
 
 // ─── Répertoires de base ──────────────────────────────────────────────────────
 
@@ -38,10 +38,19 @@ export async function ensureDir(dirPath: string): Promise<void> {
  * Résout une URL de média : si relative, la préfixe avec l'API_BASE_URL.
  */
 export function resolveMediaUrl(url: string): string {
+  // S'assurer que l'URL de base ne contient pas /api à la fin ni de slash final
+  const baseImgUrl = EXPO_PUBLIC_API_IMAGES.replace(/\/api\/?$/, '').replace(/\/$/, '');
+
+  // Remplace localhost par l'IP configurée dans API_BASE_URL (utile pour les tests sur téléphone)
+  if (url.startsWith('http://localhost') || url.startsWith('http://127.0.0.1')) {
+    const path = url.replace(/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, '');
+    return `${baseImgUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+  }
+
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
-  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  return `${baseImgUrl}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
 /**
@@ -49,8 +58,12 @@ export function resolveMediaUrl(url: string): string {
  */
 function getExtension(url: string, fallback: string): string {
   const cleanUrl = url.split('?')[0];
-  const parts = cleanUrl.split('.');
-  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : fallback;
+  const lastSlashIndex = cleanUrl.lastIndexOf('/');
+  const lastDotIndex = cleanUrl.lastIndexOf('.');
+  if (lastDotIndex > lastSlashIndex) {
+    return cleanUrl.substring(lastDotIndex + 1).toLowerCase();
+  }
+  return fallback;
 }
 
 // ─── Téléchargement de médias ─────────────────────────────────────────────────

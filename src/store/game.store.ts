@@ -8,25 +8,51 @@ export interface GameState {
   downloadedParcoursIds: string[];
   completedParcoursIds: string[];
 
+  // Tâche 3.5 : Suivi du score et du temps
+  score: number;
+  startTime: number | null;
+  jeuxCompletes: string[];
+
   startParcours: (parcoursId: string) => void;
   resumeParcours: () => void;
+  completeEtape: (totalEtapes: number) => void;
   finishParcours: () => void;
   downloadParcours: (parcoursId: string) => void;
   removeParcours: (parcoursId: string) => void;
+  completeJeu: (jeuId: string, points: number) => void;
 }
 
 export const useGameStore = create<GameState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       activeParcoursId: null,
       currentEtapeOrder: 0,
       downloadedParcoursIds: [],
       completedParcoursIds: [],
 
+      score: 0,
+      startTime: null,
+      jeuxCompletes: [],
+
       startParcours: (parcoursId) =>
-        set({ activeParcoursId: parcoursId, currentEtapeOrder: 1 }),
+        set({ 
+          activeParcoursId: parcoursId, 
+          currentEtapeOrder: 1,
+          score: 0,
+          startTime: Date.now(),
+          jeuxCompletes: []
+        }),
 
       resumeParcours: () => set((state) => ({ ...state })), // Placeholder
+
+      completeEtape: (totalEtapes) => {
+        const { currentEtapeOrder } = get();
+        if (currentEtapeOrder < totalEtapes) {
+          set({ currentEtapeOrder: currentEtapeOrder + 1 });
+        } else {
+          get().finishParcours();
+        }
+      },
 
       finishParcours: () =>
         set((state) => ({
@@ -47,6 +73,17 @@ export const useGameStore = create<GameState>()(
           downloadedParcoursIds: state.downloadedParcoursIds.filter((id) => id !== parcoursId),
           activeParcoursId: state.activeParcoursId === parcoursId ? null : state.activeParcoursId,
         })),
+
+      completeJeu: (jeuId, points) =>
+        set((state) => {
+          if (!state.jeuxCompletes.includes(jeuId)) {
+            return {
+              jeuxCompletes: [...state.jeuxCompletes, jeuId],
+              score: state.score + points,
+            };
+          }
+          return state;
+        }),
     }),
     {
       name: 'lpo-game-storage',

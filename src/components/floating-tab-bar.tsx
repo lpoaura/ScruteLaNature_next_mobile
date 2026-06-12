@@ -8,7 +8,7 @@ import {
     isLiquidGlassAvailable,
 } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -159,17 +159,22 @@ function BackButton({ onPress }: { onPress: () => void }) {
 
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     const router = useRouter();
-    const segments = useSegments();
 
-    const activeRoute = state.routes[state.index];
-    const nestedState = activeRoute.state;
-    const canGoBack = !!(
-        nestedState &&
-        nestedState.routes &&
-        nestedState.routes.length > 1 &&
-        nestedState.index !== undefined &&
-        nestedState.index > 0
-    );
+    const canGoBack = (() => {
+        try {
+            const activeRoute = state.routes[state.index];
+            const nestedState = activeRoute?.state;
+            return !!(
+                nestedState &&
+                typeof nestedState.index === 'number' &&
+                nestedState.index > 0 &&
+                Array.isArray(nestedState.routes) &&
+                nestedState.routes.length > 1
+            );
+        } catch {
+            return false;
+        }
+    })();
 
     const handleGoBack = () => {
         if (canGoBack) {
@@ -234,7 +239,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     // ─── Rendu Liquid Glass (iOS 26+) ───
     if (USE_GLASS) {
         return (
-            <View style={styles.wrapper}>
+            <View style={styles.wrapper} pointerEvents="box-none">
                 {/* GlassContainer regroupe les GlassView pour l'effet de fusion */}
                 <GlassContainer spacing={12} style={styles.glassWrapper}>
                     {/* Bouton retour — pilule glass séparée */}
@@ -253,7 +258,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
 
     // ─── Rendu Fallback BlurView (iOS < 26, Android, Web) ───
     return (
-        <View style={styles.wrapper}>
+        <View style={styles.wrapper} pointerEvents="box-none">
             {/* Bouton retour — pilule séparée */}
             {canGoBack && (
                 <BackButton onPress={handleGoBack} />
@@ -280,6 +285,8 @@ const styles = StyleSheet.create({
         bottom: Platform.OS === 'ios' ? 28 : 20,
         left: 0,
         right: 0,
+        zIndex: 999,
+        elevation: 999,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',

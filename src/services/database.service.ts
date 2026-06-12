@@ -171,8 +171,8 @@ function rowToEtape(row: EtapeSQLite): Etape {
     id: row.id,
     parcoursId: row.parcoursId,
     order: row.orderNum,
-    lat: row.lat,
-    lng: row.lng,
+    latitude: row.lat,
+    longitude: row.lng,
     title: row.title,
     jeux: [],
   };
@@ -303,8 +303,8 @@ export async function insertEtape(etape: Etape): Promise<void> {
       etape.id,
       etape.parcoursId,
       etape.order,
-      etape.lat,
-      etape.lng,
+      etape.latitude,
+      etape.longitude,
       etape.title,
     ]
   );

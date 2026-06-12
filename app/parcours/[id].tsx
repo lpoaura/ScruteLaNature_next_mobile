@@ -27,6 +27,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { apiService } from '@/src/services/api.service';
 import { DownloadButton } from '@/src/components/features/parcours/DownloadButton';
 import { useGameStore } from '@/src/store/game.store';
+import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import type { Parcours, Etape } from '@/src/types/api.types';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -201,7 +202,7 @@ export default function ParcoursDetailScreen() {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiService.get<ParcoursWithEtapes>(`/mobile/parcours/${parcoursId}`);
+      const data = await apiService.get<ParcoursWithEtapes>(`/mobile/parcours/${parcoursId}/download`);
       setParcours(data);
     } catch {
       setError('Impossible de charger ce parcours.');
@@ -213,13 +214,9 @@ export default function ParcoursDetailScreen() {
   const handlePlay = useCallback(() => {
     if (!id) return;
     startParcours(id);
-    // Sprint 3 : navigation vers le gameplay
-    Alert.alert(
-      '🎮 Bientôt disponible',
-      'Le mode de jeu arrive dans la prochaine mise à jour !',
-      [{ text: 'OK' }]
-    );
-  }, [id, startParcours]);
+    // Navigation vers l'écran de jeu (Sprint 3)
+    router.push({ pathname: '/parcours/jeu/[id]', params: { id } });
+  }, [id, startParcours, router]);
 
   const handleDownloaded = useCallback(() => {
     if (id) addDownloaded(id);
@@ -277,11 +274,14 @@ export default function ParcoursDetailScreen() {
     <View style={styles.container}>
       {/* ── Barre de navigation flottante (apparaît au scroll) ────────────── */}
       <Animated.View
+        pointerEvents="box-none"
         style={[styles.stickyNav, { paddingTop: insets.top }, navBarStyle]}
       >
-        <Pressable style={styles.stickyBackBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color="#fff" />
-        </Pressable>
+        <Animated.View style={titleBarOpacityStyle}>
+          <Pressable style={styles.stickyBackBtn} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={22} color="#fff" />
+          </Pressable>
+        </Animated.View>
         <Animated.Text style={[styles.stickyTitle, titleBarOpacityStyle]} numberOfLines={1}>
           {parcours.title}
         </Animated.Text>
@@ -299,7 +299,7 @@ export default function ParcoursDetailScreen() {
           <Animated.View style={[styles.heroImageContainer, heroImageStyle]}>
             {parcours.coverImage ? (
               <Image
-                source={{ uri: parcours.coverImage }}
+                source={{ uri: resolveMediaUrl(parcours.coverImage) }}
                 style={styles.heroImage}
                 resizeMode="cover"
               />

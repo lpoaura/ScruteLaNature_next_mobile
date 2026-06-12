@@ -83,8 +83,8 @@ export interface Etape {
   id: string;
   parcoursId: string;
   order: number;
-  lat: number;
-  lng: number;
+  latitude: number;
+  longitude: number;
   title: string;
   // ⚠️ description et transitionText supprimés du backend (décision Béa — Sprint 1)
   jeux: Jeu[];

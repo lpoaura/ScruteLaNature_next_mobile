@@ -12,6 +12,8 @@ import { useAuthStore } from '@/src/store/auth.store';
 import { useGameStore } from '@/src/store/game.store';
 import { IconSymbol } from '@/src/components/ui/icon-symbol';
 
+import { useNetInfo } from '@react-native-community/netinfo';
+
 // Mocks pour le carrousel
 const SELECTIONS = [
   {
@@ -60,9 +62,10 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { activeParcoursId, currentEtapeOrder, downloadedParcoursIds } = useGameStore();
+  const netInfo = useNetInfo();
 
-  // Mock sync state - On pourra relier à une logique SQLite / Network plus tard
-  const isSyncing = false; 
+  // Indicateur dynamique basé sur la connexion réelle
+  const isOnline = netInfo.isConnected && netInfo.isInternetReachable !== false;
 
   return (
     <ScrollView 
@@ -90,12 +93,19 @@ export default function DashboardScreen() {
             </View>
           </View>
         </View>
-        <View className="bg-white p-2.5 rounded-full shadow-sm ml-4">
-          {isSyncing ? (
-            <ActivityIndicator size="small" color="#10B981" />
-          ) : (
-            <IconSymbol name="checkmark.circle.fill" size={24} color="#10B981" />
-          )}
+        
+        {/* Indicateur de connexion */}
+        <View className="items-center ml-4">
+          <View className="bg-white p-2.5 rounded-full shadow-sm mb-1">
+            {isOnline ? (
+              <IconSymbol name="wifi" size={20} color="#10B981" />
+            ) : (
+              <IconSymbol name="wifi.slash" size={20} color="#EF4444" />
+            )}
+          </View>
+          <Text className={`text-[10px] font-bold ${isOnline ? 'text-emerald-600' : 'text-red-500'}`}>
+            {isOnline ? 'En ligne' : 'Hors-ligne'}
+          </Text>
         </View>
       </View>
 

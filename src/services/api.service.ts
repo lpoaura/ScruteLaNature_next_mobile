@@ -87,7 +87,7 @@ async function request<T>(
   let response = await fetch(url, { ...fetchOptions, headers });
 
   // Gestion du 401 → refresh automatique + retry
-  if (response.status === 401 && !skipAuth) {
+  if (response.status === 401 && !skipAuth && endpoint !== '/auth/logout') {
     if (_isRefreshing) {
       // Mettre en file d'attente si un refresh est déjà en cours
       const newToken = await new Promise<string>((resolve, reject) => {

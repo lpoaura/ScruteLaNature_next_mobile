@@ -75,6 +75,7 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [parcours, setParcours] = useState<Parcours[]>([]);
+  const [allMapParcours, setAllMapParcours] = useState<Parcours[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Lazy loading : on attend la fin des animations de navigation avant de monter
@@ -96,50 +97,64 @@ export default function SearchScreen() {
     });
   };
 
-  const panGesture = Gesture.Pan()
-    .onStart(() => {
-      startHeight.value = panelHeight.value;
-    })
-    .onUpdate((event) => {
-      const newHeight = startHeight.value - event.translationY;
-      panelHeight.value = Math.max(SNAP_LOW * 0.5, Math.min(SNAP_HIGH, newHeight));
-    })
-    .onEnd((event) => {
-      const currentH = panelHeight.value;
-      const velocity = -event.velocityY;
+  const panGesture = React.useMemo(
+    () =>
+      Gesture.Pan()
+        .onStart(() => {
+          startHeight.value = panelHeight.value;
+        })
+        .onUpdate((event) => {
+          const newHeight = startHeight.value - event.translationY;
+          panelHeight.value = Math.max(SNAP_LOW * 0.5, Math.min(SNAP_HIGH, newHeight));
+        })
+        .onEnd((event) => {
+          const currentH = panelHeight.value;
+          const velocity = -event.velocityY;
 
-      if (velocity > 500) {
-        if (currentH < SNAP_MID) snapTo(SNAP_MID);
-        else snapTo(SNAP_HIGH);
-      } else if (velocity < -500) {
-        if (currentH > SNAP_MID) snapTo(SNAP_MID);
-        else snapTo(SNAP_LOW);
-      } else {
-        const distLow = Math.abs(currentH - SNAP_LOW);
-        const distMid = Math.abs(currentH - SNAP_MID);
-        const distHigh = Math.abs(currentH - SNAP_HIGH);
-        const min = Math.min(distLow, distMid, distHigh);
-        if (min === distLow) snapTo(SNAP_LOW);
-        else if (min === distMid) snapTo(SNAP_MID);
-        else snapTo(SNAP_HIGH);
-      }
-    });
+          if (velocity > 500) {
+            if (currentH < SNAP_MID) snapTo(SNAP_MID);
+            else snapTo(SNAP_HIGH);
+          } else if (velocity < -500) {
+            if (currentH > SNAP_MID) snapTo(SNAP_MID);
+            else snapTo(SNAP_LOW);
+          } else {
+            const distLow = Math.abs(currentH - SNAP_LOW);
+            const distMid = Math.abs(currentH - SNAP_MID);
+            const distHigh = Math.abs(currentH - SNAP_HIGH);
+            const min = Math.min(distLow, distMid, distHigh);
+            if (min === distLow) snapTo(SNAP_LOW);
+            else if (min === distMid) snapTo(SNAP_MID);
+            else snapTo(SNAP_HIGH);
+          }
+        }),
+    [panelHeight, startHeight]
+  );
 
   const panelAnimatedStyle = useAnimatedStyle(() => ({
     height: panelHeight.value,
   }));
 
-  // ── Lazy mount : attend la fin des animations de transition ──
+  const locationBtnAnimatedStyle = useAnimatedStyle(() => ({
+    bottom: panelHeight.value + 16,
+  }));
+
+  // ── Lazy mount + démontage au blur ──
+  // Le MapView est un composant natif lourd : tant qu'il est monté, il congestionne
+  // le thread JS, ce qui rend le tab bar (Pressable → onPress sur le thread JS)
+  // non-réactif — d'où "le menu ne marche plus", surtout après un reload où le
+  // MapView se monte sans transition douce (InteractionManager ne joue plus son rôle).
+  // Solution : on ne monte le MapView QUE lorsque l'onglet est focus, et on le
+  // démonte dès qu'on le quitte pour libérer le thread JS sur les autres onglets.
   useEffect(() => {
-    // InteractionManager.runAfterInteractions attend que toutes les animations
-    // de transition (tab switch, stack push, etc.) soient terminées avant
-    // d'exécuter le callback. Cela évite de bloquer le thread JS pendant
-    // le montage de composants lourds comme MapView.
+    if (!isFocused) {
+      setIsReady(false);
+      return;
+    }
     const task = InteractionManager.runAfterInteractions(() => {
       setIsReady(true);
     });
     return () => task.cancel();
-  }, []);
+  }, [isFocused]);
 
   // ── Localisation — lancée APRÈS le montage des composants lourds ──
   useEffect(() => {
@@ -198,6 +213,12 @@ export default function SearchScreen() {
     })();
   }, [isReady]);
 
+  // ── Chargement de tous les parcours pour la carte ──
+  useEffect(() => {
+    if (!isReady) return;
+    parcoursService.search({}).then(setAllMapParcours).catch(console.log);
+  }, [isReady]);
+
   // ── Chargement des parcours ──
   useEffect(() => {
     if (!isReady) return;
@@ -228,6 +249,27 @@ export default function SearchScreen() {
   const handleParcoursSelect = useCallback((id: string) => {
     router.push({ pathname: '/parcours/[id]', params: { id } });
   }, []);
+
+  const handleCenterLocation = useCallback(async () => {
+    if (userLocation) {
+      mapRef.current?.animateToRegion({
+        latitude: userLocation.lat,
+        longitude: userLocation.lng,
+        latitudeDelta: 0.1,
+        longitudeDelta: 0.1,
+      }, 500);
+    } else {
+      try {
+        const pos = await Location.getCurrentPositionAsync({});
+        mapRef.current?.animateToRegion({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          latitudeDelta: 0.1,
+          longitudeDelta: 0.1,
+        }, 500);
+      } catch {}
+    }
+  }, [userLocation]);
 
   // ============================================================================
   // Rendu
@@ -261,9 +303,10 @@ export default function SearchScreen() {
         loadingIndicatorColor="#2D6A4F"
         loadingBackgroundColor="#F5F7F5"
       >
-        {parcours.map((p) => {
-          const lat = (p as any).startLat as number | undefined;
-          const lng = (p as any).startLng as number | undefined;
+        {allMapParcours.map((p) => {
+          const firstEtape = (p as any).etapes?.[0];
+          const lat = firstEtape?.latitude;
+          const lng = firstEtape?.longitude;
           if (!lat || !lng) return null;
           return (
             <Marker
@@ -275,6 +318,13 @@ export default function SearchScreen() {
           );
         })}
       </MapView>
+
+      {/* --- BOUTON LOCALISATION --- */}
+      <Animated.View style={[styles.locationBtnContainer, locationBtnAnimatedStyle]}>
+        <Pressable style={styles.locationBtn} onPress={handleCenterLocation}>
+          <Ionicons name="navigate" size={24} color="#1F2937" />
+        </Pressable>
+      </Animated.View>
 
       {/* --- PANNEAU GLISSANT CUSTOM --- */}
       <Animated.View style={[styles.panel, panelAnimatedStyle]}>
@@ -693,5 +743,24 @@ const styles = StyleSheet.create({
   parcoursCardMeta: {
     fontSize: 13,
     color: '#6B7280',
+  },
+  // ── Floating Button ──
+  locationBtnContainer: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 10,
+  },
+  locationBtn: {
+    backgroundColor: '#FFFFFF',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
 });

@@ -32,6 +32,7 @@ interface DownloadButtonProps {
 export function DownloadButton({ parcoursId, onDownloaded, onPlay }: DownloadButtonProps) {
   const [state, setState] = useState<DownloadState>('checking');
   const [errorMsg, setErrorMsg] = useState('');
+  const [pct, setPct] = useState(0);
   const progress = useSharedValue(0);
   const cancelRef = useRef(false);
 
@@ -51,16 +52,19 @@ export function DownloadButton({ parcoursId, onDownloaded, onPlay }: DownloadBut
   const handleDownload = async () => {
     setState('downloading');
     progress.value = 0;
+    setPct(0);
     cancelRef.current = false;
     setErrorMsg('');
 
     try {
       await parcoursService.download(parcoursId, (p) => {
         progress.value = withTiming(p, { duration: 200 });
+        setPct(Math.round(p * 100));
       });
 
       if (!cancelRef.current) {
         progress.value = withTiming(1, { duration: 300 });
+        setPct(100);
         setTimeout(() => {
           setState('downloaded');
           onDownloaded?.();
@@ -101,7 +105,6 @@ export function DownloadButton({ parcoursId, onDownloaded, onPlay }: DownloadBut
   }
 
   if (state === 'downloading') {
-    const pct = Math.round(progress.value * 100);
     return (
       <View style={styles.progressContainer}>
         <Text style={styles.progressLabel}>Téléchargement en cours… {pct}%</Text>

@@ -62,13 +62,21 @@ export default function RootLayout() {
   const [showSplash, setShowSplash] = useState(true);
   const [authReady, setAuthReady] = useState(false);
 
-  // Charger l'auth persistée au démarrage
+  // Charger l'auth persistée et la base de données au démarrage
   useEffect(() => {
-    loadStoredAuth().then(() => {
+    async function initApp() {
+      try {
+        const { initDatabase } = await import('@/src/services/database.service');
+        await initDatabase();
+      } catch (err) {
+        console.error('Erreur lors de l\'initialisation de la DB:', err);
+      }
+      await loadStoredAuth();
       setAuthReady(true);
-      // Masquer le splash natif d'Expo dès que l'auth est prête
+      // Masquer le splash natif d'Expo dès que l'app est prête
       SplashScreen.hideAsync();
-    });
+    }
+    initApp();
   }, []);
 
   // Gérer le deep link email-verified (scrutelanature://email-verified)
@@ -104,6 +112,13 @@ export default function RootLayout() {
               options={{
                 headerShown: false,
                 animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="parcours/jeu/[id]"
+              options={{
+                headerShown: false,
+                animation: 'fade',
               }}
             />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />

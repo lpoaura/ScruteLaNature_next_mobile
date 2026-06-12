@@ -27,6 +27,8 @@ const MAPPING = {
   'checkmark.circle.fill': 'check-circle',
   'play.fill': 'play-arrow',
   'star.fill': 'star',
+  'wifi': 'wifi',
+  'wifi.slash': 'wifi-off',
 } as IconMapping;
 
 /**
