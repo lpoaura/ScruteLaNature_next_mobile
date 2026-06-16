@@ -132,18 +132,23 @@ export const useAuthStore = create<AuthState>((set, get) => {
     register: async (payload: RegisterPayload) => {
       set({ isLoading: true });
       try {
-        const response = await authService.register(payload);
-        // Après inscription, l'utilisateur doit vérifier son email
-        // On stocke quand même ses tokens pour qu'il puisse naviguer
-        await _persistAuth(response.access_token, response.refresh_token, response.user);
-        set({
-          user: response.user,
-          accessToken: response.access_token,
-          refreshToken: response.refresh_token,
-          isGuest: false,
-          isAuthenticated: true,
-          isLoading: false,
-        });
+        const response = await authService.register(payload) as any;
+        
+        // Si le backend retourne des tokens, on connecte directement l'utilisateur
+        if (response.access_token && response.refresh_token) {
+          await _persistAuth(response.access_token, response.refresh_token, response.user);
+          set({
+            user: response.user,
+            accessToken: response.access_token,
+            refreshToken: response.refresh_token,
+            isGuest: false,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } else {
+          // Si pas de tokens (ex: attente de validation email), on ne l'authentifie pas encore
+          set({ isLoading: false });
+        }
       } catch (error) {
         set({ isLoading: false });
         throw error;

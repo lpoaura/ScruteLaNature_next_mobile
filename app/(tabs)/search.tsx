@@ -275,6 +275,18 @@ export default function SearchScreen() {
   // Rendu
   // ============================================================================
 
+  const filteredMapParcours = allMapParcours.filter(p => 
+    !searchQuery || 
+    p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+  
+  const filteredListParcours = parcours.filter(p => 
+    !searchQuery || 
+    p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   // Phase de chargement — afficher un placeholder léger au lieu de bloquer le menu
   if (!isReady) {
     return (
@@ -303,7 +315,7 @@ export default function SearchScreen() {
         loadingIndicatorColor="#2D6A4F"
         loadingBackgroundColor="#F5F7F5"
       >
-        {allMapParcours.map((p) => {
+        {filteredMapParcours.map((p) => {
           const firstEtape = (p as any).etapes?.[0];
           const lat = firstEtape?.latitude;
           const lng = firstEtape?.longitude;
@@ -415,48 +427,55 @@ export default function SearchScreen() {
             />
           </View>
 
-          {/* Categories Grid */}
-          <Text style={styles.sectionTitle}>Catégories</Text>
-          <View style={styles.categoriesGrid}>
-            {CATEGORIES.map((cat) => (
-              <Pressable
-                key={cat.id}
-                style={styles.categoryItem}
-                onPress={() => {
-                  /* Appliquer le filtre */
-                }}
-              >
-                <View
-                  style={[
-                    styles.categoryIcon,
-                    { backgroundColor: `${cat.color}20` },
-                  ]}
-                >
-                  <Ionicons name={cat.icon as any} size={24} color={cat.color} />
+          {/* Contenu affiché seulement si on ne recherche pas */}
+          {searchQuery.length === 0 && (
+            <>
+              {/* Categories Grid */}
+              <Text style={styles.sectionTitle}>Catégories</Text>
+              <View style={styles.categoriesGrid}>
+                {CATEGORIES.map((cat) => (
+                  <Pressable
+                    key={cat.id}
+                    style={styles.categoryItem}
+                    onPress={() => {
+                      /* Appliquer le filtre */
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.categoryIcon,
+                        { backgroundColor: `${cat.color}20` },
+                      ]}
+                    >
+                      <Ionicons name={cat.icon as any} size={24} color={cat.color} />
+                    </View>
+                    <Text style={styles.categoryLabel}>{cat.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              {/* Action Card */}
+              <View style={styles.actionCard}>
+                <View style={styles.actionCardContent}>
+                  <Text style={styles.actionCardTitle}>Contribuer à la carte</Text>
+                  <Text style={styles.actionCardSubtitle}>
+                    Vous connaissez un lieu intéressant ? Partagez-le avec la communauté.
+                  </Text>
                 </View>
-                <Text style={styles.categoryLabel}>{cat.label}</Text>
-              </Pressable>
-            ))}
-          </View>
+                <Pressable style={styles.actionCardButton}>
+                  <Text style={styles.actionCardButtonText}>+ Ajouter</Text>
+                </Pressable>
+              </View>
+            </>
+          )}
 
-          {/* Action Card */}
-          <View style={styles.actionCard}>
-            <View style={styles.actionCardContent}>
-              <Text style={styles.actionCardTitle}>Contribuer à la carte</Text>
-              <Text style={styles.actionCardSubtitle}>
-                Vous connaissez un lieu intéressant ? Partagez-le avec la communauté.
-              </Text>
-            </View>
-            <Pressable style={styles.actionCardButton}>
-              <Text style={styles.actionCardButtonText}>+ Ajouter</Text>
-            </Pressable>
-          </View>
-
-          {/* Liste des parcours (mode nearby) */}
-          {mode === 'nearby' && parcours.length > 0 && (
+          {/* Liste des parcours (mode nearby ou recherche active) */}
+          {(mode === 'nearby' || searchQuery.length > 0) && filteredListParcours.length > 0 && (
             <View style={styles.parcoursListSection}>
-              <Text style={styles.sectionTitle}>Parcours à proximité</Text>
-              {parcours.map((p) => (
+              <Text style={styles.sectionTitle}>
+                {searchQuery.length > 0 ? 'Résultats de recherche' : 'Parcours à proximité'}
+              </Text>
+              {filteredListParcours.map((p) => (
                 <Pressable
                   key={p.id}
                   style={styles.parcoursCard}
@@ -476,6 +495,16 @@ export default function SearchScreen() {
                   <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                 </Pressable>
               ))}
+            </View>
+          )}
+
+          {/* Aucun résultat de recherche */}
+          {searchQuery.length > 0 && filteredListParcours.length === 0 && (
+            <View style={styles.resultInfo}>
+              <Ionicons name="search-outline" size={20} color="#6B7280" />
+              <Text style={[styles.resultInfoText, { color: '#6B7280' }]}>
+                Aucun parcours ne correspond à votre recherche.
+              </Text>
             </View>
           )}
         </ScrollView>

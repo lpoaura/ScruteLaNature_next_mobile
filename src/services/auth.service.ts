@@ -2,6 +2,7 @@ import { apiService } from './api.service';
 import type {
   AuthResponse,
   ForgotPasswordPayload,
+  ResetPasswordPayload,
   LoginPayload,
   RegisterPayload,
   UpdateProfilePayload,
@@ -68,6 +69,13 @@ export const authService = {
    */
   forgotPassword: (payload: ForgotPasswordPayload): Promise<void> =>
     apiService.post<void>('/auth/forgot-password', payload, { skipAuth: true }),
+
+  /**
+   * Réinitialise le mot de passe avec un token reçu par email.
+   * → POST /auth/reset-password
+   */
+  resetPassword: (payload: ResetPasswordPayload): Promise<void> =>
+    apiService.post<void>('/auth/reset-password', payload, { skipAuth: true }),
 
   /**
    * Change le mot de passe (nécessite l'ancien mot de passe).

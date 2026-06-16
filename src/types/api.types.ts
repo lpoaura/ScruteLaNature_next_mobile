@@ -57,6 +57,12 @@ export interface Zonage {
   updatedAt: string;
 }
 
+export interface Badge {
+  id: string;
+  name: string;
+  imageUrl: string;
+}
+
 export interface Parcours {
   id: string;
   title: string;
@@ -74,6 +80,8 @@ export interface Parcours {
   organismeId: string;
   zonageId?: string;
   zonage?: Zonage;
+  badgeId?: string;
+  badge?: Badge;
   createdById?: string;
   createdAt: string;
   updatedAt: string;
@@ -192,12 +200,23 @@ export interface ForgotPasswordPayload {
   email: string;
 }
 
+export interface ResetPasswordPayload {
+  token: string;
+  password?: string;
+}
+
 export interface UpdateProfilePayload {
   pseudo?: string;
   firstName?: string;
   lastName?: string;
   pushToken?: string;
   analyticsConsent?: boolean;
+}
+
+export interface ReviewPayload {
+  parcoursId: string;
+  rating: number;
+  comment?: string;
 }
 
 export interface SyncParcoursCompleted {

@@ -79,18 +79,23 @@ export default function RootLayout() {
     initApp();
   }, []);
 
-  // Gérer le deep link email-verified (scrutelanature://email-verified)
+  // Gérer les deep links (email-verified, reset-password)
   useEffect(() => {
     const handleUrl = ({ url }: { url: string }) => {
       if (url.includes('email-verified')) {
         router.replace('/(auth)/login?verified=true');
+      } else if (url.includes('reset-password')) {
+        const token = url.split('token=')[1];
+        if (token) {
+          router.replace(`/(auth)/reset-password?token=${token}`);
+        }
       }
     };
 
     // URL initiale (app fermée → ouverte via deep link)
     Linking.getInitialURL().then((url) => {
-      if (url && url.includes('email-verified')) {
-        router.replace('/(auth)/login?verified=true');
+      if (url) {
+        handleUrl({ url });
       }
     });
 

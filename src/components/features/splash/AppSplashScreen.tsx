@@ -130,7 +130,11 @@ export function AppSplashScreen({ onFinished }: AppSplashScreenProps) {
       <View style={styles.circle2} />
 
       {/* Logo */}
-      <Animated.Text style={[styles.logo, logoStyle]}>🐦</Animated.Text>
+      <Animated.Image 
+        source={require('@/assets/images/icon.png')} 
+        style={[styles.logoImage, logoStyle]} 
+        resizeMode="contain"
+      />
 
       {/* Titre */}
       <Animated.Text style={[styles.title, titleStyle]}>
@@ -184,9 +188,11 @@ const styles = StyleSheet.create({
     bottom: -60,
     left: -60,
   },
-  logo: {
-    fontSize: 88,
-    marginBottom: 8,
+  logoImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 30,
+    marginBottom: 20,
   },
   title: {
     fontSize: 32,

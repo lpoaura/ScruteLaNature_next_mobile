@@ -10,6 +10,7 @@ import {
   Text,
   TextInput,
   View,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/src/store/auth.store';
@@ -80,7 +81,7 @@ export default function LoginScreen() {
       >
         {/* Logo / Titre */}
         <View style={styles.header}>
-          <Text style={styles.logo}>🐦</Text>
+          <Image source={require('@/assets/images/icon.png')} style={styles.logoImage} />
           <Text style={styles.title}>Scrute la Nature</Text>
           <Text style={styles.subtitle}>Application LPO — Balades Nature</Text>
         </View>
@@ -212,8 +213,10 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
   },
-  logo: {
-    fontSize: 56,
+  logoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
   },
   title: {
     fontSize: 26,
