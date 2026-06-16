@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   InteractionManager,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, UrlTile, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -301,20 +301,25 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      {/* --- CARTE EN PLEIN ÉCRAN --- */}
+      {/* --- CARTE EN PLEIN ÉCRAN (OpenStreetMap) --- */}
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
         initialRegion={DEFAULT_REGION}
         showsUserLocation
         showsMyLocationButton={false}
-        // Optimisations MapView pour ne pas bloquer les gestures du tab bar
+        mapType="none"
         rotateEnabled={false}
         pitchEnabled={false}
-        loadingEnabled
-        loadingIndicatorColor="#2D6A4F"
-        loadingBackgroundColor="#F5F7F5"
       >
+        {/* Tuiles OpenStreetMap — 100% gratuit, hors-ligne compatible */}
+        <UrlTile
+          urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maximumZ={19}
+          shouldReplaceMapContent
+        />
+
+        {/* Marqueurs des parcours */}
         {filteredMapParcours.map((p) => {
           const firstEtape = (p as any).etapes?.[0];
           const lat = firstEtape?.latitude;
@@ -324,12 +329,22 @@ export default function SearchScreen() {
             <Marker
               key={p.id}
               coordinate={{ latitude: lat, longitude: lng }}
-              title={p.title}
-              onCalloutPress={() => handleParcoursSelect(p.id)}
-            />
+              pinColor="#10b981"
+            >
+              <Callout onPress={() => handleParcoursSelect(p.id)} tooltip={false}>
+                <View style={styles.callout}>
+                  <Text style={styles.calloutTitle} numberOfLines={1}>{p.title}</Text>
+                  <Text style={styles.calloutMeta}>
+                    {p.difficulty ?? 'N/A'} • {p.durationMin ?? '?'} min
+                  </Text>
+                  <Text style={styles.calloutCta}>Voir le parcours →</Text>
+                </View>
+              </Callout>
+            </Marker>
           );
         })}
       </MapView>
+
 
       {/* --- BOUTON LOCALISATION --- */}
       <Animated.View style={[styles.locationBtnContainer, locationBtnAnimatedStyle]}>
@@ -791,5 +806,28 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 4,
+  },
+  // ── Marker Callout ──
+  callout: {
+    width: 200,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+  },
+  calloutTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  calloutMeta: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  calloutCta: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#10b981',
   },
 });
