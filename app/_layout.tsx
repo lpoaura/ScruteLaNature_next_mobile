@@ -67,7 +67,9 @@ export default function RootLayout() {
     async function initApp() {
       try {
         const { initDatabase } = await import('@/src/services/database.service');
+        const { initSyncListener } = await import('@/src/services/sync.service');
         await initDatabase();
+        initSyncListener();
       } catch (err) {
         console.error('Erreur lors de l\'initialisation de la DB:', err);
       }
