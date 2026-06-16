@@ -129,49 +129,46 @@ export default function DashboardScreen() {
         <Text className="text-lg font-bold text-slate-800 mb-4">Prêt pour l'aventure ?</Text>
         
         {activeParcoursId ? (
-          <Link href={`/parcours/${activeParcoursId}`} asChild>
-            <Pressable 
-              className="bg-emerald-600 rounded-3xl p-6 shadow-md flex-row items-center justify-between active:opacity-90"
-            >
-              <View className="flex-1 mr-4">
-                <Text className="text-emerald-100 font-medium mb-1">Balade en cours</Text>
-                <Text className="text-white text-2xl font-bold mb-2">Reprendre ma balade</Text>
-                <Text className="text-emerald-50 text-sm font-medium">Étape {currentEtapeOrder}</Text>
-              </View>
-              <View className="bg-white/20 p-4 rounded-full">
-                <IconSymbol name="play.fill" size={32} color="#fff" />
-              </View>
-            </Pressable>
-          </Link>
+          <Pressable 
+            onPress={() => router.push(`/parcours/${activeParcoursId}`)}
+            className="bg-emerald-600 rounded-3xl p-6 shadow-md flex-row items-center justify-between active:opacity-90"
+          >
+            <View className="flex-1 mr-4">
+              <Text className="text-emerald-100 font-medium mb-1">Balade en cours</Text>
+              <Text className="text-white text-2xl font-bold mb-2">Reprendre ma balade</Text>
+              <Text className="text-emerald-50 text-sm font-medium">Étape {currentEtapeOrder}</Text>
+            </View>
+            <View className="bg-white/20 p-4 rounded-full">
+              <IconSymbol name="play.fill" size={32} color="#fff" />
+            </View>
+          </Pressable>
         ) : downloadedParcoursIds.length > 0 ? (
-          <Link href={`/parcours/${downloadedParcoursIds[0]}`} asChild>
-            <Pressable 
-              className="bg-indigo-600 rounded-3xl p-6 shadow-md flex-row items-center justify-between active:opacity-90"
-            >
-              <View className="flex-1 mr-4">
-                <Text className="text-indigo-100 font-medium mb-1">Téléchargé</Text>
-                <Text className="text-white text-2xl font-bold mb-2">Départ hors-ligne</Text>
-                <Text className="text-indigo-50 text-sm font-medium">Jouer sans réseau</Text>
-              </View>
-              <View className="bg-white/20 p-4 rounded-full">
-                <IconSymbol name="play.fill" size={32} color="#fff" />
-              </View>
-            </Pressable>
-          </Link>
+          <Pressable 
+            onPress={() => router.push(`/parcours/${downloadedParcoursIds[0]}`)}
+            className="bg-indigo-600 rounded-3xl p-6 shadow-md flex-row items-center justify-between active:opacity-90"
+          >
+            <View className="flex-1 mr-4">
+              <Text className="text-indigo-100 font-medium mb-1">Téléchargé</Text>
+              <Text className="text-white text-2xl font-bold mb-2">Départ hors-ligne</Text>
+              <Text className="text-indigo-50 text-sm font-medium">Jouer sans réseau</Text>
+            </View>
+            <View className="bg-white/20 p-4 rounded-full">
+              <IconSymbol name="play.fill" size={32} color="#fff" />
+            </View>
+          </Pressable>
         ) : (
-          <Link href="/(tabs)/search" asChild>
-            <Pressable 
-              className="bg-white border-2 border-dashed border-slate-300 rounded-3xl p-8 items-center justify-center active:bg-slate-50"
-            >
-              <View className="bg-emerald-100 p-4 rounded-full mb-4">
-                <IconSymbol name="map.fill" size={32} color="#10B981" />
-              </View>
-              <Text className="text-slate-800 text-xl font-bold mb-2 text-center">Aucune balade prévue</Text>
-              <Text className="text-slate-500 text-center px-4">
-                Découvrez les parcours autour de vous et lancez-vous dans la nature !
-              </Text>
-            </Pressable>
-          </Link>
+          <Pressable 
+            onPress={() => router.push('/(tabs)/search')}
+            className="bg-white border-2 border-dashed border-slate-300 rounded-3xl p-8 items-center justify-center active:bg-slate-50"
+          >
+            <View className="bg-emerald-100 p-4 rounded-full mb-4">
+              <IconSymbol name="map.fill" size={32} color="#10B981" />
+            </View>
+            <Text className="text-slate-800 text-xl font-bold mb-2 text-center">Aucune balade prévue</Text>
+            <Text className="text-slate-500 text-center px-4">
+              Découvrez les parcours autour de vous et lancez-vous dans la nature !
+            </Text>
+          </Pressable>
         )}
       </View>
 

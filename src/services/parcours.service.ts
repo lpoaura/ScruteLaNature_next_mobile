@@ -10,6 +10,7 @@ import {
   downloadMedia,
   getMediaFilename,
   deleteParcoursFiles,
+  downloadMapTiles,
 } from './filesystem.service';
 import type {
   Parcours,
@@ -112,11 +113,20 @@ export const parcoursService = {
 
     // ── Étape 5 : Télécharger les médias des jeux ─────────────────────────
     if (mediaItems.length === 0) {
+      // S'il n'y a pas de médias, on passe directement aux tuiles
+      try {
+        if (data.pathGeoJSON) {
+          await downloadMapTiles(data.pathGeoJSON, id, 14, 17, (p) => onProgress?.(0.25 + p * 0.75));
+        }
+      } catch (err) {
+        console.warn(`[Download] Échec tuiles:`, err);
+      }
       onProgress?.(1);
       return;
     }
 
-    const progressPerItem = 0.75 / mediaItems.length;
+    // On garde 10% pour la carte
+    const progressPerItem = 0.65 / mediaItems.length;
 
     for (let i = 0; i < mediaItems.length; i++) {
       const item = mediaItems[i];
@@ -136,6 +146,22 @@ export const parcoursService = {
       }
 
       onProgress?.(0.25 + progressPerItem * (i + 1));
+    }
+
+    // ── Étape 6 : Télécharger les tuiles de carte OSM ─────────────────────
+    // On alloue les derniers 10% de la progression au téléchargement des tuiles
+    try {
+      if (data.pathGeoJSON) {
+        await downloadMapTiles(
+          data.pathGeoJSON,
+          id,
+          14,
+          17,
+          (p) => onProgress?.(0.90 + p * 0.10)
+        );
+      }
+    } catch (err) {
+      console.warn(`[Download] Échec du téléchargement des tuiles pour le parcours ${id}:`, err);
     }
 
     onProgress?.(1);

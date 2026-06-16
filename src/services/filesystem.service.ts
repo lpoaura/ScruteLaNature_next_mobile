@@ -1,6 +1,7 @@
 // expo-file-system v19 a renommé l'API classique dans le sous-module /legacy
 import * as FileSystem from 'expo-file-system/legacy';
 import { EXPO_PUBLIC_API_IMAGES } from '@/src/constants/config';
+import { calculateBoundingBox, lon2tile, lat2tile } from '@/src/utils/map';
 
 // ─── Répertoires de base ──────────────────────────────────────────────────────
 
@@ -12,6 +13,14 @@ const BASE_DIR = FileSystem.documentDirectory ?? 'file:///';
  */
 export function getParcoursDir(parcoursId: string): string {
   return `${BASE_DIR}parcours/${parcoursId}/`;
+}
+
+/**
+ * Retourne le chemin du dossier local des tuiles OSM d'un parcours.
+ * Structure : {documentDirectory}/parcours/{parcoursId}/tiles/
+ */
+export function getParcoursTilesDir(parcoursId: string): string {
+  return `${getParcoursDir(parcoursId)}tiles/`;
 }
 
 /**
@@ -178,3 +187,82 @@ export async function saveObservationPhoto(
   await FileSystem.copyAsync({ from: sourceUri, to: localPath });
   return localPath;
 }
+
+// ─── Téléchargement des tuiles de carte (OSM) ──────────────────────────────────
+
+/**
+ * Télécharge les tuiles de carte OpenStreetMap pour une Bounding Box (via un GeoJSON).
+ * Les tuiles sont sauvegardées localement pour usage hors-ligne.
+ *
+ * @param geojsonString GeoJSON représentant le tracé du parcours
+ * @param parcoursId    Identifiant du parcours
+ * @param minZoom       Niveau de zoom minimal (défaut: 14)
+ * @param maxZoom       Niveau de zoom maximal (défaut: 17)
+ */
+export async function downloadMapTiles(
+  geojsonString: string | null | undefined,
+  parcoursId: string,
+  minZoom = 14,
+  maxZoom = 17,
+  onProgress?: (progress: number) => void
+): Promise<void> {
+  if (!geojsonString) return;
+
+  const bbox = calculateBoundingBox(geojsonString);
+  if (!bbox) return;
+
+  const tilesDir = getParcoursTilesDir(parcoursId);
+  await ensureDir(tilesDir);
+
+  type TileReq = { x: number; y: number; z: number };
+  const tilesToDownload: TileReq[] = [];
+
+  // 1. Calculer toutes les tuiles nécessaires
+  for (let z = minZoom; z <= maxZoom; z++) {
+    const minX = lon2tile(bbox.minLng, z);
+    const maxX = lon2tile(bbox.maxLng, z);
+    const minY = lat2tile(bbox.maxLat, z); // Note: maxLat correspond au minY car l'axe Y descend
+    const maxY = lat2tile(bbox.minLat, z);
+
+    for (let x = Math.min(minX, maxX); x <= Math.max(minX, maxX); x++) {
+      for (let y = Math.min(minY, maxY); y <= Math.max(minY, maxY); y++) {
+        tilesToDownload.push({ x, y, z });
+      }
+    }
+  }
+
+  const totalTiles = tilesToDownload.length;
+  if (totalTiles === 0) return;
+
+  // 2. Télécharger les tuiles par lots (batch) pour ne pas saturer le réseau
+  const BATCH_SIZE = 5;
+  let downloadedCount = 0;
+
+  for (let i = 0; i < totalTiles; i += BATCH_SIZE) {
+    const batch = tilesToDownload.slice(i, i + BATCH_SIZE);
+    
+    await Promise.all(
+      batch.map(async (tile) => {
+        const { x, y, z } = tile;
+        const url = `https://a.tile.openstreetmap.org/${z}/${x}/${y}.png`;
+        const localTileDir = `${tilesDir}${z}/${x}/`;
+        const localPath = `${localTileDir}${y}.png`;
+
+        await ensureDir(localTileDir);
+
+        const info = await FileSystem.getInfoAsync(localPath);
+        if (!info.exists) {
+          try {
+            await FileSystem.downloadAsync(url, localPath);
+          } catch (err) {
+            console.warn(`[Tiles] Échec téléchargement tuile ${z}/${x}/${y}:`, err);
+          }
+        }
+      })
+    );
+
+    downloadedCount += batch.length;
+    onProgress?.(downloadedCount / totalTiles);
+  }
+}
+
