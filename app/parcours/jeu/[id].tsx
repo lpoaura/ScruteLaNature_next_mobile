@@ -1,248 +1,425 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ActivityIndicator,
+  Alert,
+  Animated,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import MapView, { Marker, Polyline, Geojson } from 'react-native-maps';
+import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getParcoursComplet } from '@/src/services/database.service';
 import { useGameStore } from '@/src/store/game.store';
+import { getParcoursTilesDir, downloadMapTiles, areTilesAvailable } from '@/src/services/filesystem.service';
+import type { TileDownloadResult } from '@/src/services/filesystem.service';
 import type { Parcours, Etape, Jeu } from '@/src/types/api.types';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { useGpsTrigger } from '@/src/hooks/use-gps-trigger';
 import { formatDistance } from '@/src/utils/distance';
 import { CarnetTransitionView } from '@/src/components/features/transition/CarnetTransitionView';
-
 import { MiniJeuxManager } from '@/src/components/features/jeux/MiniJeuxManager';
+import { calculateBoundingBox } from '@/src/utils/map';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type ParcoursComplet = {
   parcours: Parcours & { downloadedAt: number; isCompleted: boolean };
   etapes: (Etape & { jeux: Jeu[] })[];
 };
 
+type PrepStep = 'loading_data' | 'requesting_gps' | 'downloading_tiles' | 'ready' | 'error';
+
+interface PrepState {
+  step: PrepStep;
+  tileProgress: number;
+  tileStats: TileDownloadResult | null;
+  error: string | null;
+}
+
+// ─── Écran de préparation ─────────────────────────────────────────────────────
+
+function PrepScreen({
+  step,
+  tileProgress,
+  tileStats,
+  error,
+  onRetry,
+}: {
+  step: PrepStep;
+  tileProgress: number;
+  tileStats: TileDownloadResult | null;
+  error: string | null;
+  onRetry: () => void;
+}) {
+  const router = useRouter();
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: tileProgress,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [tileProgress]);
+
+  const stepConfig: Record<PrepStep, { icon: string; label: string; color: string }> = {
+    loading_data:      { icon: 'cloud-download-outline', label: 'Chargement des données…',       color: '#10b981' },
+    requesting_gps:    { icon: 'navigate-outline',       label: 'Activation du GPS…',            color: '#3b82f6' },
+    downloading_tiles: { icon: 'map-outline',            label: 'Préparation de la carte…',      color: '#f59e0b' },
+    ready:             { icon: 'checkmark-circle-outline', label: 'Prêt !',                      color: '#10b981' },
+    error:             { icon: 'warning-outline',        label: error || 'Erreur',               color: '#ef4444' },
+  };
+
+  const config = stepConfig[step];
+
+  return (
+    <View style={prepStyles.container}>
+      <View style={prepStyles.card}>
+        {/* Icône animée */}
+        <View style={[prepStyles.iconCircle, { backgroundColor: `${config.color}20` }]}>
+          {step !== 'error' && step !== 'ready' ? (
+            <ActivityIndicator size="large" color={config.color} />
+          ) : (
+            <Ionicons name={config.icon as any} size={40} color={config.color} />
+          )}
+        </View>
+
+        <Text style={prepStyles.title}>Démarrage de la balade</Text>
+        <Text style={[prepStyles.stepLabel, { color: config.color }]}>{config.label}</Text>
+
+        {/* Barre de progression tuiles */}
+        {step === 'downloading_tiles' && (
+          <View style={prepStyles.progressContainer}>
+            <View style={prepStyles.progressBar}>
+              <Animated.View
+                style={[
+                  prepStyles.progressFill,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0%', '100%'],
+                    }),
+                  },
+                ]}
+              />
+            </View>
+            <Text style={prepStyles.progressLabel}>
+              {Math.round(tileProgress * 100)}% des tuiles de carte
+            </Text>
+            {tileStats && (
+              <Text style={prepStyles.tileStats}>
+                ✓ {tileStats.downloaded} DL &nbsp;·&nbsp; 💾 {tileStats.cached} cache
+                {tileStats.failed > 0 ? ` · ✗ ${tileStats.failed} échecs` : ''}
+              </Text>
+            )}
+          </View>
+        )}
+
+        {step === 'error' && (
+          <Pressable style={prepStyles.retryBtn} onPress={onRetry}>
+            <Text style={prepStyles.retryText}>Réessayer</Text>
+          </Pressable>
+        )}
+
+        <Pressable onPress={() => router.back()} style={prepStyles.cancelBtn}>
+          <Text style={prepStyles.cancelText}>Annuler</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+// ─── Écran principal ──────────────────────────────────────────────────────────
+
 export default function JeuScreen() {
-  // Empêcher l'écran de se verrouiller pendant la balade
   useKeepAwake();
 
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { startParcours, currentEtapeOrder, activeParcoursId, completeEtape } = useGameStore();
+  const mapRef = useRef<MapView>(null);
 
+  // ── États de préparation ──
+  const [prepStep, setPrepStep] = useState<PrepStep>('loading_data');
+  const [tileProgress, setTileProgress] = useState(0);
+  const [tileStats, setTileStats] = useState<TileDownloadResult | null>(null);
+  const [prepError, setPrepError] = useState<string | null>(null);
+
+  // ── Données ──
   const [data, setData] = useState<ParcoursComplet | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [geoJsonData, setGeoJsonData] = useState<any | null>(null);
+  const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
+  const [tilesUrl, setTilesUrl] = useState<string>('https://a.tile.openstreetmap.org/{z}/{x}/{y}.png');
 
-  // État local pour savoir si on est en train de faire un jeu
+  // ── Jeu ──
   const [isTransitionActive, setIsTransitionActive] = useState(false);
   const [reachedEtape, setReachedEtape] = useState<Etape | null>(null);
   const [isPlayingGame, setIsPlayingGame] = useState(false);
 
-  // Charger les données hors-ligne
-  useEffect(() => {
-    async function loadData() {
-      if (!id) return;
-      try {
-        const result = await getParcoursComplet(id);
-        if (!result) {
-          setError('Parcours non trouvé ou non téléchargé.');
-          return;
-        }
-        setData(result);
+  // ────────────────────────────────────────────────────────────────────────────
+  // Séquence de préparation : données → GPS → tuiles → go
+  // ────────────────────────────────────────────────────────────────────────────
+  const runPreparation = useCallback(async () => {
+    if (!id) return;
+    setPrepError(null);
 
-        // Activer le parcours dans le store si ce n'est pas déjà le cas
-        if (activeParcoursId !== id) {
-          startParcours(id);
-        }
+    // ÉTAPE 1 : Charger les données SQLite
+    setPrepStep('loading_data');
+    let result: ParcoursComplet | null = null;
+    try {
+      result = await getParcoursComplet(id);
+      if (!result) throw new Error('Parcours non trouvé. Avez-vous bien téléchargé ce parcours ?');
+      setData(result);
 
-        // Parser le GeoJSON si présent
-        if (result.parcours.pathGeoJSON) {
-          try {
-            setGeoJsonData(JSON.parse(result.parcours.pathGeoJSON));
-          } catch (e) {
-            console.warn('Invalid GeoJSON in DB', e);
+      if (activeParcoursId !== id) startParcours(id);
+
+      // Parser le GeoJSON pour la Polyline
+      if (result.parcours.pathGeoJSON) {
+        try {
+          const geojson = JSON.parse(result.parcours.pathGeoJSON);
+          let coords: [number, number][] = [];
+          if (geojson.type === 'LineString') coords = geojson.coordinates;
+          else if (geojson.type === 'Feature' && geojson.geometry?.type === 'LineString')
+            coords = geojson.geometry.coordinates;
+          else if (geojson.type === 'FeatureCollection') {
+            const line = geojson.features.find((f: any) => f.geometry?.type === 'LineString');
+            if (line) coords = line.geometry.coordinates;
           }
-        }
-      } catch (e) {
-        setError('Erreur lors du chargement des données locales.');
-      } finally {
-        setIsLoading(false);
+          setRouteCoords(coords.map(([lng, lat]) => ({ latitude: lat, longitude: lng })));
+        } catch {}
       }
+    } catch (e: any) {
+      setPrepError(e.message || 'Erreur lors du chargement des données locales.');
+      setPrepStep('error');
+      return;
     }
-    loadData();
-  }, [id]);
 
-  // Déclencheur GPS
+    // ÉTAPE 2 : Demander la permission GPS
+    setPrepStep('requesting_gps');
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'GPS requis',
+          'La localisation GPS est nécessaire pour jouer. Veuillez autoriser l\'accès dans les réglages.',
+          [{ text: 'Compris', onPress: () => router.back() }]
+        );
+        return;
+      }
+
+      // Forcer une première position pour que showsUserLocation soit précis dès le départ
+      await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    } catch {
+      // Si le GPS échoue, on continue quand même — showsUserLocation le gèrera
+    }
+
+    // ÉTAPE 3 : Vérifier / télécharger les tuiles OSM
+    setPrepStep('downloading_tiles');
+    try {
+      const tilesAlreadyAvailable = await areTilesAvailable(id);
+
+      if (tilesAlreadyAvailable) {
+        // Tuiles en cache et valides → carte hors-ligne garantie
+        const tilesDir = getParcoursTilesDir(id);
+        setTilesUrl(`${tilesDir}{z}/{x}/{y}.png`);
+        setTileProgress(1);
+        setTileStats({ total: 0, downloaded: 0, cached: 0, failed: 0 });
+      } else if (result?.parcours.pathGeoJSON) {
+        // Pas de cache → télécharger les tuiles avec User-Agent correct
+        const stats = await downloadMapTiles(
+          result.parcours.pathGeoJSON,
+          id,
+          12,
+          17,
+          (p) => setTileProgress(p)
+        );
+        setTileStats(stats);
+
+        // Utiliser les tuiles locales si au moins 50% ont été téléchargées
+        const successRate = stats.total > 0
+          ? (stats.downloaded + stats.cached) / stats.total
+          : 0;
+        if (successRate >= 0.5) {
+          const tilesDir = getParcoursTilesDir(id);
+          setTilesUrl(`${tilesDir}{z}/{x}/{y}.png`);
+        }
+        // Sinon on reste sur l'URL en ligne (fallback si réseau disponible)
+      }
+    } catch {
+      // Échec complet → fallback sur OSM en ligne
+    }
+
+    setPrepStep('ready');
+  }, [id, activeParcoursId, startParcours]);
+
+  useEffect(() => {
+    runPreparation();
+  }, [runPreparation]);
+
+  // ── Centrer la carte sur la cible quand les données sont prêtes ──
+  useEffect(() => {
+    if (prepStep !== 'ready' || !data) return;
+    const currentEtapeIndex = Math.max(0, currentEtapeOrder - 1);
+    const currentEtape = data.etapes[currentEtapeIndex];
+    if (currentEtape && mapRef.current) {
+      setTimeout(() => {
+        mapRef.current?.animateToRegion(
+          {
+            latitude: currentEtape.latitude,
+            longitude: currentEtape.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          },
+          600
+        );
+      }, 400);
+    }
+  }, [prepStep, data, currentEtapeOrder]);
+
+  // ── Déclencheur GPS ──
   const { distanceToNext } = useGpsTrigger({
     etapes: data?.etapes || [],
     currentEtapeOrder,
-    isActive: !isLoading && !error && data !== null && !isTransitionActive && !isPlayingGame,
+    isActive: prepStep === 'ready' && data !== null && !isTransitionActive && !isPlayingGame,
     onStepReached: (etape) => {
-      // Le GPS dit qu'on est arrivé !
       setReachedEtape(etape);
       setIsTransitionActive(true);
     },
   });
 
-  const handleContinueToGame = () => {
-    setIsTransitionActive(false);
-    setIsPlayingGame(true);
-  };
+  // ── Handlers ──
+  const handleContinueToGame = () => { setIsTransitionActive(false); setIsPlayingGame(true); };
 
   const handleGameCompleted = async () => {
     setIsPlayingGame(false);
     setReachedEtape(null);
-
     const totalEtapes = data?.etapes.length || 0;
-    
+
     if (currentEtapeOrder >= totalEtapes) {
-      // C'était la dernière étape !
       completeEtape(totalEtapes);
-      
-      // Mettre à jour la base SQLite locale + File d'attente de Sync
       try {
         const { markParcoursCompleted, addToQueue } = await import('@/src/services/database.service');
         const { generateUUID } = await import('@/src/utils/uuid');
         await markParcoursCompleted(id);
-        
         const { score, startTime } = useGameStore.getState();
         const tempsPasse = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-        
-        const syncPayload = {
-          parcoursId: id,
-          score: score,
-          tempsPasse: tempsPasse,
-          syncId: generateUUID(),
-        };
-
         await addToQueue({
-          syncId: syncPayload.syncId,
+          syncId: generateUUID(),
           type: 'parcours_completed',
-          payload: JSON.stringify(syncPayload),
+          payload: JSON.stringify({ parcoursId: id, score, tempsPasse }),
           createdAt: Date.now(),
         });
       } catch (err) {
-        console.error('Erreur lors de la sauvegarde de fin de parcours:', err);
+        console.error('Erreur sauvegarde fin de parcours:', err);
       }
-
-      Alert.alert(
-        "Félicitations !", 
-        "Vous avez terminé ce parcours avec succès. L'écran de victoire sera disponible bientôt !",
-        [{ text: "Quitter", style: "default", onPress: () => router.back() }]
-      );
+      router.replace({ pathname: '/parcours/[id]/victoire', params: { id } });
     } else {
       completeEtape(totalEtapes);
-      Alert.alert(
-        "Étape validée !", 
-        "Bravo ! En route vers la prochaine étape.",
-        [{ text: "Continuer", style: "default" }]
-      );
+      Alert.alert('Étape validée !', 'Bravo ! En route vers la prochaine étape.', [
+        { text: 'Continuer', style: 'default' },
+      ]);
     }
   };
 
   const handleQuitGame = () => {
-    Alert.alert(
-      "Abandonner le défi ?",
-      "Vous pourrez réessayer ce défi plus tard.",
-      [
-        { text: "Annuler", style: "cancel" },
-        { 
-          text: "Abandonner", 
-          style: "destructive", 
-          onPress: () => {
-            setIsPlayingGame(false);
-            setReachedEtape(null);
-          }
-        }
-      ]
-    );
+    Alert.alert('Abandonner le défi ?', 'Vous pourrez réessayer ce défi plus tard.', [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Abandonner', style: 'destructive', onPress: () => { setIsPlayingGame(false); setReachedEtape(null); } },
+    ]);
   };
 
   const handleQuit = () => {
-    Alert.alert(
-      'Quitter la balade',
-      'Êtes-vous sûr de vouloir quitter ? Votre progression (étapes validées) est sauvegardée.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Quitter',
-          style: 'destructive',
-          onPress: () => router.back(),
-        },
-      ]
-    );
+    Alert.alert('Quitter la balade', 'Êtes-vous sûr de vouloir quitter ? Votre progression est sauvegardée.', [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Quitter', style: 'destructive', onPress: () => router.back() },
+    ]);
   };
 
-  if (isLoading) {
+  // ────────────────────────────────────────────────────────────────────────────
+  // Rendu : écran de préparation
+  // ────────────────────────────────────────────────────────────────────────────
+  if (prepStep !== 'ready') {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#2D6A4F" />
-        <Text style={styles.loadingText}>Préparation de la carte hors-ligne...</Text>
-      </View>
+      <PrepScreen
+        step={prepStep}
+        tileProgress={tileProgress}
+        tileStats={tileStats}
+        error={prepError}
+        onRetry={runPreparation}
+      />
     );
   }
 
-  if (error || !data) {
-    return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="warning" size={48} color="#EF4444" />
-        <Text style={styles.errorText}>{error}</Text>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backBtnText}>Retour</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  // L'étape actuelle à atteindre (order commence à 1 dans le jeu, index à 0)
   const currentEtapeIndex = Math.max(0, currentEtapeOrder - 1);
-  const currentEtape = data.etapes[currentEtapeIndex] || data.etapes[0];
+  const currentEtape = data!.etapes[currentEtapeIndex] || data!.etapes[0];
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // Rendu : carte de navigation
+  // ────────────────────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      {/* CARTE */}
+
+      {/* ── CARTE OPENSTREETMAP ── */}
       <MapView
+        ref={mapRef}
         style={StyleSheet.absoluteFillObject}
         showsUserLocation
         showsMyLocationButton={false}
         showsCompass={true}
+        mapType="none" // Désactive le fond Google/Apple
+        rotateEnabled={false}
+        pitchEnabled={false}
         initialRegion={
           currentEtape
             ? {
                 latitude: currentEtape.latitude,
                 longitude: currentEtape.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
+                latitudeDelta: 0.007,
+                longitudeDelta: 0.007,
               }
             : undefined
         }
       >
-        {/* Tracé GPS du parcours */}
-        {geoJsonData && (
-          <Geojson
-            geojson={geoJsonData}
-            strokeColor="#2D6A4F"
-            fillColor="#2D6A4F"
+        {/* Tuiles OSM — locales si hors-ligne, en ligne sinon */}
+        <UrlTile
+          urlTemplate={tilesUrl}
+          maximumZ={19}
+          maximumNativeZ={17}
+          shouldReplaceMapContent
+        />
+
+        {/* Tracé du parcours */}
+        {routeCoords.length > 0 && (
+          <Polyline
+            coordinates={routeCoords}
+            strokeColor="#10b981"
             strokeWidth={4}
+            lineJoin="round"
+            lineCap="round"
           />
         )}
 
-        {/* Marqueurs pour chaque étape */}
-        {data.etapes.map((etape, index) => {
+        {/* Marqueurs des étapes */}
+        {data!.etapes.map((etape, index) => {
           const isPassed = index < currentEtapeIndex;
           const isActive = index === currentEtapeIndex;
-
-          let color = '#9CA3AF'; // Gris si à venir
-          if (isPassed) color = '#10B981'; // Vert si validée
-          if (isActive) color = '#F59E0B'; // Orange si c'est la prochaine cible
+          let color = '#9CA3AF';
+          if (isPassed) color = '#10B981';
+          if (isActive) color = '#F59E0B';
 
           return (
             <Marker
               key={etape.id}
               coordinate={{ latitude: etape.latitude, longitude: etape.longitude }}
               title={etape.title}
+              anchor={{ x: 0.5, y: 0.5 }}
             >
               <View style={[styles.markerBubble, { backgroundColor: color }]}>
                 <Text style={styles.markerText}>{index + 1}</Text>
@@ -252,40 +429,38 @@ export default function JeuScreen() {
         })}
       </MapView>
 
-      {/* HEADER (Bouton Quitter flottant) */}
+      {/* ── HEADER ── */}
       <View style={[styles.headerOverlay, { top: insets.top + 10 }]}>
         <Pressable style={styles.iconBtn} onPress={handleQuit}>
           <Ionicons name="close" size={24} color="#1F2937" />
         </Pressable>
       </View>
 
-      {/* FOOTER (Panneau d'information d'étape) */}
+      {/* ── FOOTER : Panneau info étape ── */}
       <View style={[styles.footerOverlay, { paddingBottom: insets.bottom + 20 }]}>
         <View style={styles.objectifCard}>
-          <Text style={styles.objectifLabel}>Prochaine étape ({currentEtapeOrder}/{data.etapes.length})</Text>
-          <Text style={styles.objectifTitle}>{currentEtape?.title || "Balade terminée !"}</Text>
-          <Text style={styles.objectifDesc}>
-            Suivez la carte pour vous rendre à cet emplacement. Un mini-jeu se déclenchera automatiquement quand vous serez à moins de 15 mètres.
+          <Text style={styles.objectifLabel}>
+            Prochaine étape ({currentEtapeOrder}/{data!.etapes.length})
           </Text>
-          
+          <Text style={styles.objectifTitle}>{currentEtape?.title || 'Balade terminée !'}</Text>
+          <Text style={styles.objectifDesc}>
+            Suivez la carte pour vous rendre à cet emplacement. Un mini-jeu se déclenchera
+            automatiquement quand vous serez à moins de 15 mètres.
+          </Text>
+
           {/* Distance en direct */}
           {distanceToNext !== null && !isTransitionActive && !isPlayingGame && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, backgroundColor: '#E8F5E9', padding: 8, borderRadius: 8, alignSelf: 'flex-start' }}>
+            <View style={styles.distancePill}>
               <Ionicons name="navigate-circle" size={20} color="#10B981" />
-              <Text style={{ marginLeft: 6, color: '#065F46', fontWeight: 'bold' }}>
-                À {formatDistance(distanceToNext)}
-              </Text>
+              <Text style={styles.distanceText}>À {formatDistance(distanceToNext)}</Text>
             </View>
           )}
         </View>
       </View>
 
-      {/* Carnet de Bord (Modale de transition au point GPS) */}
+      {/* Carnet de Bord (transition au point GPS) */}
       {isTransitionActive && reachedEtape && (
-        <CarnetTransitionView
-          etape={reachedEtape}
-          onContinue={handleContinueToGame}
-        />
+        <CarnetTransitionView etape={reachedEtape} onContinue={handleContinueToGame} />
       )}
 
       {/* Mini-Jeux */}
@@ -301,14 +476,102 @@ export default function JeuScreen() {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const prepStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f0fdf4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 380,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+    gap: 16,
+  },
+  iconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1a1a2e',
+    textAlign: 'center',
+  },
+  stepLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  progressContainer: {
+    width: '100%',
+    gap: 8,
+    alignItems: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#f59e0b',
+    borderRadius: 4,
+  },
+  progressLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  retryBtn: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  cancelBtn: {
+    marginTop: 4,
+  },
+  cancelText: {
+    color: '#9ca3af',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  tileStats: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F7F5' },
-  centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  loadingText: { marginTop: 16, color: '#2D6A4F', fontWeight: '600' },
-  errorText: { marginTop: 16, color: '#EF4444', textAlign: 'center', fontWeight: '600', marginBottom: 24 },
-  backBtn: { backgroundColor: '#2D6A4F', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 100 },
-  backBtnText: { color: 'white', fontWeight: 'bold' },
-  
+  container: { flex: 1, backgroundColor: '#e5e7eb' },
+
   headerOverlay: {
     position: 'absolute',
     left: 20,
@@ -346,18 +609,37 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
+    gap: 6,
   },
-  objectifLabel: { fontSize: 12, fontWeight: '700', color: '#10B981', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
-  objectifTitle: { fontSize: 20, fontWeight: '900', color: '#1F2937', marginBottom: 8 },
+  objectifLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#10B981',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  objectifTitle: { fontSize: 20, fontWeight: '900', color: '#1F2937' },
   objectifDesc: { fontSize: 14, color: '#4B5563', lineHeight: 20 },
 
+  distancePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    backgroundColor: '#E8F5E9',
+    padding: 8,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+    gap: 6,
+  },
+  distanceText: { color: '#065F46', fontWeight: '700', fontSize: 14 },
+
   markerBubble: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: 'white',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

@@ -188,40 +188,124 @@ export async function saveObservationPhoto(
   return localPath;
 }
 
-// ─── Téléchargement des tuiles de carte (OSM) ──────────────────────────────────
+// ─── Téléchargement des tuiles de carte (OSM) ─────────────────────────────────
 
 /**
- * Télécharge les tuiles de carte OpenStreetMap pour une Bounding Box (via un GeoJSON).
- * Les tuiles sont sauvegardées localement pour usage hors-ligne.
+ * Taille minimale en octets pour qu'un fichier soit considéré comme une vraie tuile.
+ * Une tuile OSM valide fait au moins 200 octets ; en dessous c'est une erreur HTML.
+ */
+const MIN_TILE_SIZE_BYTES = 200;
+
+/**
+ * Serveurs de tuiles OSM (sous-domaines).
+ * On les fait tourner pour ne pas taper toujours le même serveur.
+ */
+const OSM_SUBDOMAINS = ['a', 'b', 'c'];
+
+/**
+ * Télécharge une seule tuile OSM et valide qu'elle est bien une image PNG.
+ * Retourne true si la tuile est prête (téléchargée ou déjà en cache), false en cas d'échec.
+ */
+async function downloadSingleTile(
+  z: number,
+  x: number,
+  y: number,
+  localPath: string
+): Promise<boolean> {
+  // Vérifier si la tuile existe déjà et est valide
+  const existing = await FileSystem.getInfoAsync(localPath);
+  if (existing.exists) {
+    const size = 'size' in existing ? (existing.size ?? 0) : 0;
+    if (size >= MIN_TILE_SIZE_BYTES) return true; // déjà en cache et valide
+    // Corrompue → on la supprime et on re-télécharge
+    await FileSystem.deleteAsync(localPath, { idempotent: true });
+  }
+
+  // Rotation des sous-domaines OSM pour équilibrer la charge
+  const subdomain = OSM_SUBDOMAINS[(x + y + z) % OSM_SUBDOMAINS.length];
+  const url = `https://${subdomain}.tile.openstreetmap.org/${z}/${x}/${y}.png`;
+
+  try {
+    const result = await FileSystem.downloadAsync(url, localPath, {
+      headers: {
+        // OSM exige un User-Agent identifiant correctement l'application
+        'User-Agent': 'ScruteLaNature/1.0 (contact@lpo.fr)',
+        'Accept':     'image/png, image/*;q=0.8',
+      },
+    });
+
+    if (result.status !== 200) {
+      // Réponse non-image (ex: 403, 429, 503) → supprimer le fichier téléchargé
+      await FileSystem.deleteAsync(localPath, { idempotent: true });
+      console.warn(`[Tiles] HTTP ${result.status} pour ${z}/${x}/${y}`);
+      return false;
+    }
+
+    // Vérifier la taille réelle du fichier téléchargé
+    const info = await FileSystem.getInfoAsync(localPath);
+    const size = info.exists && 'size' in info ? (info.size ?? 0) : 0;
+    if (size < MIN_TILE_SIZE_BYTES) {
+      await FileSystem.deleteAsync(localPath, { idempotent: true });
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    await FileSystem.deleteAsync(localPath, { idempotent: true });
+    return false;
+  }
+}
+
+/**
+ * Résultat retourné par downloadMapTiles pour un reporting précis.
+ */
+export interface TileDownloadResult {
+  total: number;
+  downloaded: number;
+  cached: number;
+  failed: number;
+}
+
+/**
+ * Télécharge et met en cache les tuiles OpenStreetMap couvrant le tracé GeoJSON
+ * d'un parcours, pour les niveaux de zoom spécifiés.
  *
- * @param geojsonString GeoJSON représentant le tracé du parcours
- * @param parcoursId    Identifiant du parcours
- * @param minZoom       Niveau de zoom minimal (défaut: 14)
- * @param maxZoom       Niveau de zoom maximal (défaut: 17)
+ * Chaque tuile est validée (statut HTTP 200 + taille minimale) avant d'être
+ * conservée. Les tuiles corrompues ou les erreurs serveur n'encombrent pas le
+ * stockage local.
+ *
+ * @param geojsonString  GeoJSON du tracé (LineString ou FeatureCollection)
+ * @param parcoursId     ID du parcours (pour l'arborescence de stockage)
+ * @param minZoom        Zoom minimal (défaut 14)
+ * @param maxZoom        Zoom maximal (défaut 17)
+ * @param onProgress     Callback [0..1] indiquant la progression
  */
 export async function downloadMapTiles(
   geojsonString: string | null | undefined,
   parcoursId: string,
-  minZoom = 14,
+  minZoom = 12,
   maxZoom = 17,
   onProgress?: (progress: number) => void
-): Promise<void> {
-  if (!geojsonString) return;
+): Promise<TileDownloadResult> {
+  const result: TileDownloadResult = { total: 0, downloaded: 0, cached: 0, failed: 0 };
+  if (!geojsonString) return result;
 
-  const bbox = calculateBoundingBox(geojsonString);
-  if (!bbox) return;
+  // Ajout d'un padding de ~500m (0.005) pour avoir une marge autour du parcours
+  const bbox = calculateBoundingBox(geojsonString, 0.005);
+  if (!bbox) return result;
 
   const tilesDir = getParcoursTilesDir(parcoursId);
   await ensureDir(tilesDir);
 
+  // ── 1. Construire la liste de toutes les tuiles à télécharger ──────────────
   type TileReq = { x: number; y: number; z: number };
   const tilesToDownload: TileReq[] = [];
 
-  // 1. Calculer toutes les tuiles nécessaires
   for (let z = minZoom; z <= maxZoom; z++) {
     const minX = lon2tile(bbox.minLng, z);
     const maxX = lon2tile(bbox.maxLng, z);
-    const minY = lat2tile(bbox.maxLat, z); // Note: maxLat correspond au minY car l'axe Y descend
+    // Note : maxLat donne le minY car l'axe Y est inversé en projection Mercator
+    const minY = lat2tile(bbox.maxLat, z);
     const maxY = lat2tile(bbox.minLat, z);
 
     for (let x = Math.min(minX, maxX); x <= Math.max(minX, maxX); x++) {
@@ -231,38 +315,75 @@ export async function downloadMapTiles(
     }
   }
 
-  const totalTiles = tilesToDownload.length;
-  if (totalTiles === 0) return;
+  result.total = tilesToDownload.length;
+  if (result.total === 0) return result;
 
-  // 2. Télécharger les tuiles par lots (batch) pour ne pas saturer le réseau
-  const BATCH_SIZE = 5;
-  let downloadedCount = 0;
+  // ── 2. Télécharger par lots de 4 avec pause entre chaque lot ──────────────
+  // OSM impose une limite de ~2 req/s par IP. 4 en parallèle + 100ms de pause
+  // = ~40 req/s max, ce qui est raisonnable et respecte leur politique.
+  const BATCH_SIZE = 4;
+  const BATCH_DELAY_MS = 100;
+  let processed = 0;
 
-  for (let i = 0; i < totalTiles; i += BATCH_SIZE) {
+  for (let i = 0; i < result.total; i += BATCH_SIZE) {
     const batch = tilesToDownload.slice(i, i + BATCH_SIZE);
-    
-    await Promise.all(
-      batch.map(async (tile) => {
-        const { x, y, z } = tile;
-        const url = `https://a.tile.openstreetmap.org/${z}/${x}/${y}.png`;
+
+    const batchResults = await Promise.all(
+      batch.map(async ({ x, y, z }) => {
         const localTileDir = `${tilesDir}${z}/${x}/`;
         const localPath = `${localTileDir}${y}.png`;
-
         await ensureDir(localTileDir);
 
-        const info = await FileSystem.getInfoAsync(localPath);
-        if (!info.exists) {
-          try {
-            await FileSystem.downloadAsync(url, localPath);
-          } catch (err) {
-            console.warn(`[Tiles] Échec téléchargement tuile ${z}/${x}/${y}:`, err);
-          }
+        // Vérifier le cache avant de télécharger
+        const existing = await FileSystem.getInfoAsync(localPath);
+        if (existing.exists) {
+          const size = 'size' in existing ? (existing.size ?? 0) : 0;
+          if (size >= MIN_TILE_SIZE_BYTES) return 'cached';
+          await FileSystem.deleteAsync(localPath, { idempotent: true });
         }
+
+        const ok = await downloadSingleTile(z, x, y, localPath);
+        return ok ? 'downloaded' : 'failed';
       })
     );
 
-    downloadedCount += batch.length;
-    onProgress?.(downloadedCount / totalTiles);
+    // Comptabiliser les résultats
+    for (const r of batchResults) {
+      if (r === 'cached') result.cached++;
+      else if (r === 'downloaded') result.downloaded++;
+      else result.failed++;
+    }
+
+    processed += batch.length;
+    onProgress?.(processed / result.total);
+
+    // Respecter le rate-limit OSM entre chaque lot
+    if (i + BATCH_SIZE < result.total) {
+      await new Promise<void>((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+    }
+  }
+
+  console.log(
+    `[Tiles] Terminé : ${result.downloaded} DL / ${result.cached} cache / ${result.failed} échecs / ${result.total} total`
+  );
+  return result;
+}
+
+/**
+ * Vérifie si les tuiles d'un parcours sont disponibles localement.
+ * Utile pour décider si on peut jouer hors-ligne.
+ */
+export async function areTilesAvailable(parcoursId: string): Promise<boolean> {
+  const tilesDir = getParcoursTilesDir(parcoursId);
+  const info = await FileSystem.getInfoAsync(tilesDir);
+  if (!info.exists) return false;
+
+  // Vérifier qu'il y a au moins quelques fichiers dans le répertoire
+  try {
+    const items = await FileSystem.readDirectoryAsync(tilesDir);
+    return items.length > 0;
+  } catch {
+    return false;
   }
 }
 

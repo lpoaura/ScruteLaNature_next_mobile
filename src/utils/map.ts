@@ -14,8 +14,9 @@ export interface BoundingBox {
 
 /**
  * Calcule la Bounding Box à partir d'un fichier GeoJSON (LineString).
+ * @param padding Padding optionnel en degrés (ex: 0.005 pour ~500m) pour élargir la zone
  */
-export function calculateBoundingBox(geojsonString: string): BoundingBox | null {
+export function calculateBoundingBox(geojsonString: string, padding: number = 0): BoundingBox | null {
   try {
     const geojson = JSON.parse(geojsonString);
     let coordinates: [number, number][] = [];
@@ -50,7 +51,12 @@ export function calculateBoundingBox(geojsonString: string): BoundingBox | null 
       if (lng > maxLng) maxLng = lng;
     });
 
-    return { minLat, maxLat, minLng, maxLng };
+    return { 
+      minLat: minLat - padding, 
+      maxLat: maxLat + padding, 
+      minLng: minLng - padding, 
+      maxLng: maxLng + padding 
+    };
   } catch (err) {
     console.error('Erreur lors du calcul de la Bounding Box du GeoJSON:', err);
     return null;

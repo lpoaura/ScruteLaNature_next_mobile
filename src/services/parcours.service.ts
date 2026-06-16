@@ -116,7 +116,7 @@ export const parcoursService = {
       // S'il n'y a pas de médias, on passe directement aux tuiles
       try {
         if (data.pathGeoJSON) {
-          await downloadMapTiles(data.pathGeoJSON, id, 14, 17, (p) => onProgress?.(0.25 + p * 0.75));
+          await downloadMapTiles(data.pathGeoJSON, id, 12, 17, (p) => onProgress?.(0.25 + p * 0.75));
         }
       } catch (err) {
         console.warn(`[Download] Échec tuiles:`, err);
@@ -155,7 +155,7 @@ export const parcoursService = {
         await downloadMapTiles(
           data.pathGeoJSON,
           id,
-          14,
+          12,
           17,
           (p) => onProgress?.(0.90 + p * 0.10)
         );

@@ -24,10 +24,12 @@ import Animated, {
   FadeInDown,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import MapView, { UrlTile, Polyline, Marker } from 'react-native-maps';
 import { apiService } from '@/src/services/api.service';
 import { DownloadButton } from '@/src/components/features/parcours/DownloadButton';
 import { useGameStore } from '@/src/store/game.store';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { calculateBoundingBox } from '@/src/utils/map';
 import type { Parcours, Etape } from '@/src/types/api.types';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -118,6 +120,99 @@ function StatCard({
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </Animated.View>
+  );
+}
+
+// ─── Composant MapSection ─────────────────────────────────────────────────────
+
+function MapSection({ geojson }: { geojson: string }) {
+  const routeCoordinates = React.useMemo(() => {
+    try {
+      const parsed = JSON.parse(geojson);
+      let coords: [number, number][] = [];
+
+      if (parsed.type === 'LineString') {
+        coords = parsed.coordinates;
+      } else if (parsed.type === 'Feature' && parsed.geometry?.type === 'LineString') {
+        coords = parsed.geometry.coordinates;
+      } else if (parsed.type === 'FeatureCollection') {
+        const line = parsed.features.find((f: any) => f.geometry?.type === 'LineString');
+        if (line) coords = line.geometry.coordinates;
+      }
+
+      return coords.map(([lng, lat]: [number, number]) => ({ latitude: lat, longitude: lng }));
+    } catch {
+      return [];
+    }
+  }, [geojson]);
+
+  const initialRegion = React.useMemo(() => {
+    const bbox = calculateBoundingBox(geojson);
+    if (!bbox) return undefined;
+    return {
+      latitude: (bbox.minLat + bbox.maxLat) / 2,
+      longitude: (bbox.minLng + bbox.maxLng) / 2,
+      latitudeDelta: Math.max((bbox.maxLat - bbox.minLat) * 1.5, 0.01),
+      longitudeDelta: Math.max((bbox.maxLng - bbox.minLng) * 1.5, 0.01),
+    };
+  }, [geojson]);
+
+  const startPoint = routeCoordinates[0];
+  const endPoint = routeCoordinates[routeCoordinates.length - 1];
+
+  if (routeCoordinates.length === 0 || !initialRegion) return null;
+
+  return (
+    <View style={styles.mapContainer}>
+      <MapView
+        style={StyleSheet.absoluteFillObject}
+        initialRegion={initialRegion}
+        scrollEnabled={false}
+        zoomEnabled={false}
+        pitchEnabled={false}
+        rotateEnabled={false}
+        mapType="none"
+        liteMode={true}
+      >
+        <UrlTile
+          urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maximumZ={19}
+          shouldReplaceMapContent
+        />
+        <Polyline
+          coordinates={routeCoordinates}
+          strokeColor="#10b981"
+          strokeWidth={4}
+          lineJoin="round"
+          lineCap="round"
+        />
+        {startPoint && (
+          <Marker coordinate={startPoint} pinColor="#10b981" anchor={{ x: 0.5, y: 0.5 }}>
+            <View style={styles.mapDot}>
+              <View style={styles.mapDotInner} />
+            </View>
+          </Marker>
+        )}
+        {endPoint && routeCoordinates.length > 1 && (
+          <Marker coordinate={endPoint} pinColor="#ef4444" anchor={{ x: 0.5, y: 0.5 }}>
+            <View style={[styles.mapDot, { borderColor: '#ef4444' }]}>
+              <View style={[styles.mapDotInner, { backgroundColor: '#ef4444' }]} />
+            </View>
+          </Marker>
+        )}
+      </MapView>
+      {/* Légende */}
+      <View style={styles.mapLegend}>
+        <View style={styles.mapLegendItem}>
+          <View style={[styles.mapLegendDot, { backgroundColor: '#10b981' }]} />
+          <Text style={styles.mapLegendText}>Départ</Text>
+        </View>
+        <View style={styles.mapLegendItem}>
+          <View style={[styles.mapLegendDot, { backgroundColor: '#ef4444' }]} />
+          <Text style={styles.mapLegendText}>Arrivée</Text>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -368,18 +463,29 @@ export default function ParcoursDetailScreen() {
             entering={FadeInDown.delay(100).duration(400).springify()}
             style={styles.section}
           >
-            {id && (
-              <DownloadButton
-                parcoursId={id}
-                onPlay={handlePlay}
-                onDownloaded={handleDownloaded}
-              />
-            )}
+          {id && (
+            <DownloadButton
+              parcoursId={id}
+              onPlay={handlePlay}
+              onDownloaded={handleDownloaded}
+            />
+          )}
             <Text style={styles.offlineNote}>
               <Ionicons name="wifi-outline" size={12} color="#BDBDBD" />{' '}
               Téléchargez une fois, jouez partout — même sans réseau.
             </Text>
           </Animated.View>
+
+          {/* ── Section : Carte du parcours ────────────────────────── */}
+          {parcours.pathGeoJSON && (
+            <Animated.View
+              entering={FadeInDown.delay(160).duration(400).springify()}
+              style={styles.section}
+            >
+              <Text style={styles.sectionTitle}>Carte du parcours</Text>
+              <MapSection geojson={parcours.pathGeoJSON} />
+            </Animated.View>
+          )}
 
           {/* ── Section : À propos ──────────────────────────────────────── */}
           {parcours.description && (
@@ -802,4 +908,54 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   retryText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  // ── Carte OSM ──
+  mapContainer: {
+    height: 220,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#e5e7eb',
+  },
+  mapDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    borderWidth: 3,
+    borderColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapDotInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
+  },
+  mapLegend: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  mapLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  mapLegendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  mapLegendText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#374151',
+  },
 });
