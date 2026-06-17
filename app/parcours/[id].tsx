@@ -24,12 +24,19 @@ import Animated, {
   FadeInDown,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { UrlTile, Polyline, Marker } from 'react-native-maps';
+import { Camera, Marker } from '@maplibre/maplibre-react-native';
 import { apiService } from '@/src/services/api.service';
 import { DownloadButton } from '@/src/components/features/parcours/DownloadButton';
 import { useGameStore } from '@/src/store/game.store';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import { calculateBoundingBox } from '@/src/utils/map';
+import {
+  BaseMap,
+  OsmRasterLayer,
+  RouteLine,
+  regionToInitialViewState,
+  toLngLat,
+} from '@/src/components/features/map/maplibre';
 import type { Parcours, Etape } from '@/src/types/api.types';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -164,43 +171,34 @@ function MapSection({ geojson }: { geojson: string }) {
 
   return (
     <View style={styles.mapContainer}>
-      <MapView
+      <BaseMap
         style={StyleSheet.absoluteFillObject}
-        initialRegion={initialRegion}
-        scrollEnabled={false}
-        zoomEnabled={false}
-        pitchEnabled={false}
-        rotateEnabled={false}
-        mapType="none"
-        liteMode={true}
+        dragPan={false}
+        touchZoom={false}
+        doubleTapZoom={false}
+        doubleTapHoldZoom={false}
+        touchPitch={false}
+        touchRotate={false}
+        compass={false}
       >
-        <UrlTile
-          urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maximumZ={19}
-          shouldReplaceMapContent
-        />
-        <Polyline
-          coordinates={routeCoordinates}
-          strokeColor="#10b981"
-          strokeWidth={4}
-          lineJoin="round"
-          lineCap="round"
-        />
+        <Camera initialViewState={regionToInitialViewState(initialRegion)} />
+        <OsmRasterLayer tileUrl="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <RouteLine coordinates={routeCoordinates} />
         {startPoint && (
-          <Marker coordinate={startPoint} pinColor="#10b981" anchor={{ x: 0.5, y: 0.5 }}>
+          <Marker lngLat={toLngLat(startPoint)} anchor="center">
             <View style={styles.mapDot}>
               <View style={styles.mapDotInner} />
             </View>
           </Marker>
         )}
         {endPoint && routeCoordinates.length > 1 && (
-          <Marker coordinate={endPoint} pinColor="#ef4444" anchor={{ x: 0.5, y: 0.5 }}>
+          <Marker lngLat={toLngLat(endPoint)} anchor="center">
             <View style={[styles.mapDot, { borderColor: '#ef4444' }]}>
               <View style={[styles.mapDotInner, { backgroundColor: '#ef4444' }]} />
             </View>
           </Marker>
         )}
-      </MapView>
+      </BaseMap>
       {/* Légende */}
       <View style={styles.mapLegend}>
         <View style={styles.mapLegendItem}>

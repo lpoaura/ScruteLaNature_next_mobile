@@ -9,7 +9,8 @@ import {
   Animated,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
+import { Camera, Marker, UserLocation } from '@maplibre/maplibre-react-native';
+import type { CameraRef } from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,13 +20,19 @@ import { useGameStore } from '@/src/store/game.store';
 import { getParcoursTilesDir, downloadMapTiles, areTilesAvailable } from '@/src/services/filesystem.service';
 import type { TileDownloadResult } from '@/src/services/filesystem.service';
 import type { Parcours, Etape, Jeu } from '@/src/types/api.types';
-import * as FileSystem from 'expo-file-system/legacy';
 
 import { useGpsTrigger } from '@/src/hooks/use-gps-trigger';
 import { formatDistance } from '@/src/utils/distance';
 import { CarnetTransitionView } from '@/src/components/features/transition/CarnetTransitionView';
 import { MiniJeuxManager } from '@/src/components/features/jeux/MiniJeuxManager';
-import { calculateBoundingBox } from '@/src/utils/map';
+import {
+  BaseMap,
+  easeCameraToRegion,
+  OsmRasterLayer,
+  RouteLine,
+  regionToInitialViewState,
+  toLngLat,
+} from '@/src/components/features/map/maplibre';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -145,7 +152,7 @@ export default function JeuScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { startParcours, currentEtapeOrder, activeParcoursId, completeEtape } = useGameStore();
-  const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<CameraRef>(null);
 
   // ── États de préparation ──
   const [prepStep, setPrepStep] = useState<PrepStep>('loading_data');
@@ -268,9 +275,10 @@ export default function JeuScreen() {
     if (prepStep !== 'ready' || !data) return;
     const currentEtapeIndex = Math.max(0, currentEtapeOrder - 1);
     const currentEtape = data.etapes[currentEtapeIndex];
-    if (currentEtape && mapRef.current) {
+    if (currentEtape && cameraRef.current) {
       setTimeout(() => {
-        mapRef.current?.animateToRegion(
+        easeCameraToRegion(
+          cameraRef.current,
           {
             latitude: currentEtape.latitude,
             longitude: currentEtape.longitude,
@@ -367,44 +375,32 @@ export default function JeuScreen() {
     <View style={styles.container}>
 
       {/* ── CARTE OPENSTREETMAP ── */}
-      <MapView
-        ref={mapRef}
+      <BaseMap
         style={StyleSheet.absoluteFillObject}
-        showsUserLocation
-        showsMyLocationButton={false}
-        showsCompass={true}
-        mapType="none" // Désactive le fond Google/Apple
-        rotateEnabled={false}
-        pitchEnabled={false}
-        initialRegion={
-          currentEtape
-            ? {
-                latitude: currentEtape.latitude,
-                longitude: currentEtape.longitude,
-                latitudeDelta: 0.007,
-                longitudeDelta: 0.007,
-              }
-            : undefined
-        }
+        compass={true}
+        touchRotate={false}
+        touchPitch={false}
       >
-        {/* Tuiles OSM — locales si hors-ligne, en ligne sinon */}
-        <UrlTile
-          urlTemplate={tilesUrl}
-          maximumZ={19}
-          maximumNativeZ={17}
-          shouldReplaceMapContent
+        <Camera
+          ref={cameraRef}
+          initialViewState={regionToInitialViewState(
+            currentEtape
+              ? {
+                  latitude: currentEtape.latitude,
+                  longitude: currentEtape.longitude,
+                  latitudeDelta: 0.007,
+                  longitudeDelta: 0.007,
+                }
+              : undefined
+          )}
         />
+        <UserLocation />
+
+        {/* Tuiles OSM — locales si hors-ligne, en ligne sinon */}
+        <OsmRasterLayer tileUrl={tilesUrl} />
 
         {/* Tracé du parcours */}
-        {routeCoords.length > 0 && (
-          <Polyline
-            coordinates={routeCoords}
-            strokeColor="#10b981"
-            strokeWidth={4}
-            lineJoin="round"
-            lineCap="round"
-          />
-        )}
+        <RouteLine coordinates={routeCoords} />
 
         {/* Marqueurs des étapes */}
         {data!.etapes.map((etape, index) => {
@@ -417,9 +413,8 @@ export default function JeuScreen() {
           return (
             <Marker
               key={etape.id}
-              coordinate={{ latitude: etape.latitude, longitude: etape.longitude }}
-              title={etape.title}
-              anchor={{ x: 0.5, y: 0.5 }}
+              lngLat={toLngLat({ latitude: etape.latitude, longitude: etape.longitude })}
+              anchor="center"
             >
               <View style={[styles.markerBubble, { backgroundColor: color }]}>
                 <Text style={styles.markerText}>{index + 1}</Text>
@@ -427,7 +422,7 @@ export default function JeuScreen() {
             </Marker>
           );
         })}
-      </MapView>
+      </BaseMap>
 
       {/* ── HEADER ── */}
       <View style={[styles.headerOverlay, { top: insets.top + 10 }]}>

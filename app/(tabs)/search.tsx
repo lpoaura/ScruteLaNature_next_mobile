@@ -10,9 +10,9 @@ import {
   ActivityIndicator,
   InteractionManager,
 } from 'react-native';
-import MapView, { Marker, UrlTile, Callout } from 'react-native-maps';
+import { Camera, Marker, UserLocation } from '@maplibre/maplibre-react-native';
+import type { CameraRef } from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { parcoursService } from '@/src/services/parcours.service';
@@ -24,6 +24,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useIsFocused } from '@react-navigation/native';
+import {
+  BaseMap,
+  easeCameraToRegion,
+  OsmRasterLayer,
+  regionToInitialViewState,
+  toLngLat,
+} from '@/src/components/features/map/maplibre';
 
 // ============================================================================
 // Types & Données
@@ -66,8 +73,7 @@ const DEFAULT_REGION = {
 };
 
 export default function SearchScreen() {
-  const insets = useSafeAreaInsets();
-  const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const isFocused = useIsFocused();
 
   // ── État ──
@@ -76,10 +82,11 @@ export default function SearchScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [parcours, setParcours] = useState<Parcours[]>([]);
   const [allMapParcours, setAllMapParcours] = useState<Parcours[]>([]);
+  const [selectedParcoursId, setSelectedParcoursId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Lazy loading : on attend la fin des animations de navigation avant de monter
-  // les composants lourds (MapView). Cela empêche le blocage du thread JS
+  // les composants lourds de carte. Cela empêche le blocage du thread JS
   // qui rendait le menu tactile non-réactif.
   const [isReady, setIsReady] = useState(false);
   const hasLoadedLocation = useRef(false);
@@ -139,11 +146,11 @@ export default function SearchScreen() {
   }));
 
   // ── Lazy mount + démontage au blur ──
-  // Le MapView est un composant natif lourd : tant qu'il est monté, il congestionne
+  // La carte est un composant natif lourd : tant qu'elle est montée, elle congestionne
   // le thread JS, ce qui rend le tab bar (Pressable → onPress sur le thread JS)
   // non-réactif — d'où "le menu ne marche plus", surtout après un reload où le
-  // MapView se monte sans transition douce (InteractionManager ne joue plus son rôle).
-  // Solution : on ne monte le MapView QUE lorsque l'onglet est focus, et on le
+  // la carte se monte sans transition douce (InteractionManager ne joue plus son rôle).
+  // Solution : on ne monte la carte QUE lorsque l'onglet est focus, et on la
   // démonte dès qu'on le quitte pour libérer le thread JS sur les autres onglets.
   useEffect(() => {
     if (!isFocused) {
@@ -175,7 +182,7 @@ export default function SearchScreen() {
         if (lastKnown) {
           const loc = { lat: lastKnown.coords.latitude, lng: lastKnown.coords.longitude };
           setUserLocation(loc);
-          mapRef.current?.animateToRegion({
+          easeCameraToRegion(cameraRef.current, {
             latitude: loc.lat,
             longitude: loc.lng,
             latitudeDelta: 0.1,
@@ -194,7 +201,7 @@ export default function SearchScreen() {
           setUserLocation(freshLoc);
 
           if (!lastKnown) {
-            mapRef.current?.animateToRegion({
+            easeCameraToRegion(cameraRef.current, {
               latitude: freshLoc.lat,
               longitude: freshLoc.lng,
               latitudeDelta: 0.1,
@@ -252,7 +259,7 @@ export default function SearchScreen() {
 
   const handleCenterLocation = useCallback(async () => {
     if (userLocation) {
-      mapRef.current?.animateToRegion({
+      easeCameraToRegion(cameraRef.current, {
         latitude: userLocation.lat,
         longitude: userLocation.lng,
         latitudeDelta: 0.1,
@@ -261,7 +268,7 @@ export default function SearchScreen() {
     } else {
       try {
         const pos = await Location.getCurrentPositionAsync({});
-        mapRef.current?.animateToRegion({
+        easeCameraToRegion(cameraRef.current, {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           latitudeDelta: 0.1,
@@ -302,22 +309,19 @@ export default function SearchScreen() {
   return (
     <View style={styles.container}>
       {/* --- CARTE EN PLEIN ÉCRAN (OpenStreetMap) --- */}
-      <MapView
-        ref={mapRef}
+      <BaseMap
         style={StyleSheet.absoluteFillObject}
-        initialRegion={DEFAULT_REGION}
-        showsUserLocation
-        showsMyLocationButton={false}
-        mapType="none"
-        rotateEnabled={false}
-        pitchEnabled={false}
+        touchRotate={false}
+        touchPitch={false}
       >
-        {/* Tuiles OpenStreetMap — 100% gratuit, hors-ligne compatible */}
-        <UrlTile
-          urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maximumZ={19}
-          shouldReplaceMapContent
+        <Camera
+          ref={cameraRef}
+          initialViewState={regionToInitialViewState(DEFAULT_REGION)}
         />
+        <UserLocation />
+
+        {/* Tuiles OpenStreetMap — 100% gratuit, hors-ligne compatible */}
+        <OsmRasterLayer tileUrl="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
         {/* Marqueurs des parcours */}
         {filteredMapParcours.map((p) => {
@@ -325,25 +329,32 @@ export default function SearchScreen() {
           const lat = firstEtape?.latitude;
           const lng = firstEtape?.longitude;
           if (!lat || !lng) return null;
+          const isSelected = selectedParcoursId === p.id;
           return (
             <Marker
               key={p.id}
-              coordinate={{ latitude: lat, longitude: lng }}
-              pinColor="#10b981"
+              lngLat={toLngLat({ latitude: lat, longitude: lng })}
+              anchor="bottom"
+              onPress={() => setSelectedParcoursId(isSelected ? null : p.id)}
             >
-              <Callout onPress={() => handleParcoursSelect(p.id)} tooltip={false}>
-                <View style={styles.callout}>
-                  <Text style={styles.calloutTitle} numberOfLines={1}>{p.title}</Text>
-                  <Text style={styles.calloutMeta}>
-                    {p.difficulty ?? 'N/A'} • {p.durationMin ?? '?'} min
-                  </Text>
-                  <Text style={styles.calloutCta}>Voir le parcours →</Text>
+              <View style={styles.markerContainer}>
+                {isSelected && (
+                  <Pressable style={styles.callout} onPress={() => handleParcoursSelect(p.id)}>
+                    <Text style={styles.calloutTitle} numberOfLines={1}>{p.title}</Text>
+                    <Text style={styles.calloutMeta}>
+                      {p.difficulty ?? 'N/A'} • {p.durationMin ?? '?'} min
+                    </Text>
+                    <Text style={styles.calloutCta}>Voir le parcours →</Text>
+                  </Pressable>
+                )}
+                <View style={styles.mapPin}>
+                  <Ionicons name="leaf" size={16} color="#FFFFFF" />
                 </View>
-              </Callout>
+              </View>
             </Marker>
           );
         })}
-      </MapView>
+      </BaseMap>
 
 
       {/* --- BOUTON LOCALISATION --- */}
@@ -808,11 +819,35 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   // ── Marker Callout ──
+  markerContainer: {
+    alignItems: 'center',
+  },
+  mapPin: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
   callout: {
     width: 200,
     padding: 12,
     borderRadius: 12,
     backgroundColor: '#fff',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 5,
   },
   calloutTitle: {
     fontSize: 14,

@@ -1,10 +1,17 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import MapView, { UrlTile, Polyline, Marker, Region } from 'react-native-maps';
+import { Camera, UserLocation } from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
 import { getParcoursTilesDir } from '@/src/services/filesystem.service';
 import { calculateBoundingBox } from '@/src/utils/map';
 import * as FileSystem from 'expo-file-system/legacy';
+import {
+  BaseMap,
+  MapRegion,
+  OsmRasterLayer,
+  RouteLine,
+  regionToInitialViewState,
+} from './maplibre';
 
 interface ParcoursMapProps {
   parcoursId: string;
@@ -69,7 +76,7 @@ export default function ParcoursMap({
   }, [geojsonString]);
 
   // Calcul de la région initiale (Bounding Box)
-  const initialRegion = useMemo<Region | undefined>(() => {
+  const initialRegion = useMemo<MapRegion | undefined>(() => {
     if (!geojsonString) return undefined;
     const bbox = calculateBoundingBox(geojsonString);
     if (!bbox) return undefined;
@@ -91,30 +98,16 @@ export default function ParcoursMap({
 
   return (
     <View style={styles.container}>
-      <MapView
+      <BaseMap
         style={styles.map}
-        initialRegion={initialRegion}
-        showsUserLocation={hasLocationPermission}
-        showsMyLocationButton={hasLocationPermission}
-        showsCompass={true}
-        mapType="none" // IMPORTANT: Désactive le fond de carte par défaut (Google/Apple)
+        compass={true}
       >
-        <UrlTile
-          urlTemplate={tileUrl}
-          maximumZ={19}
-          offlineMode={isOffline} // Pour forcer la lecture du cache local si fourni par l'OS
-        />
+        <Camera initialViewState={regionToInitialViewState(initialRegion)} />
+        <OsmRasterLayer tileUrl={tileUrl} />
+        {hasLocationPermission && <UserLocation />}
 
-        {routeCoordinates.length > 0 && (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeColor="#10b981" // emerald-500
-            strokeWidth={4}
-            lineJoin="round"
-            lineCap="round"
-          />
-        )}
-      </MapView>
+        <RouteLine coordinates={routeCoordinates} />
+      </BaseMap>
 
       {isOffline && !offlineTilesExist && (
         <View style={styles.warningContainer}>
