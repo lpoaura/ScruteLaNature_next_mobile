@@ -1,47 +1,448 @@
-import { StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, ScrollView, View, Text, Pressable, Alert, Image } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuthStore } from '@/src/store/auth.store';
+import { Leaf, LogOut, Trash2, ShieldAlert, Users, Settings } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ScreenWrapper } from '@/src/components/screen-wrapper';
-import { ThemedText } from '@/src/components/themed-text';
-import { ThemedView } from '@/src/components/themed-view';
-import { Fonts } from '@/src/theme/theme';
-import { Link } from 'expo-router';
+// Mocks pour les badges en attendant l'API backend
+const MOCK_BADGES = [
+  { id: '1', name: 'Explorateur', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3253/3253013.png', unlocked: true },
+  { id: '2', name: 'Botaniste', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3253/3253063.png', unlocked: true },
+  { id: '3', name: 'Ornithologue', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3252/3252984.png', unlocked: false },
+  { id: '4', name: 'Écolo', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3253/3253051.png', unlocked: false },
+  { id: '5', name: 'Marathonien', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3252/3252971.png', unlocked: false },
+  { id: '6', name: 'Photographe', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3253/3253086.png', unlocked: false },
+];
 
 export default function ProfileScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { user, logout, deleteAccount, isGuest } = useAuthStore();
+  
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Valeurs par défaut si user n'est pas chargé
+  const level = user?.level || 1;
+  const points = user?.totalPoints || 0;
+  const nextLevelPoints = level * 1000; // Logique arbitraire de XP
+  const progressPercent = Math.min((points / nextLevelPoints) * 100, 100);
+  
+  const co2Saved = user?.co2Saved || 0; // en kg
+
+  const handleLogout = () => {
+    Alert.alert('Déconnexion', 'Voulez-vous vraiment vous déconnecter ?', [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Se déconnecter', style: 'destructive', onPress: async () => {
+          await logout();
+          router.replace('/(auth)/login');
+      }},
+    ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Suppression du compte', 
+      'Attention ! Cette action est irréversible. Toutes vos données seront définitivement effacées conformément au RGPD.', 
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { 
+          text: 'Supprimer définitivement', 
+          style: 'destructive', 
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await deleteAccount();
+              router.replace('/(auth)/login');
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible de supprimer le compte pour le moment.');
+              setIsDeleting(false);
+            }
+          }
+        },
+      ]
+    );
+  };
+
   return (
-    <ScreenWrapper>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText
-            type="title"
-            style={{
-              fontFamily: Fonts.rounded,
-            }}>
-            PROFILE    
-          </ThemedText>
-        </ThemedView>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20 }]}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* En-tête / Jauge XP */}
+      <View style={styles.header}>
+        <View style={styles.avatarContainer}>
+          <Text style={styles.avatarText}>
+            {user?.pseudo ? user.pseudo.charAt(0).toUpperCase() : 'I'}
+          </Text>
+        </View>
+        <Text style={styles.pseudo}>{user?.pseudo || 'Invité'}</Text>
         
-        <ThemedText>This app includes example code to help you get started.</ThemedText>
-        
-        <Link href="/(tabs)/profile/seetings">
-          <ThemedText type="link" style={styles.linkText}>Go to settings (seetings)</ThemedText>
-        </Link>
-      </ScrollView>
-    </ScreenWrapper>
+        <View style={styles.levelBadge}>
+          <Text style={styles.levelText}>Niveau {level}</Text>
+        </View>
+
+        <View style={styles.xpContainer}>
+          <View style={styles.xpHeader}>
+            <Text style={styles.xpText}>XP Total: {points} pts</Text>
+            <Text style={styles.xpTextNext}>{nextLevelPoints} pts</Text>
+          </View>
+          <View style={styles.xpBarBackground}>
+            <View style={[styles.xpBarFill, { width: `${progressPercent}%` }]} />
+          </View>
+        </View>
+      </View>
+
+      {/* CO2 Économisé */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statBox}>
+          <View style={styles.statIconContainer}>
+            <Leaf size={28} color="#10B981" />
+          </View>
+          <Text style={styles.statValue}>{co2Saved.toFixed(1)} kg</Text>
+          <Text style={styles.statLabel}>de CO2 économisé</Text>
+        </View>
+      </View>
+
+      {/* Navigation Rapide (Réseau d'amis / Paramètres) */}
+      <View style={styles.quickNavContainer}>
+        <Pressable 
+          style={styles.navCard}
+          onPress={() => router.push('/(tabs)/profile/friends')}
+        >
+          <View style={[styles.navIcon, { backgroundColor: '#E0E7FF' }]}>
+            <Users size={24} color="#4F46E5" />
+          </View>
+          <View style={styles.navTextContainer}>
+            <Text style={styles.navTitle}>Réseau d'amis</Text>
+            <Text style={styles.navSubtitle}>Trouvez d'autres joueurs</Text>
+          </View>
+        </Pressable>
+
+        <Pressable 
+          style={styles.navCard}
+          onPress={() => router.push('/(tabs)/profile/seetings')}
+        >
+          <View style={[styles.navIcon, { backgroundColor: '#F3F4F6' }]}>
+            <Settings size={24} color="#4B5563" />
+          </View>
+          <View style={styles.navTextContainer}>
+            <Text style={styles.navTitle}>Paramètres</Text>
+            <Text style={styles.navSubtitle}>Son, permissions, etc.</Text>
+          </View>
+        </Pressable>
+      </View>
+
+      {/* Herbier des Badges (Mock) */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Herbier des Badges</Text>
+        <View style={styles.badgesGrid}>
+          {MOCK_BADGES.map((badge) => (
+            <View key={badge.id} style={styles.badgeItem}>
+              <View style={[styles.badgeImageContainer, !badge.unlocked && styles.badgeLocked]}>
+                <Image source={{ uri: badge.imageUrl }} style={styles.badgeImage} />
+              </View>
+              <Text style={[styles.badgeName, !badge.unlocked && styles.badgeNameLocked]}>
+                {badge.name}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Gestion du compte */}
+      <View style={styles.accountContainer}>
+        <Text style={styles.sectionTitle}>Mon compte</Text>
+
+        {isGuest && (
+          <Pressable 
+            style={styles.createAccountButton}
+            onPress={() => router.replace('/(auth)/register')}
+          >
+            <ShieldAlert size={20} color="#D97706" style={{ marginRight: 8 }} />
+            <Text style={styles.createAccountText}>Créer un compte pour sauvegarder</Text>
+          </Pressable>
+        )}
+
+        <Pressable style={styles.logoutButton} onPress={handleLogout}>
+          <LogOut size={20} color="#4B5563" style={{ marginRight: 8 }} />
+          <Text style={styles.logoutText}>Se déconnecter</Text>
+        </Pressable>
+
+        <Pressable 
+          style={styles.deleteButton} 
+          onPress={handleDeleteAccount}
+          disabled={isDeleting}
+        >
+          <Trash2 size={20} color="#DC2626" style={{ marginRight: 8 }} />
+          <Text style={styles.deleteText}>
+            {isDeleting ? 'Suppression...' : 'Supprimer mon compte'}
+          </Text>
+        </Pressable>
+      </View>
+
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
   scrollContent: {
-    padding: 32,
-    paddingBottom: 110,
-    gap: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
-  titleContainer: {
+  header: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    marginBottom: 20,
+  },
+  avatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E0E7FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#4F46E5',
+  },
+  pseudo: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  levelBadge: {
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  levelText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  xpContainer: {
+    width: '100%',
+  },
+  xpHeader: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  linkText: {
-    marginTop: 20,
+  xpText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  xpTextNext: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  xpBarBackground: {
+    width: '100%',
+    height: 12,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  xpBarFill: {
+    height: '100%',
+    backgroundColor: '#4F46E5',
+    borderRadius: 6,
+  },
+  statsContainer: {
+    marginBottom: 20,
+  },
+  statBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#065F46',
+    marginBottom: 4,
+  },
+  statLabel: {
     fontSize: 16,
-  }
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  quickNavContainer: {
+    marginBottom: 24,
+    gap: 12,
+  },
+  navCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  navIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  navTextContainer: {
+    flex: 1,
+  },
+  navTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  navSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  sectionContainer: {
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 16,
+    marginLeft: 4,
+  },
+  badgesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    justifyContent: 'space-between',
+  },
+  badgeItem: {
+    width: '30%',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  badgeImageContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#FFFBEB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  badgeLocked: {
+    backgroundColor: '#F1F5F9',
+    shadowOpacity: 0,
+    elevation: 0,
+    opacity: 0.5,
+  },
+  badgeImage: {
+    width: 40,
+    height: 40,
+  },
+  badgeName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B45309',
+    textAlign: 'center',
+  },
+  badgeNameLocked: {
+    color: '#94A3B8',
+  },
+  accountContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  createAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  createAccountText: {
+    color: '#D97706',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  logoutText: {
+    color: '#4B5563',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    paddingVertical: 16,
+    borderRadius: 16,
+  },
+  deleteText: {
+    color: '#DC2626',
+    fontWeight: '700',
+    fontSize: 15,
+  },
 });

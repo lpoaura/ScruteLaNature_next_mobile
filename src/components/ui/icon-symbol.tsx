@@ -1,41 +1,43 @@
-// Fallback for using MaterialIcons on Android and web.
+import React from 'react';
+import { StyleProp, TextStyle, ViewStyle } from 'react-native';
+import { Home, Map as MapIcon, User, Search, Navigation, CheckCircle, Play, Star, Wifi, WifiOff, Code, Send } from 'lucide-react-native';
 
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolViewProps, SymbolWeight } from 'expo-symbols';
-import { ComponentProps } from 'react';
-import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
+// Type mapping from SF Symbols to Lucide React Native
+export type IconSymbolName = 
+  | 'house.fill'
+  | 'paperplane.fill'
+  | 'chevron.left.forwardslash.chevron.right'
+  | 'chevron.right'
+  | 'magnifyingglass'
+  | 'person.fill'
+  | 'person.2.badge'
+  | 'person'
+  | 'map.fill'
+  | 'cloud.fill'
+  | 'checkmark.circle.fill'
+  | 'play.fill'
+  | 'star.fill'
+  | 'wifi'
+  | 'wifi.slash';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
-type IconSymbolName = keyof typeof MAPPING;
+const MAPPING: Record<IconSymbolName, React.ElementType> = {
+  'house.fill': Home,
+  'paperplane.fill': Send,
+  'chevron.left.forwardslash.chevron.right': Code,
+  'chevron.right': Navigation, // Approximate replacement
+  'magnifyingglass': Search,
+  'person.fill': User,
+  'person.2.badge': User, // Approximate
+  'person': User,
+  'map.fill': MapIcon,
+  'cloud.fill': MapIcon, // Approximate or replace later
+  'checkmark.circle.fill': CheckCircle,
+  'play.fill': Play,
+  'star.fill': Star,
+  'wifi': Wifi,
+  'wifi.slash': WifiOff,
+};
 
-/**
- * Add your SF Symbols to Material Icons mappings here.
- * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
- * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
- */
-const MAPPING = {
-  'house.fill': 'home',
-  'paperplane.fill': 'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
-  'magnifyingglass': 'search',
-  'person.fill': 'person',
-  'person.2.badge': 'people',
-  'person': 'person',
-  'map.fill': 'map',
-  'cloud.fill': 'cloud',
-  'checkmark.circle.fill': 'check-circle',
-  'play.fill': 'play-arrow',
-  'star.fill': 'star',
-  'wifi': 'wifi',
-  'wifi.slash': 'wifi-off',
-} as IconMapping;
-
-/**
- * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
- * This ensures a consistent look across platforms, and optimal resource usage.
- * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
- */
 export function IconSymbol({
   name,
   size = 24,
@@ -44,9 +46,13 @@ export function IconSymbol({
 }: {
   name: IconSymbolName;
   size?: number;
-  color: string | OpaqueColorValue;
-  style?: StyleProp<TextStyle>;
-  weight?: SymbolWeight;
+  color: string;
+  style?: StyleProp<ViewStyle>;
+  weight?: string;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const IconComponent = MAPPING[name];
+  if (!IconComponent) {
+    return null;
+  }
+  return <IconComponent size={size} color={color} style={style} />;
 }

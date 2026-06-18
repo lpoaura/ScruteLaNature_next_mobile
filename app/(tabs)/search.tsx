@@ -10,7 +10,18 @@ import {
   ActivityIndicator,
   InteractionManager,
 } from 'react-native';
-import MapView, { Marker, UrlTile, Callout } from 'react-native-maps';
+import {
+  Camera,
+  CameraRef,
+  Map,
+  MapRef,
+  UserLocation,
+  RasterSource,
+  Layer,
+  Marker,
+} from '@maplibre/maplibre-react-native';
+// Désactiver le message de télémétrie MapLibre (n'est plus nécessaire en v11)
+// MapLibreGL.setAccessToken(null);
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -67,7 +78,8 @@ const DEFAULT_REGION = {
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<MapRef>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const isFocused = useIsFocused();
 
   // ── État ──
@@ -175,12 +187,11 @@ export default function SearchScreen() {
         if (lastKnown) {
           const loc = { lat: lastKnown.coords.latitude, lng: lastKnown.coords.longitude };
           setUserLocation(loc);
-          mapRef.current?.animateToRegion({
-            latitude: loc.lat,
-            longitude: loc.lng,
-            latitudeDelta: 0.1,
-            longitudeDelta: 0.1,
-          }, 600);
+          cameraRef.current?.easeTo({
+            center: [loc.lng, loc.lat],
+            zoom: 11,
+            duration: 600,
+          });
         }
 
         // Ensuite, en arrière-plan, on demande une position précise avec timeout
@@ -194,12 +205,11 @@ export default function SearchScreen() {
           setUserLocation(freshLoc);
 
           if (!lastKnown) {
-            mapRef.current?.animateToRegion({
-              latitude: freshLoc.lat,
-              longitude: freshLoc.lng,
-              latitudeDelta: 0.1,
-              longitudeDelta: 0.1,
-            }, 600);
+            cameraRef.current?.easeTo({
+              center: [freshLoc.lng, freshLoc.lat],
+              zoom: 11,
+              duration: 600,
+            });
           }
         } catch {
           // Si getCurrentPosition échoue (timeout), on garde la position cached
@@ -252,21 +262,19 @@ export default function SearchScreen() {
 
   const handleCenterLocation = useCallback(async () => {
     if (userLocation) {
-      mapRef.current?.animateToRegion({
-        latitude: userLocation.lat,
-        longitude: userLocation.lng,
-        latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
-      }, 500);
+      cameraRef.current?.easeTo({
+        center: [userLocation.lng, userLocation.lat],
+        zoom: 11,
+        duration: 500,
+      });
     } else {
       try {
         const pos = await Location.getCurrentPositionAsync({});
-        mapRef.current?.animateToRegion({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          latitudeDelta: 0.1,
-          longitudeDelta: 0.1,
-        }, 500);
+        cameraRef.current?.easeTo({
+          center: [pos.coords.longitude, pos.coords.latitude],
+          zoom: 11,
+          duration: 500,
+        });
       } catch {}
     }
   }, [userLocation]);
@@ -301,23 +309,34 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      {/* --- CARTE EN PLEIN ÉCRAN (OpenStreetMap) --- */}
-      <MapView
+      {/* --- CARTE EN PLEIN ÉCRAN (OpenStreetMap via MapLibre) --- */}
+      <Map
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
-        initialRegion={DEFAULT_REGION}
-        showsUserLocation
-        showsMyLocationButton={false}
-        mapType="none"
-        rotateEnabled={false}
-        pitchEnabled={false}
+        logoPosition={{ bottom: -100, right: -100 }}
+        attributionPosition={{ bottom: -100, right: -100 }}
+        mapStyle=""
       >
-        {/* Tuiles OpenStreetMap — 100% gratuit, hors-ligne compatible */}
-        <UrlTile
-          urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maximumZ={19}
-          shouldReplaceMapContent
+        <Camera
+          ref={cameraRef}
+          initialViewState={{
+            center: [DEFAULT_REGION.longitude, DEFAULT_REGION.latitude],
+            zoom: 5,
+          }}
         />
+
+        {/* Position GPS de l'utilisateur */}
+        <UserLocation animated />
+
+        {/* Tuiles OpenStreetMap — 100% gratuit */}
+        <RasterSource
+          id="osm-source"
+          tiles={['https://tile.openstreetmap.org/{z}/{x}/{y}.png']}
+          tileSize={256}
+          attribution="© OpenStreetMap contributors"
+        >
+          <Layer id="osm-layer" type="raster" source="osm-source" />
+        </RasterSource>
 
         {/* Marqueurs des parcours */}
         {filteredMapParcours.map((p) => {
@@ -327,23 +346,24 @@ export default function SearchScreen() {
           if (!lat || !lng) return null;
           return (
             <Marker
+              id={p.id}
               key={p.id}
-              coordinate={{ latitude: lat, longitude: lng }}
-              pinColor="#10b981"
+              lngLat={[lng, lat]}
             >
-              <Callout onPress={() => handleParcoursSelect(p.id)} tooltip={false}>
-                <View style={styles.callout}>
-                  <Text style={styles.calloutTitle} numberOfLines={1}>{p.title}</Text>
-                  <Text style={styles.calloutMeta}>
-                    {p.difficulty ?? 'N/A'} • {p.durationMin ?? '?'} min
-                  </Text>
-                  <Text style={styles.calloutCta}>Voir le parcours →</Text>
+              <Pressable
+                onPress={() => handleParcoursSelect(p.id)}
+                style={styles.markerContainer}
+              >
+                <View style={styles.markerBubble}>
+                  <Text style={styles.markerText} numberOfLines={1}>{p.title}</Text>
+                  <Text style={styles.markerMeta}>{p.difficulty} • {p.durationMin} min</Text>
                 </View>
-              </Callout>
+                <View style={styles.markerDot} />
+              </Pressable>
             </Marker>
           );
         })}
-      </MapView>
+      </Map>
 
 
       {/* --- BOUTON LOCALISATION --- */}
@@ -807,27 +827,37 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  // ── Marker Callout ──
-  callout: {
-    width: 200,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#fff',
+  // ── Marker MapLibre (bulle de parcours) ──
+  markerContainer: {
+    alignItems: 'center',
   },
-  calloutTitle: {
-    fontSize: 14,
+  markerBubble: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    maxWidth: 180,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  markerText: {
+    fontSize: 12,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 4,
   },
-  calloutMeta: {
-    fontSize: 12,
+  markerMeta: {
+    fontSize: 10,
     color: '#6B7280',
-    marginBottom: 8,
+    marginTop: 2,
   },
-  calloutCta: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#10b981',
+  markerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
+    marginTop: 2,
   },
 });

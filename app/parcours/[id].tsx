@@ -24,7 +24,15 @@ import Animated, {
   FadeInDown,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { UrlTile, Polyline, Marker } from 'react-native-maps';
+import {
+  Camera,
+  Map,
+  RasterSource,
+  Layer,
+  GeoJSONSource,
+  Marker,
+} from '@maplibre/maplibre-react-native';
+// MapLibreGL.setAccessToken(null);
 import { apiService } from '@/src/services/api.service';
 import { DownloadButton } from '@/src/components/features/parcours/DownloadButton';
 import { useGameStore } from '@/src/store/game.store';
@@ -126,81 +134,91 @@ function StatCard({
 // ─── Composant MapSection ─────────────────────────────────────────────────────
 
 function MapSection({ geojson }: { geojson: string }) {
-  const routeCoordinates = React.useMemo(() => {
+  // GeoJSON brut pour ShapeSource (LineLayer)
+  const lineGeoJSON = React.useMemo(() => {
     try {
       const parsed = JSON.parse(geojson);
       let coords: [number, number][] = [];
-
-      if (parsed.type === 'LineString') {
-        coords = parsed.coordinates;
-      } else if (parsed.type === 'Feature' && parsed.geometry?.type === 'LineString') {
-        coords = parsed.geometry.coordinates;
-      } else if (parsed.type === 'FeatureCollection') {
+      if (parsed.type === 'LineString') coords = parsed.coordinates;
+      else if (parsed.type === 'Feature' && parsed.geometry?.type === 'LineString') coords = parsed.geometry.coordinates;
+      else if (parsed.type === 'FeatureCollection') {
         const line = parsed.features.find((f: any) => f.geometry?.type === 'LineString');
         if (line) coords = line.geometry.coordinates;
       }
-
-      return coords.map(([lng, lat]: [number, number]) => ({ latitude: lat, longitude: lng }));
-    } catch {
-      return [];
-    }
+      return coords.length > 0 ? {
+        type: 'Feature' as const,
+        geometry: { type: 'LineString' as const, coordinates: coords },
+        properties: {},
+      } : null;
+    } catch { return null; }
   }, [geojson]);
 
-  const initialRegion = React.useMemo(() => {
+  const centerAndZoom = React.useMemo(() => {
     const bbox = calculateBoundingBox(geojson);
-    if (!bbox) return undefined;
+    if (!bbox) return null;
     return {
-      latitude: (bbox.minLat + bbox.maxLat) / 2,
-      longitude: (bbox.minLng + bbox.maxLng) / 2,
-      latitudeDelta: Math.max((bbox.maxLat - bbox.minLat) * 1.5, 0.01),
-      longitudeDelta: Math.max((bbox.maxLng - bbox.minLng) * 1.5, 0.01),
+      center: [(bbox.minLng + bbox.maxLng) / 2, (bbox.minLat + bbox.maxLat) / 2] as [number, number],
+      zoom: 13,
     };
   }, [geojson]);
 
-  const startPoint = routeCoordinates[0];
-  const endPoint = routeCoordinates[routeCoordinates.length - 1];
+  const startCoord = lineGeoJSON?.geometry.coordinates[0] as [number, number] | undefined;
+  const endCoord = lineGeoJSON?.geometry.coordinates[lineGeoJSON.geometry.coordinates.length - 1] as [number, number] | undefined;
 
-  if (routeCoordinates.length === 0 || !initialRegion) return null;
+  if (!lineGeoJSON || !centerAndZoom) return null;
 
   return (
     <View style={styles.mapContainer}>
-      <MapView
+      <Map
         style={StyleSheet.absoluteFillObject}
-        initialRegion={initialRegion}
-        scrollEnabled={false}
-        zoomEnabled={false}
-        pitchEnabled={false}
-        rotateEnabled={false}
-        mapType="none"
-        liteMode={true}
+        logoPosition={{ bottom: -100, right: -100 }}
+        attributionPosition={{ bottom: -100, right: -100 }}
+        mapStyle=""
       >
-        <UrlTile
-          urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maximumZ={19}
-          shouldReplaceMapContent
+        <Camera
+          initialViewState={{
+            center: centerAndZoom.center,
+            zoom: centerAndZoom.zoom,
+          }}
         />
-        <Polyline
-          coordinates={routeCoordinates}
-          strokeColor="#10b981"
-          strokeWidth={4}
-          lineJoin="round"
-          lineCap="round"
-        />
-        {startPoint && (
-          <Marker coordinate={startPoint} pinColor="#10b981" anchor={{ x: 0.5, y: 0.5 }}>
+        {/* Tuiles OSM */}
+        <RasterSource
+          id="osm-detail"
+          tiles={['https://tile.openstreetmap.org/{z}/{x}/{y}.png']}
+          tileSize={256}
+        >
+          <Layer id="osm-detail-layer" type="raster" source="osm-detail" />
+        </RasterSource>
+        {/* Tracé du parcours */}
+        <GeoJSONSource id="route" data={lineGeoJSON}>
+          <Layer
+            id="route-line"
+            type="line"
+            paint={{
+              'line-color': '#10b981',
+              'line-width': 4,
+              'line-cap': 'round',
+              'line-join': 'round',
+            } as any}
+          />
+        </GeoJSONSource>
+        {/* Départ */}
+        {startCoord && (
+          <Marker id="start-marker" lngLat={startCoord}>
             <View style={styles.mapDot}>
               <View style={styles.mapDotInner} />
             </View>
           </Marker>
         )}
-        {endPoint && routeCoordinates.length > 1 && (
-          <Marker coordinate={endPoint} pinColor="#ef4444" anchor={{ x: 0.5, y: 0.5 }}>
+        {/* Arrivée */}
+        {endCoord && lineGeoJSON.geometry.coordinates.length > 1 && (
+          <Marker id="end-marker" lngLat={endCoord}>
             <View style={[styles.mapDot, { borderColor: '#ef4444' }]}>
               <View style={[styles.mapDotInner, { backgroundColor: '#ef4444' }]} />
             </View>
           </Marker>
         )}
-      </MapView>
+      </Map>
       {/* Légende */}
       <View style={styles.mapLegend}>
         <View style={styles.mapLegendItem}>

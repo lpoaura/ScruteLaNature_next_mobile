@@ -7,7 +7,7 @@ import { IconSymbol } from '@/src/components/ui/icon-symbol';
 export default function TabLayout() {
   return (
     <Tabs
-      tabBar={FloatingTabBar}
+      tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
         headerShown: false,
       }}>

@@ -1,10 +1,17 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import MapView, { UrlTile, Polyline, Marker, Region } from 'react-native-maps';
+import {
+  Camera,
+  Map,
+  UserLocation,
+  RasterSource,
+  Layer,
+  GeoJSONSource,
+} from '@maplibre/maplibre-react-native';
+// MapLibreGL.setAccessToken(null);
 import * as Location from 'expo-location';
-import { getParcoursTilesDir } from '@/src/services/filesystem.service';
+import { areTilesAvailable, getLocalTileUrlTemplate } from '@/src/services/filesystem.service';
 import { calculateBoundingBox } from '@/src/utils/map';
-import * as FileSystem from 'expo-file-system/legacy';
 
 interface ParcoursMapProps {
   parcoursId: string;
@@ -30,91 +37,84 @@ export default function ParcoursMap({
   useEffect(() => {
     if (isOffline) {
       (async () => {
-        // Vérifier si le dossier des tuiles existe
-        const tilesDir = getParcoursTilesDir(parcoursId);
-        const info = await FileSystem.getInfoAsync(tilesDir);
-        setOfflineTilesExist(info.exists);
+        const exist = await areTilesAvailable(parcoursId);
+        setOfflineTilesExist(exist);
       })();
     }
   }, [isOffline, parcoursId]);
 
   // Extraire les coordonnées du GeoJSON pour tracer la ligne
-  const routeCoordinates = useMemo(() => {
-    if (!geojsonString) return [];
+  const routeGeoJSON = useMemo(() => {
+    if (!geojsonString) return null;
     try {
       const geojson = JSON.parse(geojsonString);
+      let coords: [number, number][] = [];
       if (geojson.type === 'FeatureCollection') {
         const lineFeature = geojson.features.find((f: any) => f.geometry?.type === 'LineString');
-        if (lineFeature) {
-          return lineFeature.geometry.coordinates.map(([lng, lat]: [number, number]) => ({
-            latitude: lat,
-            longitude: lng,
-          }));
-        }
+        if (lineFeature) coords = lineFeature.geometry.coordinates;
       } else if (geojson.type === 'LineString') {
-        return geojson.coordinates.map(([lng, lat]: [number, number]) => ({
-          latitude: lat,
-          longitude: lng,
-        }));
+        coords = geojson.coordinates;
       } else if (geojson.type === 'Feature' && geojson.geometry?.type === 'LineString') {
-        return geojson.geometry.coordinates.map(([lng, lat]: [number, number]) => ({
-          latitude: lat,
-          longitude: lng,
-        }));
+        coords = geojson.geometry.coordinates;
+      }
+      if (coords.length > 0) {
+        return {
+          type: 'Feature' as const,
+          geometry: { type: 'LineString' as const, coordinates: coords },
+          properties: {},
+        };
       }
     } catch (e) {
       console.warn('GeoJSON invalide', e);
     }
-    return [];
+    return null;
   }, [geojsonString]);
 
   // Calcul de la région initiale (Bounding Box)
-  const initialRegion = useMemo<Region | undefined>(() => {
-    if (!geojsonString) return undefined;
+  const centerAndZoom = useMemo(() => {
+    if (!geojsonString) return null;
     const bbox = calculateBoundingBox(geojsonString);
-    if (!bbox) return undefined;
-
-    const latDelta = bbox.maxLat - bbox.minLat;
-    const lngDelta = bbox.maxLng - bbox.minLng;
-
+    if (!bbox) return null;
     return {
-      latitude: (bbox.maxLat + bbox.minLat) / 2,
-      longitude: (bbox.maxLng + bbox.minLng) / 2,
-      latitudeDelta: Math.max(latDelta * 1.5, 0.01),
-      longitudeDelta: Math.max(lngDelta * 1.5, 0.01),
+      center: [(bbox.maxLng + bbox.minLng) / 2, (bbox.maxLat + bbox.minLat) / 2] as [number, number],
+      zoom: 13,
     };
   }, [geojsonString]);
 
-  const tileUrl = isOffline && offlineTilesExist
-    ? `${getParcoursTilesDir(parcoursId)}{z}/{x}/{y}.png`
-    : 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const tileUrlTemplates = isOffline && offlineTilesExist
+    ? [getLocalTileUrlTemplate(parcoursId)]
+    : ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'];
 
   return (
     <View style={styles.container}>
-      <MapView
+      <Map
         style={styles.map}
-        initialRegion={initialRegion}
-        showsUserLocation={hasLocationPermission}
-        showsMyLocationButton={hasLocationPermission}
-        showsCompass={true}
-        mapType="none" // IMPORTANT: Désactive le fond de carte par défaut (Google/Apple)
+        logoPosition={{ bottom: -100, right: -100 }}
+        attributionPosition={{ bottom: -100, right: -100 }}
+        mapStyle=""
       >
-        <UrlTile
-          urlTemplate={tileUrl}
-          maximumZ={19}
-          offlineMode={isOffline} // Pour forcer la lecture du cache local si fourni par l'OS
+        <Camera
+          initialViewState={{
+            center: centerAndZoom?.center ?? [2.35, 46.5],
+            zoom: centerAndZoom?.zoom ?? 5,
+          }}
         />
+        {hasLocationPermission && <UserLocation animated />}
 
-        {routeCoordinates.length > 0 && (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeColor="#10b981" // emerald-500
-            strokeWidth={4}
-            lineJoin="round"
-            lineCap="round"
-          />
+        <RasterSource id="osm" tiles={tileUrlTemplates} tileSize={256}>
+          <Layer id="osm-layer" type="raster" source="osm" />
+        </RasterSource>
+
+        {routeGeoJSON && (
+          <GeoJSONSource id="route" data={routeGeoJSON}>
+            <Layer
+              id="route-line"
+              type="line"
+              paint={{ 'line-color': '#10b981', 'line-width': 4, 'line-cap': 'round', 'line-join': 'round' } as any}
+            />
+          </GeoJSONSource>
         )}
-      </MapView>
+      </Map>
 
       {isOffline && !offlineTilesExist && (
         <View style={styles.warningContainer}>

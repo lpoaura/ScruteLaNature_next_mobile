@@ -17,6 +17,7 @@ import Animated, {
     withSpring,
     withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Détection Liquid Glass au démarrage
 const USE_GLASS = isGlassEffectAPIAvailable();
@@ -142,15 +143,21 @@ function BackButton({ onPress }: { onPress: () => void }) {
                     {backContent}
                 </GlassView>
             ) : (
-                // Fallback BlurView (iOS < 26, Android, Web)
+                // Fallback BlurView (iOS < 26, Web) ou Solid (Android)
                 <View style={styles.shadowContainer}>
-                    <BlurView
-                        intensity={70}
-                        tint="light"
-                        style={styles.blurPill}
-                    >
-                        {backContent}
-                    </BlurView>
+                    {Platform.OS === 'android' ? (
+                        <View style={styles.androidPill}>
+                            {backContent}
+                        </View>
+                    ) : (
+                        <BlurView
+                            intensity={70}
+                            tint="light"
+                            style={styles.blurPill}
+                        >
+                            {backContent}
+                        </BlurView>
+                    )}
                 </View>
             )}
         </Animated.View>
@@ -159,6 +166,7 @@ function BackButton({ onPress }: { onPress: () => void }) {
 
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
 
     const canGoBack = (() => {
         try {
@@ -239,7 +247,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     // ─── Rendu Liquid Glass (iOS 26+) ───
     if (USE_GLASS) {
         return (
-            <View style={styles.wrapper} pointerEvents="box-none">
+            <View style={[styles.wrapper, { bottom: (Platform.OS === 'ios' ? 28 : 20) + insets.bottom }]} pointerEvents="box-none">
                 {/* GlassContainer regroupe les GlassView pour l'effet de fusion */}
                 <GlassContainer spacing={12} style={styles.glassWrapper}>
                     {/* Bouton retour — pilule glass séparée */}
@@ -256,9 +264,9 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         );
     }
 
-    // ─── Rendu Fallback BlurView (iOS < 26, Android, Web) ───
+    // ─── Rendu Fallback (iOS < 26, Android, Web) ───
     return (
-        <View style={styles.wrapper} pointerEvents="box-none">
+        <View style={[styles.wrapper, { bottom: (Platform.OS === 'ios' ? 28 : 20) + insets.bottom }]} pointerEvents="box-none">
             {/* Bouton retour — pilule séparée */}
             {canGoBack && (
                 <BackButton onPress={handleGoBack} />
@@ -266,13 +274,19 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
 
             {/* Pilule principale — les onglets */}
             <View style={styles.shadowContainer}>
-                <BlurView
-                    intensity={70}
-                    tint="light"
-                    style={styles.blurPill}
-                >
-                    {tabButtons}
-                </BlurView>
+                {Platform.OS === 'android' ? (
+                    <View style={styles.androidPill}>
+                        {tabButtons}
+                    </View>
+                ) : (
+                    <BlurView
+                        intensity={70}
+                        tint="light"
+                        style={styles.blurPill}
+                    >
+                        {tabButtons}
+                    </BlurView>
+                )}
             </View>
         </View>
     );
@@ -311,6 +325,14 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(0, 0, 0, 0.15)', // Plus sombre pour mieux découper sur fond blanc
+    },
+    // ─── Pilule Android (Solid translucide) ───
+    androidPill: {
+        borderRadius: 40,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
     },
     shadowContainer: {
         shadowColor: '#000',

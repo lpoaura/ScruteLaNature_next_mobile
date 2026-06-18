@@ -1,0 +1,401 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TextInput, 
+  Pressable, 
+  FlatList, 
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Alert
+} from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Users, UserPlus, Search, Check, X, ChevronLeft } from 'lucide-react-native';
+import { socialService } from '@/src/services/social.service';
+import type { Friendship } from '@/src/types/api.types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+type Tab = 'amis' | 'demandes';
+
+export default function FriendsScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  
+  const [activeTab, setActiveTab] = useState<Tab>('amis');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const [friends, setFriends] = useState<Friendship[]>([]);
+  const [requests, setRequests] = useState<Friendship[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, [activeTab]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      if (activeTab === 'amis') {
+        const data = await socialService.getFriends();
+        setFriends(data);
+      } else {
+        const data = await socialService.getFriendRequests();
+        setRequests(data);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des amis:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      await socialService.sendFriendRequest(searchQuery.trim());
+      Alert.alert('Succès', `Demande d'ami envoyée à ${searchQuery}`);
+      setSearchQuery('');
+    } catch (error: any) {
+      // Afficher un message d'erreur si l'utilisateur n'existe pas ou est déjà ami
+      Alert.alert('Erreur', error?.response?.data?.message || "Impossible d'envoyer la demande.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleRespondRequest = async (id: string, accept: boolean) => {
+    try {
+      await socialService.respondFriendRequest(id, accept);
+      // Retirer la requête de la liste localement
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+      if (accept) {
+        Alert.alert('Succès', 'Ami ajouté !');
+        // Optionnel : recharger la liste des amis si on revient sur l'onglet
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de répondre à la demande.');
+    }
+  };
+
+  const renderFriend = ({ item }: { item: Friendship }) => {
+    // Dans la liste d'amis, l'autre personne peut être le requester ou le receiver.
+    const friendPseudo = item.requester?.pseudo || item.receiver?.pseudo || 'Joueur inconnu';
+
+    return (
+      <View style={styles.friendCard}>
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.avatarText}>{friendPseudo.charAt(0).toUpperCase()}</Text>
+        </View>
+        <Text style={styles.friendName}>{friendPseudo}</Text>
+      </View>
+    );
+  };
+
+  const renderRequest = ({ item }: { item: Friendship }) => {
+    const requesterPseudo = item.requester?.pseudo || 'Joueur inconnu';
+
+    return (
+      <View style={styles.friendCard}>
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.avatarText}>{requesterPseudo.charAt(0).toUpperCase()}</Text>
+        </View>
+        <View style={styles.requestInfo}>
+          <Text style={styles.friendName}>{requesterPseudo}</Text>
+          <Text style={styles.requestSubtitle}>Souhaite vous ajouter</Text>
+        </View>
+        <View style={styles.requestActions}>
+          <Pressable 
+            style={[styles.actionButton, styles.acceptButton]}
+            onPress={() => handleRespondRequest(item.id, true)}
+          >
+            <Check size={20} color="#FFFFFF" />
+          </Pressable>
+          <Pressable 
+            style={[styles.actionButton, styles.declineButton]}
+            onPress={() => handleRespondRequest(item.id, false)}
+          >
+            <X size={20} color="#6B7280" />
+          </Pressable>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <KeyboardAvoidingView 
+      style={[styles.container, { paddingTop: insets.top }]} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <ChevronLeft size={28} color="#1F2937" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Réseau d'amis</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Search size={20} color="#9CA3AF" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Ajouter un ami (Pseudo)"
+            placeholderTextColor="#9CA3AF"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            returnKeyType="send"
+            onSubmitEditing={handleSearch}
+          />
+          {isSearching && <ActivityIndicator size="small" color="#2D6A4F" />}
+        </View>
+        {searchQuery.length > 0 && (
+          <Pressable style={styles.addButton} onPress={handleSearch}>
+            <Text style={styles.addButtonText}>Envoyer</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <Pressable 
+          style={[styles.tab, activeTab === 'amis' && styles.activeTab]} 
+          onPress={() => setActiveTab('amis')}
+        >
+          <Users size={20} color={activeTab === 'amis' ? '#2D6A4F' : '#6B7280'} />
+          <Text style={[styles.tabText, activeTab === 'amis' && styles.activeTabText]}>Mes amis</Text>
+        </Pressable>
+        <Pressable 
+          style={[styles.tab, activeTab === 'demandes' && styles.activeTab]} 
+          onPress={() => setActiveTab('demandes')}
+        >
+          <UserPlus size={20} color={activeTab === 'demandes' ? '#2D6A4F' : '#6B7280'} />
+          <Text style={[styles.tabText, activeTab === 'demandes' && styles.activeTabText]}>Demandes</Text>
+          {requests.length > 0 && activeTab !== 'demandes' && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{requests.length}</Text>
+            </View>
+          )}
+        </Pressable>
+      </View>
+
+      {/* Content */}
+      <View style={styles.listContainer}>
+        {isLoading ? (
+          <View style={styles.centerContent}>
+            <ActivityIndicator size="large" color="#2D6A4F" />
+          </View>
+        ) : (
+          <FlatList
+            data={activeTab === 'amis' ? friends : requests}
+            keyExtractor={(item) => item.id}
+            renderItem={activeTab === 'amis' ? renderFriend : renderRequest}
+            contentContainerStyle={styles.flatListContent}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                {activeTab === 'amis' ? (
+                  <>
+                    <Users size={48} color="#D1D5DB" />
+                    <Text style={styles.emptyText}>Vous n'avez pas encore d'amis.</Text>
+                    <Text style={styles.emptySubtext}>Cherchez un pseudo ci-dessus pour envoyer une demande !</Text>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={48} color="#D1D5DB" />
+                    <Text style={styles.emptyText}>Aucune demande en attente.</Text>
+                  </>
+                )}
+              </View>
+            }
+          />
+        )}
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1F2937',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 24,
+    gap: 12,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  addButton: {
+    backgroundColor: '#2D6A4F',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    gap: 12,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    gap: 8,
+  },
+  activeTab: {
+    backgroundColor: '#E8F5E9',
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  activeTabText: {
+    color: '#2D6A4F',
+  },
+  badge: {
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 4,
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  listContainer: {
+    flex: 1,
+  },
+  flatListContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  centerContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 60,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  emptySubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  friendCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  avatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#9CA3AF',
+  },
+  friendName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  requestInfo: {
+    flex: 1,
+  },
+  requestSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  requestActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  acceptButton: {
+    backgroundColor: '#10B981',
+  },
+  declineButton: {
+    backgroundColor: '#F3F4F6',
+  }
+});

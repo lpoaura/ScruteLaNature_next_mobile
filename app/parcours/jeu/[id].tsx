@@ -9,17 +9,27 @@ import {
   Animated,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
+import {
+  Camera,
+  CameraRef,
+  Map,
+  MapRef,
+  UserLocation,
+  RasterSource,
+  Layer,
+  GeoJSONSource,
+  Marker,
+} from '@maplibre/maplibre-react-native';
+// MapLibreGL.setAccessToken(null);
 import * as Location from 'expo-location';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getParcoursComplet } from '@/src/services/database.service';
 import { useGameStore } from '@/src/store/game.store';
-import { getParcoursTilesDir, downloadMapTiles, areTilesAvailable } from '@/src/services/filesystem.service';
+import { downloadMapTiles, areTilesAvailable, getLocalTileUrlTemplate } from '@/src/services/filesystem.service';
 import type { TileDownloadResult } from '@/src/services/filesystem.service';
 import type { Parcours, Etape, Jeu } from '@/src/types/api.types';
-import * as FileSystem from 'expo-file-system/legacy';
 
 import { useGpsTrigger } from '@/src/hooks/use-gps-trigger';
 import { formatDistance } from '@/src/utils/distance';
@@ -145,7 +155,8 @@ export default function JeuScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { startParcours, currentEtapeOrder, activeParcoursId, completeEtape } = useGameStore();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<MapRef>(null);
+  const cameraRef = useRef<CameraRef>(null);
 
   // ── États de préparation ──
   const [prepStep, setPrepStep] = useState<PrepStep>('loading_data');
@@ -155,8 +166,13 @@ export default function JeuScreen() {
 
   // ── Données ──
   const [data, setData] = useState<ParcoursComplet | null>(null);
-  const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
-  const [tilesUrl, setTilesUrl] = useState<string>('https://a.tile.openstreetmap.org/{z}/{x}/{y}.png');
+  // GeoJSON brut pour ShapeSource
+  const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
+  // URL des tuiles (mbtiles:// local ou OSM en ligne)
+  const [tileUrlTemplates, setTileUrlTemplates] = useState<string[]>([
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  ]);
+  const [centerCoord, setCenterCoord] = useState<[number, number] | null>(null);
 
   // ── Jeu ──
   const [isTransitionActive, setIsTransitionActive] = useState(false);
@@ -192,7 +208,17 @@ export default function JeuScreen() {
             const line = geojson.features.find((f: any) => f.geometry?.type === 'LineString');
             if (line) coords = line.geometry.coordinates;
           }
-          setRouteCoords(coords.map(([lng, lat]) => ({ latitude: lat, longitude: lng })));
+          // Stocker le GeoJSON structuré pour MapLibre ShapeSource
+          if (coords.length > 0) {
+            setRouteGeoJSON({
+              type: 'Feature',
+              geometry: { type: 'LineString', coordinates: coords },
+              properties: {},
+            });
+            // Centre de la carte sur la première étape
+            const first = coords[0];
+            if (first) setCenterCoord([first[0], first[1]]);
+          }
         } catch {}
       }
     } catch (e: any) {
@@ -226,13 +252,12 @@ export default function JeuScreen() {
       const tilesAlreadyAvailable = await areTilesAvailable(id);
 
       if (tilesAlreadyAvailable) {
-        // Tuiles en cache et valides → carte hors-ligne garantie
-        const tilesDir = getParcoursTilesDir(id);
-        setTilesUrl(`${tilesDir}{z}/{x}/{y}.png`);
+        // Tuiles en cache et valides → carte hors-ligne garantie (FS)
+        setTileUrlTemplates([getLocalTileUrlTemplate(id)]);
         setTileProgress(1);
         setTileStats({ total: 0, downloaded: 0, cached: 0, failed: 0 });
       } else if (result?.parcours.pathGeoJSON) {
-        // Pas de cache → télécharger les tuiles avec User-Agent correct
+        // Pas de cache → télécharger dans la BDD MBTiles
         const stats = await downloadMapTiles(
           result.parcours.pathGeoJSON,
           id,
@@ -242,13 +267,12 @@ export default function JeuScreen() {
         );
         setTileStats(stats);
 
-        // Utiliser les tuiles locales si au moins 50% ont été téléchargées
+        // Utiliser le cache FS local si au moins 50% de succès
         const successRate = stats.total > 0
           ? (stats.downloaded + stats.cached) / stats.total
           : 0;
         if (successRate >= 0.5) {
-          const tilesDir = getParcoursTilesDir(id);
-          setTilesUrl(`${tilesDir}{z}/{x}/{y}.png`);
+          setTileUrlTemplates([getLocalTileUrlTemplate(id)]);
         }
         // Sinon on reste sur l'URL en ligne (fallback si réseau disponible)
       }
@@ -263,22 +287,18 @@ export default function JeuScreen() {
     runPreparation();
   }, [runPreparation]);
 
-  // ── Centrer la carte sur la cible quand les données sont prêtes ──
+  // ── Centrer la caméra sur la cible quand les données sont prêtes ──
   useEffect(() => {
     if (prepStep !== 'ready' || !data) return;
     const currentEtapeIndex = Math.max(0, currentEtapeOrder - 1);
     const currentEtape = data.etapes[currentEtapeIndex];
-    if (currentEtape && mapRef.current) {
+    if (currentEtape) {
       setTimeout(() => {
-        mapRef.current?.animateToRegion(
-          {
-            latitude: currentEtape.latitude,
-            longitude: currentEtape.longitude,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          },
-          600
-        );
+        cameraRef.current?.easeTo({
+          center: [currentEtape.longitude, currentEtape.latitude],
+          zoom: 15,
+          duration: 600,
+        });
       }, 400);
     }
   }, [prepStep, data, currentEtapeOrder]);
@@ -366,44 +386,45 @@ export default function JeuScreen() {
   return (
     <View style={styles.container}>
 
-      {/* ── CARTE OPENSTREETMAP ── */}
-      <MapView
+      {/* ── CARTE OPENSTREETMAP (MapLibre) ── */}
+      <Map
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
-        showsUserLocation
-        showsMyLocationButton={false}
-        showsCompass={true}
-        mapType="none" // Désactive le fond Google/Apple
-        rotateEnabled={false}
-        pitchEnabled={false}
-        initialRegion={
-          currentEtape
-            ? {
-                latitude: currentEtape.latitude,
-                longitude: currentEtape.longitude,
-                latitudeDelta: 0.007,
-                longitudeDelta: 0.007,
-              }
-            : undefined
-        }
+        logoPosition={{ bottom: -100, right: -100 }}
+        attributionPosition={{ bottom: -100, right: -100 }}
+        mapStyle=""
       >
-        {/* Tuiles OSM — locales si hors-ligne, en ligne sinon */}
-        <UrlTile
-          urlTemplate={tilesUrl}
-          maximumZ={19}
-          maximumNativeZ={17}
-          shouldReplaceMapContent
+        <Camera
+          ref={cameraRef}
+          initialViewState={{
+            center: centerCoord ?? [2.35, 46.5],
+            zoom: 15,
+          }}
         />
 
+        {/* Position GPS de l'utilisateur */}
+        <UserLocation animated />
+
+        {/* Tuiles OSM — MBTiles local (hors-ligne) ou OSM en ligne (fallback) */}
+        <RasterSource
+          id="tiles-source"
+          tiles={tileUrlTemplates}
+          tileSize={256}
+          minzoom={12}
+          maxzoom={19}
+        >
+          <Layer id="tiles-layer" type="raster" source="tiles-source" />
+        </RasterSource>
+
         {/* Tracé du parcours */}
-        {routeCoords.length > 0 && (
-          <Polyline
-            coordinates={routeCoords}
-            strokeColor="#10b981"
-            strokeWidth={4}
-            lineJoin="round"
-            lineCap="round"
-          />
+        {routeGeoJSON && (
+          <GeoJSONSource id="route" data={routeGeoJSON}>
+            <Layer
+              id="route-line"
+              type="line"
+              paint={{ 'line-color': '#10b981', 'line-width': 4, 'line-cap': 'round', 'line-join': 'round' } as any}
+            />
+          </GeoJSONSource>
         )}
 
         {/* Marqueurs des étapes */}
@@ -413,21 +434,15 @@ export default function JeuScreen() {
           let color = '#9CA3AF';
           if (isPassed) color = '#10B981';
           if (isActive) color = '#F59E0B';
-
           return (
-            <Marker
-              key={etape.id}
-              coordinate={{ latitude: etape.latitude, longitude: etape.longitude }}
-              title={etape.title}
-              anchor={{ x: 0.5, y: 0.5 }}
-            >
+            <Marker id={`etape-${etape.id}`} key={etape.id} lngLat={[etape.longitude, etape.latitude]}>
               <View style={[styles.markerBubble, { backgroundColor: color }]}>
                 <Text style={styles.markerText}>{index + 1}</Text>
               </View>
             </Marker>
           );
         })}
-      </MapView>
+      </Map>
 
       {/* ── HEADER ── */}
       <View style={[styles.headerOverlay, { top: insets.top + 10 }]}>
