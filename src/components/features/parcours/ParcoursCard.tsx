@@ -19,6 +19,7 @@ const DIFFICULTY_CONFIG = {
 export function ParcoursCard({ parcours, isDownloaded = false }: ParcoursCardProps) {
   const router = useRouter();
   const diff = parcours.difficulty ? DIFFICULTY_CONFIG[parcours.difficulty] : null;
+  const acc = parcours.accessibility ? DIFFICULTY_CONFIG[parcours.accessibility] : null;
 
   const accessibilityIcons = [
     parcours.isPMRFriendly && '♿',
@@ -45,12 +46,19 @@ export function ParcoursCard({ parcours, isDownloaded = false }: ParcoursCardPro
           </View>
         )}
 
-        {/* Badge difficulté */}
-        {diff && (
-          <View style={[styles.difficultyBadge, { backgroundColor: diff.bg }]}>
-            <Text style={[styles.difficultyText, { color: diff.color }]}>{diff.label}</Text>
-          </View>
-        )}
+        {/* Badges difficulté & accessibilité */}
+        <View style={styles.badgesContainer}>
+          {diff && (
+            <View style={[styles.badge, { backgroundColor: diff.bg }]}>
+              <Text style={[styles.badgeText, { color: diff.color }]}>🧩 {diff.label}</Text>
+            </View>
+          )}
+          {acc && (
+            <View style={[styles.badge, { backgroundColor: acc.bg }]}>
+              <Text style={[styles.badgeText, { color: acc.color }]}>🚶 {acc.label}</Text>
+            </View>
+          )}
+        </View>
 
         {/* Indicateur téléchargé */}
         {isDownloaded && (
@@ -118,15 +126,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   imagePlaceholderIcon: { fontSize: 48 },
-  difficultyBadge: {
+  badgesContainer: {
     position: 'absolute',
     top: 10,
     left: 10,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
   },
-  difficultyText: { fontSize: 12, fontWeight: '700' },
+  badgeText: { fontSize: 11, fontWeight: '700' },
   downloadedBadge: {
     position: 'absolute',
     top: 10,

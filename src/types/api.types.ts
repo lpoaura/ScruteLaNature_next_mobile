@@ -68,6 +68,7 @@ export interface Parcours {
   title: string;
   description?: string;
   difficulty?: Difficulty;
+  accessibility?: Difficulty;
   distanceKm?: number;
   durationMin?: number;
   coverImage?: string;

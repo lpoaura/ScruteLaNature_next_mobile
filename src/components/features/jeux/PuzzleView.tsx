@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
-import Animated, { FadeIn, SlideInRight, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, SlideInRight, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { Jeu } from '@/src/types/api.types';
@@ -15,6 +15,75 @@ const GRID_SIZE = 3;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PUZZLE_SIZE = SCREEN_WIDTH - 48; // Padding 24x2
 const PIECE_SIZE = PUZZLE_SIZE / GRID_SIZE;
+
+interface PuzzlePieceProps {
+  pieceValue: number;
+  currentIndex: number;
+  isRevealed: boolean;
+  imageSource: any;
+  onPress: () => void;
+}
+
+function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, onPress }: PuzzlePieceProps) {
+  const col = currentIndex % GRID_SIZE;
+  const row = Math.floor(currentIndex / GRID_SIZE);
+  
+  const targetX = col * PIECE_SIZE;
+  const targetY = row * PIECE_SIZE;
+
+  // Initialisation immédiate sans animation à la première frame
+  const translateX = useSharedValue(targetX);
+  const translateY = useSharedValue(targetY);
+
+  useEffect(() => {
+    translateX.value = withTiming(targetX, { duration: 200 });
+    translateY.value = withTiming(targetY, { duration: 200 });
+  }, [targetX, targetY]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value }
+      ]
+    };
+  });
+
+  if (pieceValue === 8 && !isRevealed) {
+    // Case vide
+    return (
+      <Animated.View style={[{ position: 'absolute', width: PIECE_SIZE, height: PIECE_SIZE }, animatedStyle]}>
+        <View style={styles.emptyPiece} />
+      </Animated.View>
+    );
+  }
+
+  const originalRow = Math.floor(pieceValue / GRID_SIZE);
+  const originalCol = pieceValue % GRID_SIZE;
+
+  return (
+    <Animated.View style={[{ position: 'absolute', width: PIECE_SIZE, height: PIECE_SIZE }, animatedStyle]}>
+      <Pressable style={styles.pieceBox} onPress={onPress}>
+        <View style={styles.imageMask}>
+          {imageSource && (
+            <Animated.Image 
+              source={imageSource} 
+              style={[
+                styles.puzzleImage,
+                {
+                  left: -originalCol * PIECE_SIZE,
+                  top: -originalRow * PIECE_SIZE,
+                }
+              ]} 
+              resizeMode="cover"
+            />
+          )}
+          {!isRevealed && <View style={styles.pieceOverlay} />}
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 export function PuzzleView({ jeu, onSuccess }: PuzzleViewProps) {
   const [isRevealed, setIsRevealed] = useState(false);
@@ -34,13 +103,13 @@ export function PuzzleView({ jeu, onSuccess }: PuzzleViewProps) {
 
   // Initialisation du puzzle
   useEffect(() => {
-    // On génère une grille mélangée, mais résoluble (pour faire simple, on mélange aléatoirement 
-    // et on vérifie la parité des inversions, ou plus simplement on part d'une grille résolue et on fait N mouvements aléatoires)
     let state = [0, 1, 2, 3, 4, 5, 6, 7, 8]; // 8 est la case vide
-    
-    // Mélange par mouvements aléatoires depuis la fin pour garantir que c'est résoluble
     let emptyIdx = 8;
-    for (let i = 0; i < 100; i++) {
+    let lastEmptyIdx = -1;
+    
+    // Mélange par mouvements aléatoires depuis la fin pour garantir la solvabilité
+    // Utilisation d'un garde-fou pour ne pas annuler le coup précédent (lastEmptyIdx)
+    for (let i = 0; i < 150; i++) {
       const neighbors = [];
       const row = Math.floor(emptyIdx / GRID_SIZE);
       const col = emptyIdx % GRID_SIZE;
@@ -50,11 +119,14 @@ export function PuzzleView({ jeu, onSuccess }: PuzzleViewProps) {
       if (col > 0) neighbors.push(emptyIdx - 1); // Gauche
       if (col < GRID_SIZE - 1) neighbors.push(emptyIdx + 1); // Droite
       
-      const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
-      
-      // Swap
-      [state[emptyIdx], state[randomNeighbor]] = [state[randomNeighbor], state[emptyIdx]];
-      emptyIdx = randomNeighbor;
+      const validNeighbors = neighbors.filter(n => n !== lastEmptyIdx);
+      const nextToMove = validNeighbors.length > 0 
+        ? validNeighbors[Math.floor(Math.random() * validNeighbors.length)] 
+        : neighbors[0];
+        
+      [state[emptyIdx], state[nextToMove]] = [state[nextToMove], state[emptyIdx]];
+      lastEmptyIdx = emptyIdx;
+      emptyIdx = nextToMove;
     }
     
     setPieces(state);
@@ -118,41 +190,16 @@ export function PuzzleView({ jeu, onSuccess }: PuzzleViewProps) {
 
       {/* ZONE DU PUZZLE */}
       <View style={styles.puzzleBoard}>
-        {pieces.map((pieceValue, index) => {
-          if (pieceValue === 8 && !isRevealed) {
-            // Case vide
-            return <View key={`empty-${index}`} style={[styles.pieceBox, styles.emptyPiece]} />;
-          }
-
-          const originalRow = Math.floor(pieceValue / GRID_SIZE);
-          const originalCol = pieceValue % GRID_SIZE;
-
-          return (
-            <Pressable 
-              key={`piece-${pieceValue}`} 
-              style={[styles.pieceBox]} 
-              onPress={() => handlePressPiece(index)}
-            >
-              <View style={styles.imageMask}>
-                {imageSource && (
-                  <Animated.Image 
-                    source={imageSource} 
-                    style={[
-                      styles.puzzleImage,
-                      {
-                        left: -originalCol * PIECE_SIZE,
-                        top: -originalRow * PIECE_SIZE,
-                      }
-                    ]} 
-                    resizeMode="cover"
-                  />
-                )}
-                {/* On peut ajouter une légère bordure pour différencier les pièces */}
-                {!isRevealed && <View style={styles.pieceOverlay} />}
-              </View>
-            </Pressable>
-          );
-        })}
+        {pieces.map((pieceValue, index) => (
+          <PuzzlePiece
+            key={`piece-${pieceValue}`}
+            pieceValue={pieceValue}
+            currentIndex={index}
+            isRevealed={isRevealed}
+            imageSource={imageSource}
+            onPress={() => handlePressPiece(index)}
+          />
+        ))}
       </View>
 
       {!isRevealed && (
@@ -218,19 +265,21 @@ const styles = StyleSheet.create({
     width: PUZZLE_SIZE,
     height: PUZZLE_SIZE,
     backgroundColor: '#CBD5E1',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     borderWidth: 2,
     borderColor: '#334155',
     marginBottom: 24,
     alignSelf: 'center',
+    position: 'relative', // Pour permettre le placement absolu des pièces
+    overflow: 'hidden',
   },
   pieceBox: {
-    width: PIECE_SIZE,
-    height: PIECE_SIZE,
-    padding: 1, // Petit espace entre les pièces
+    width: '100%',
+    height: '100%',
+    // Plus de padding, pour ne pas couper l'image en morceaux distants
   },
   emptyPiece: {
+    width: '100%',
+    height: '100%',
     backgroundColor: '#94A3B8', // Gris foncé pour le trou
   },
   imageMask: {

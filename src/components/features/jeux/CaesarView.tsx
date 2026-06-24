@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import Animated, { 
   FadeIn, 
   SlideInRight, 
@@ -72,7 +72,8 @@ export function CaesarView({ jeu, onSuccess }: CaesarViewProps) {
       style={{ flex: 1 }} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
         
         <View style={styles.headerBadge}>
           <Ionicons name="key" size={20} color="#F59E0B" />
@@ -110,6 +111,8 @@ export function CaesarView({ jeu, onSuccess }: CaesarViewProps) {
             onSubmitEditing={handleValidate}
             returnKeyType="done"
             autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
           />
 
           {!isRevealed ? (
@@ -141,8 +144,10 @@ export function CaesarView({ jeu, onSuccess }: CaesarViewProps) {
               <Ionicons name="arrow-forward" size={20} color="white" />
             </Pressable>
           </Animated.View>
+          </Animated.View>
         )}
-      </Animated.View>
+        </Animated.View>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }

@@ -107,7 +107,7 @@ export function PyramidView({ jeu, onSuccess }: PyramidViewProps) {
       style={{ flex: 1 }} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
           
           <View style={styles.headerBadge}>

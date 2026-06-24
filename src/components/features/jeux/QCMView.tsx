@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import Animated, { 
   FadeIn, 
@@ -22,6 +22,13 @@ interface QCMViewProps {
 export function QCMView({ jeu, onSuccess }: QCMViewProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
   
   // Cast sécurisé des données
   const donnees = jeu.donneesJeu as unknown as DonneesQCM | undefined;
@@ -58,9 +65,13 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
         withTiming(10, { duration: 50 }),
         withTiming(0, { duration: 50 })
       );
-      // Optionnel : révéler la vraie réponse après erreur ?
-      // Pour le moment on le force à trouver le bon.
-      setTimeout(() => setSelectedOption(null), 800);
+      // Clear any previous timeout to prevent race conditions
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      
+      timeoutRef.current = setTimeout(() => {
+        setSelectedOption(null);
+        timeoutRef.current = null;
+      }, 500); // reduced from 800ms to feel more responsive
     }
   };
 

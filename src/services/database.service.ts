@@ -38,6 +38,7 @@ export async function initDatabase(): Promise<void> {
       title                   TEXT NOT NULL,
       description             TEXT,
       difficulty              TEXT,
+      accessibility           TEXT,
       distanceKm              REAL,
       durationMin             INTEGER,
       coverImage              TEXT,
@@ -98,6 +99,7 @@ interface ParcoursSQLite {
   title: string;
   description: string | null;
   difficulty: string | null;
+  accessibility: string | null;
   distanceKm: number | null;
   durationMin: number | null;
   coverImage: string | null;
@@ -150,6 +152,7 @@ function rowToParcours(row: ParcoursSQLite): Parcours & { downloadedAt: number; 
     title: row.title,
     description: row.description ?? undefined,
     difficulty: row.difficulty as Parcours['difficulty'],
+    accessibility: row.accessibility as Parcours['accessibility'],
     distanceKm: row.distanceKm ?? undefined,
     durationMin: row.durationMin ?? undefined,
     coverImage: row.coverImage ?? undefined,
@@ -214,7 +217,7 @@ export async function insertParcours(parcours: Parcours): Promise<void> {
   const db = getDb();
   await db.runAsync(
     `INSERT OR REPLACE INTO parcours
-      (id, title, description, difficulty, distanceKm, durationMin,
+      (id, title, description, difficulty, accessibility, distanceKm, durationMin,
        coverImage, pathGeoJSON,
        isPMRFriendly, isChildFriendly, isMentalHandicapFriendly,
        downloadedAt, isCompleted)
@@ -224,6 +227,7 @@ export async function insertParcours(parcours: Parcours): Promise<void> {
       parcours.title,
       parcours.description ?? null,
       parcours.difficulty ?? null,
+      parcours.accessibility ?? null,
       parcours.distanceKm ?? null,
       parcours.durationMin ?? null,
       parcours.coverImage ?? null,

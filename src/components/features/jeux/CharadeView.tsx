@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import Animated, { 
   FadeIn, 
   SlideInRight, 
@@ -69,7 +69,8 @@ export function CharadeView({ jeu, onSuccess }: CharadeViewProps) {
       style={{ flex: 1 }} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
         <Text style={styles.title}>Charade</Text>
         
         {imageSource && (
@@ -93,6 +94,8 @@ export function CharadeView({ jeu, onSuccess }: CharadeViewProps) {
             onSubmitEditing={handleValidate}
             returnKeyType="done"
             autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
           />
 
           {!isRevealed ? (
@@ -125,7 +128,8 @@ export function CharadeView({ jeu, onSuccess }: CharadeViewProps) {
             </Pressable>
           </Animated.View>
         )}
-      </Animated.View>
+        </Animated.View>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
