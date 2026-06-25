@@ -1,19 +1,11 @@
-import React, { useState } from 'react';
-import { StyleSheet, ScrollView, View, Text, Pressable, Alert, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, ScrollView, View, Text, Pressable, Alert, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/store/auth.store';
 import { Leaf, LogOut, Trash2, ShieldAlert, Users, Settings } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-// Mocks pour les badges en attendant l'API backend
-const MOCK_BADGES = [
-  { id: '1', name: 'Explorateur', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3253/3253013.png', unlocked: true },
-  { id: '2', name: 'Botaniste', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3253/3253063.png', unlocked: true },
-  { id: '3', name: 'Ornithologue', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3252/3252984.png', unlocked: false },
-  { id: '4', name: 'Écolo', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3253/3253051.png', unlocked: false },
-  { id: '5', name: 'Marathonien', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3252/3252971.png', unlocked: false },
-  { id: '6', name: 'Photographe', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3253/3253086.png', unlocked: false },
-];
+import { apiService } from '@/src/services/api.service';
+import { Badge } from '@/src/types/api.types';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -21,6 +13,22 @@ export default function ProfileScreen() {
   const { user, logout, deleteAccount, isGuest } = useAuthStore();
   
   const [isDeleting, setIsDeleting] = useState(false);
+  const [allBadges, setAllBadges] = useState<Badge[]>([]);
+  const [loadingBadges, setLoadingBadges] = useState(true);
+
+  useEffect(() => {
+    async function loadBadges() {
+      try {
+        const data = await apiService.get<Badge[]>('/mobile/badges');
+        setAllBadges(data);
+      } catch (error) {
+        console.error('Failed to load badges', error);
+      } finally {
+        setLoadingBadges(false);
+      }
+    }
+    loadBadges();
+  }, []);
 
   // Valeurs par défaut si user n'est pas chargé
   const level = user?.level || 1;
@@ -138,16 +146,23 @@ export default function ProfileScreen() {
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Herbier des Badges</Text>
         <View style={styles.badgesGrid}>
-          {MOCK_BADGES.map((badge) => (
-            <View key={badge.id} style={styles.badgeItem}>
-              <View style={[styles.badgeImageContainer, !badge.unlocked && styles.badgeLocked]}>
-                <Image source={{ uri: badge.imageUrl }} style={styles.badgeImage} />
-              </View>
-              <Text style={[styles.badgeName, !badge.unlocked && styles.badgeNameLocked]}>
-                {badge.name}
-              </Text>
-            </View>
-          ))}
+          {loadingBadges ? (
+            <ActivityIndicator size="small" color="#4F46E5" />
+          ) : (
+            allBadges.map((badge) => {
+              const isUnlocked = user?.badges?.some((ub) => ub.badge.id === badge.id);
+              return (
+                <View key={badge.id} style={styles.badgeItem}>
+                  <View style={[styles.badgeImageContainer, !isUnlocked && styles.badgeLocked]}>
+                    <Image source={{ uri: badge.imageUrl }} style={styles.badgeImage} />
+                  </View>
+                  <Text style={[styles.badgeName, !isUnlocked && styles.badgeNameLocked]}>
+                    {badge.name}
+                  </Text>
+                </View>
+              );
+            })
+          )}
         </View>
       </View>
 

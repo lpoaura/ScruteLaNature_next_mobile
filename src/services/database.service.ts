@@ -27,7 +27,7 @@ function getDb(): SQLite.SQLiteDatabase {
  * À appeler une seule fois au démarrage de l'application (dans _layout.tsx).
  */
 export async function initDatabase(): Promise<void> {
-  _db = await SQLite.openDatabaseAsync('lpo_balades.db');
+  _db = await SQLite.openDatabaseAsync('lpo_balades_v2.db');
 
   await _db.execAsync(`
     PRAGMA journal_mode = WAL;
@@ -221,7 +221,7 @@ export async function insertParcours(parcours: Parcours): Promise<void> {
        coverImage, pathGeoJSON,
        isPMRFriendly, isChildFriendly, isMentalHandicapFriendly,
        downloadedAt, isCompleted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
     [
       parcours.id,
       parcours.title,

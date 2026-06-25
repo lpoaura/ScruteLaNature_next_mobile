@@ -12,12 +12,12 @@ import {
   Alert
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Users, UserPlus, Search, Check, X, ChevronLeft } from 'lucide-react-native';
+import { Users, UserPlus, Search, Check, X, ChevronLeft, MapPin } from 'lucide-react-native';
 import { socialService } from '@/src/services/social.service';
-import type { Friendship } from '@/src/types/api.types';
+import type { Friendship, ParcoursInvitation } from '@/src/types/api.types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type Tab = 'amis' | 'demandes';
+type Tab = 'amis' | 'demandes' | 'invitations';
 
 export default function FriendsScreen() {
   const router = useRouter();
@@ -28,6 +28,7 @@ export default function FriendsScreen() {
   
   const [friends, setFriends] = useState<Friendship[]>([]);
   const [requests, setRequests] = useState<Friendship[]>([]);
+  const [invitations, setInvitations] = useState<ParcoursInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -41,9 +42,12 @@ export default function FriendsScreen() {
       if (activeTab === 'amis') {
         const data = await socialService.getFriends();
         setFriends(data);
-      } else {
+      } else if (activeTab === 'demandes') {
         const data = await socialService.getFriendRequests();
         setRequests(data);
+      } else {
+        const data = await socialService.getParcoursInvitations();
+        setInvitations(data);
       }
     } catch (error) {
       console.error('Erreur lors du chargement des amis:', error);
@@ -79,6 +83,19 @@ export default function FriendsScreen() {
       }
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de répondre à la demande.');
+    }
+  };
+
+  const handleRespondInvitation = async (id: string, accept: boolean, parcoursId?: string) => {
+    try {
+      await socialService.respondToInvitation(id, accept);
+      setInvitations((prev) => prev.filter((r) => r.id !== id));
+      if (accept && parcoursId) {
+        Alert.alert('Défi accepté !', 'Redirection vers le parcours...');
+        router.push(`/parcours/${parcoursId}`);
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de répondre à l\'invitation.');
     }
   };
 
@@ -118,6 +135,37 @@ export default function FriendsScreen() {
           <Pressable 
             style={[styles.actionButton, styles.declineButton]}
             onPress={() => handleRespondRequest(item.id, false)}
+          >
+            <X size={20} color="#6B7280" />
+          </Pressable>
+        </View>
+      </View>
+    );
+  };
+
+  const renderInvitation = ({ item }: { item: ParcoursInvitation }) => {
+    const senderPseudo = item.sender?.pseudo || 'Joueur inconnu';
+    const parcoursTitle = item.parcours?.title || 'Parcours inconnu';
+
+    return (
+      <View style={styles.friendCard}>
+        <View style={[styles.avatarPlaceholder, { backgroundColor: '#E8F5E9' }]}>
+          <MapPin size={24} color="#2D6A4F" />
+        </View>
+        <View style={styles.requestInfo}>
+          <Text style={styles.friendName}>{senderPseudo}</Text>
+          <Text style={styles.requestSubtitle}>vous défie sur : {parcoursTitle}</Text>
+        </View>
+        <View style={styles.requestActions}>
+          <Pressable 
+            style={[styles.actionButton, styles.acceptButton]}
+            onPress={() => handleRespondInvitation(item.id, true, item.parcoursId)}
+          >
+            <Check size={20} color="#FFFFFF" />
+          </Pressable>
+          <Pressable 
+            style={[styles.actionButton, styles.declineButton]}
+            onPress={() => handleRespondInvitation(item.id, false)}
           >
             <X size={20} color="#6B7280" />
           </Pressable>
@@ -186,6 +234,19 @@ export default function FriendsScreen() {
             </View>
           )}
         </Pressable>
+
+        <Pressable 
+          style={[styles.tab, activeTab === 'invitations' && styles.activeTab]} 
+          onPress={() => setActiveTab('invitations')}
+        >
+          <MapPin size={20} color={activeTab === 'invitations' ? '#2D6A4F' : '#6B7280'} />
+          <Text style={[styles.tabText, activeTab === 'invitations' && styles.activeTabText]}>Défis</Text>
+          {invitations.length > 0 && activeTab !== 'invitations' && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{invitations.length}</Text>
+            </View>
+          )}
+        </Pressable>
       </View>
 
       {/* Content */}
@@ -194,26 +255,43 @@ export default function FriendsScreen() {
           <View style={styles.centerContent}>
             <ActivityIndicator size="large" color="#2D6A4F" />
           </View>
-        ) : (
+        ) : activeTab === 'amis' ? (
           <FlatList
-            data={activeTab === 'amis' ? friends : requests}
+            data={friends}
             keyExtractor={(item) => item.id}
-            renderItem={activeTab === 'amis' ? renderFriend : renderRequest}
+            renderItem={renderFriend}
             contentContainerStyle={styles.flatListContent}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                {activeTab === 'amis' ? (
-                  <>
-                    <Users size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyText}>Vous n'avez pas encore d'amis.</Text>
-                    <Text style={styles.emptySubtext}>Cherchez un pseudo ci-dessus pour envoyer une demande !</Text>
-                  </>
-                ) : (
-                  <>
-                    <UserPlus size={48} color="#D1D5DB" />
-                    <Text style={styles.emptyText}>Aucune demande en attente.</Text>
-                  </>
-                )}
+                <Users size={48} color="#D1D5DB" />
+                <Text style={styles.emptyText}>Vous n'avez pas encore d'amis.</Text>
+                <Text style={styles.emptySubtext}>Cherchez un pseudo ci-dessus pour envoyer une demande !</Text>
+              </View>
+            }
+          />
+        ) : activeTab === 'demandes' ? (
+          <FlatList
+            data={requests}
+            keyExtractor={(item) => item.id}
+            renderItem={renderRequest}
+            contentContainerStyle={styles.flatListContent}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <UserPlus size={48} color="#D1D5DB" />
+                <Text style={styles.emptyText}>Aucune demande en attente.</Text>
+              </View>
+            }
+          />
+        ) : (
+          <FlatList
+            data={invitations}
+            keyExtractor={(item) => item.id}
+            renderItem={renderInvitation}
+            contentContainerStyle={styles.flatListContent}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <MapPin size={48} color="#D1D5DB" />
+                <Text style={styles.emptyText}>Aucun défi reçu.</Text>
               </View>
             }
           />

@@ -120,7 +120,7 @@ export function PyramidView({ jeu, onSuccess }: PyramidViewProps) {
               entering={FadeIn.delay(200)}
               source={imageSource} 
               style={styles.image} 
-              resizeMode="cover"
+              resizeMode="contain"
             />
           )}
 

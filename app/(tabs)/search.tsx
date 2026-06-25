@@ -35,6 +35,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useIsFocused } from '@react-navigation/native';
+import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
 
 // ============================================================================
 // Types & Données
@@ -333,6 +334,7 @@ export default function SearchScreen() {
           id="osm-source"
           tiles={['https://tile.openstreetmap.org/{z}/{x}/{y}.png']}
           tileSize={256}
+          maxzoom={19}
           attribution="© OpenStreetMap contributors"
         >
           <Layer id="osm-layer" type="raster" source="osm-source" />
@@ -375,24 +377,25 @@ export default function SearchScreen() {
 
       {/* --- PANNEAU GLISSANT CUSTOM --- */}
       <Animated.View style={[styles.panel, panelAnimatedStyle]}>
-        {/* Handle de drag */}
-        <GestureDetector gesture={panGesture}>
-          <View style={styles.handleArea}>
-            <View style={styles.handleBar} />
-          </View>
-        </GestureDetector>
+        <TabletWrapper maxWidth={768}>
+          {/* Handle de drag */}
+          <GestureDetector gesture={panGesture}>
+            <View style={styles.handleArea}>
+              <View style={styles.handleBar} />
+            </View>
+          </GestureDetector>
 
-        {/* Contenu scrollable */}
-        <ScrollView
-          contentContainerStyle={styles.panelContent}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-          nestedScrollEnabled
-        >
-          {/* Header */}
-          <View style={styles.panelHeader}>
-            <Text style={styles.panelTitle}>Scrute La Nature</Text>
-          </View>
+          {/* Contenu scrollable */}
+          <ScrollView
+            contentContainerStyle={styles.panelContent}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            nestedScrollEnabled
+          >
+            {/* Header */}
+            <View style={styles.panelHeader}>
+              <Text style={styles.panelTitle}>Scrute La Nature</Text>
+            </View>
 
           {/* Toggle Switch */}
           <View style={styles.toggleContainer}>
@@ -543,6 +546,7 @@ export default function SearchScreen() {
             </View>
           )}
         </ScrollView>
+        </TabletWrapper>
       </Animated.View>
     </View>
   );

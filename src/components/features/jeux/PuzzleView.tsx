@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, SlideInRight, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -12,24 +12,23 @@ interface PuzzleViewProps {
 }
 
 const GRID_SIZE = 3;
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const PUZZLE_SIZE = SCREEN_WIDTH - 48; // Padding 24x2
-const PIECE_SIZE = PUZZLE_SIZE / GRID_SIZE;
 
 interface PuzzlePieceProps {
   pieceValue: number;
   currentIndex: number;
   isRevealed: boolean;
   imageSource: any;
+  pieceSize: number;
+  puzzleSize: number;
   onPress: () => void;
 }
 
-function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, onPress }: PuzzlePieceProps) {
+function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, pieceSize, puzzleSize, onPress }: PuzzlePieceProps) {
   const col = currentIndex % GRID_SIZE;
   const row = Math.floor(currentIndex / GRID_SIZE);
   
-  const targetX = col * PIECE_SIZE;
-  const targetY = row * PIECE_SIZE;
+  const targetX = col * pieceSize;
+  const targetY = row * pieceSize;
 
   // Initialisation immédiate sans animation à la première frame
   const translateX = useSharedValue(targetX);
@@ -52,7 +51,7 @@ function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, onPres
   if (pieceValue === 8 && !isRevealed) {
     // Case vide
     return (
-      <Animated.View style={[{ position: 'absolute', width: PIECE_SIZE, height: PIECE_SIZE }, animatedStyle]}>
+      <Animated.View style={[{ position: 'absolute', width: pieceSize, height: pieceSize }, animatedStyle]}>
         <View style={styles.emptyPiece} />
       </Animated.View>
     );
@@ -62,7 +61,7 @@ function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, onPres
   const originalCol = pieceValue % GRID_SIZE;
 
   return (
-    <Animated.View style={[{ position: 'absolute', width: PIECE_SIZE, height: PIECE_SIZE }, animatedStyle]}>
+    <Animated.View style={[{ position: 'absolute', width: pieceSize, height: pieceSize }, animatedStyle]}>
       <Pressable style={styles.pieceBox} onPress={onPress}>
         <View style={styles.imageMask}>
           {imageSource && (
@@ -71,8 +70,10 @@ function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, onPres
               style={[
                 styles.puzzleImage,
                 {
-                  left: -originalCol * PIECE_SIZE,
-                  top: -originalRow * PIECE_SIZE,
+                  width: puzzleSize,
+                  height: puzzleSize,
+                  left: -originalCol * pieceSize,
+                  top: -originalRow * pieceSize,
                 }
               ]} 
               resizeMode="cover"
@@ -88,6 +89,10 @@ function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, onPres
 export function PuzzleView({ jeu, onSuccess }: PuzzleViewProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [pieces, setPieces] = useState<number[]>([]);
+  const { width } = useWindowDimensions();
+  
+  const puzzleSize = Math.min(width, 600) - 48; // Max 600px
+  const pieceSize = puzzleSize / GRID_SIZE;
   
   const imageSource = jeu.imageLocalPath 
     ? { uri: jeu.imageLocalPath.startsWith('file://') ? jeu.imageLocalPath : `file://${jeu.imageLocalPath}` } 
@@ -189,7 +194,7 @@ export function PuzzleView({ jeu, onSuccess }: PuzzleViewProps) {
       )}
 
       {/* ZONE DU PUZZLE */}
-      <View style={styles.puzzleBoard}>
+      <View style={[styles.puzzleBoard, { width: puzzleSize, height: puzzleSize }]}>
         {pieces.map((pieceValue, index) => (
           <PuzzlePiece
             key={`piece-${pieceValue}`}
@@ -197,6 +202,8 @@ export function PuzzleView({ jeu, onSuccess }: PuzzleViewProps) {
             currentIndex={index}
             isRevealed={isRevealed}
             imageSource={imageSource}
+            pieceSize={pieceSize}
+            puzzleSize={puzzleSize}
             onPress={() => handlePressPiece(index)}
           />
         ))}
@@ -262,8 +269,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   puzzleBoard: {
-    width: PUZZLE_SIZE,
-    height: PUZZLE_SIZE,
     backgroundColor: '#CBD5E1',
     borderWidth: 2,
     borderColor: '#334155',
@@ -288,8 +293,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   puzzleImage: {
-    width: PUZZLE_SIZE,
-    height: PUZZLE_SIZE,
     position: 'absolute',
   },
   pieceOverlay: {

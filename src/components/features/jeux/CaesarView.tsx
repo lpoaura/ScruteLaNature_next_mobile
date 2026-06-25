@@ -85,7 +85,7 @@ export function CaesarView({ jeu, onSuccess }: CaesarViewProps) {
             entering={FadeIn.delay(200)}
             source={imageSource} 
             style={styles.image} 
-            resizeMode="cover"
+            resizeMode="contain"
           />
         )}
 
@@ -143,7 +143,6 @@ export function CaesarView({ jeu, onSuccess }: CaesarViewProps) {
               <Text style={styles.continueButtonText}>Continuer</Text>
               <Ionicons name="arrow-forward" size={20} color="white" />
             </Pressable>
-          </Animated.View>
           </Animated.View>
         )}
         </Animated.View>

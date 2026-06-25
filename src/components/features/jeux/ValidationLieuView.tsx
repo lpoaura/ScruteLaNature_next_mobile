@@ -114,7 +114,7 @@ export function ValidationLieuView({ jeu, etape, onSuccess }: ValidationLieuView
           entering={FadeIn.delay(200)}
           source={imageSource} 
           style={styles.image} 
-          resizeMode="cover"
+          resizeMode="contain"
         />
       )}
 

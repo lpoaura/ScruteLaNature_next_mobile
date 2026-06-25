@@ -38,6 +38,7 @@ export interface User {
   totalPoints: number;
   co2Saved: number;
   organismeId?: string;
+  badges?: { badge: Badge }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -151,6 +152,7 @@ export interface Friendship {
   receiverId: string;
   requester?: Pick<User, 'id' | 'pseudo'>;
   receiver?: Pick<User, 'id' | 'pseudo'>;
+  friend?: Pick<User, 'id' | 'pseudo'>;
   createdAt: string;
 }
 
@@ -161,6 +163,17 @@ export interface Review {
   userId: string;
   parcoursId: string;
   user?: Pick<User, 'id' | 'pseudo'>;
+  createdAt: string;
+}
+
+export interface ParcoursInvitation {
+  id: string;
+  status: 'PENDING' | 'ACCEPTED' | 'BLOCKED';
+  senderId: string;
+  receiverId: string;
+  parcoursId: string;
+  sender?: Pick<User, 'id' | 'pseudo' | 'firstName'>;
+  parcours?: Pick<Parcours, 'id' | 'title' | 'coverImage' | 'distanceKm' | 'durationMin'>;
   createdAt: string;
 }
 

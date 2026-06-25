@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Jeu, Etape } from '@/src/types/api.types';
@@ -12,6 +12,7 @@ import { ValidationLieuView } from './ValidationLieuView';
 import { PuzzleView } from './PuzzleView';
 
 import { useGameStore } from '@/src/store/game.store';
+import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
 
 interface MiniJeuxManagerProps {
   jeux: Jeu[];
@@ -22,7 +23,12 @@ interface MiniJeuxManagerProps {
 
 export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeuxManagerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [hintsRevealed, setHintsRevealed] = useState(0);
   const { completeJeu } = useGameStore();
+
+  useEffect(() => {
+    setHintsRevealed(0);
+  }, [currentIndex]);
 
   // S'il n'y a pas de jeu, on complète direct
   if (!jeux || jeux.length === 0) {
@@ -41,6 +47,32 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
     } else {
       // Tous les jeux de l'étape sont réussis !
       onAllCompleted();
+    }
+  };
+
+  const indices: string[] = (currentJeu?.donneesJeu as any)?.indices || [];
+
+  const handleShowHint = () => {
+    if (indices.length === 0) return;
+
+    if (hintsRevealed < indices.length) {
+      Alert.alert(
+        `Indice ${hintsRevealed + 1} / ${indices.length}`,
+        indices[hintsRevealed],
+        [
+          {
+            text: "Merci !",
+            onPress: () => setHintsRevealed(prev => prev + 1)
+          }
+        ]
+      );
+    } else {
+      // Tous les indices ont été révélés, on les réaffiche tous
+      Alert.alert(
+        "Tous vos indices",
+        indices.map((ind, i) => `${i + 1}. ${ind}`).join('\n\n'),
+        [{ text: "Fermer" }]
+      );
     }
   };
 
@@ -85,12 +117,26 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
         <Text style={styles.progressText}>
           Défi {currentIndex + 1} / {jeux.length}
         </Text>
-        <View style={{ width: 44 }} /> 
+        
+        {indices.length > 0 ? (
+          <Pressable onPress={handleShowHint} style={[styles.iconBtn, { backgroundColor: '#FEF3C7' }]}>
+            <Ionicons name="bulb" size={24} color="#D97706" />
+            {hintsRevealed < indices.length && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{indices.length - hintsRevealed}</Text>
+              </View>
+            )}
+          </Pressable>
+        ) : (
+          <View style={{ width: 44 }} />
+        )}
       </View>
 
       {/* Rendu dynamique du mini-jeu */}
       <View style={styles.gameContainer}>
-        {renderGame()}
+        <TabletWrapper maxWidth={600}>
+          {renderGame()}
+        </TabletWrapper>
       </View>
     </View>
   );
@@ -154,5 +200,23 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FEF3C7',
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

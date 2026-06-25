@@ -27,7 +27,7 @@ export function InfoView({ jeu, onSuccess }: InfoViewProps) {
           entering={FadeIn.delay(200)}
           source={imageSource} 
           style={styles.image} 
-          resizeMode="cover"
+          resizeMode="contain"
         />
       )}
 

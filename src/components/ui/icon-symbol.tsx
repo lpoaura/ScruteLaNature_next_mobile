@@ -1,8 +1,7 @@
 import React from 'react';
 import { StyleProp, TextStyle, ViewStyle } from 'react-native';
-import { Home, Map as MapIcon, User, Search, Navigation, CheckCircle, Play, Star, Wifi, WifiOff, Code, Send } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-// Type mapping from SF Symbols to Lucide React Native
 export type IconSymbolName = 
   | 'house.fill'
   | 'paperplane.fill'
@@ -18,24 +17,26 @@ export type IconSymbolName =
   | 'play.fill'
   | 'star.fill'
   | 'wifi'
-  | 'wifi.slash';
+  | 'wifi.slash'
+  | 'leaf.fill';
 
-const MAPPING: Record<IconSymbolName, React.ElementType> = {
-  'house.fill': Home,
-  'paperplane.fill': Send,
-  'chevron.left.forwardslash.chevron.right': Code,
-  'chevron.right': Navigation, // Approximate replacement
-  'magnifyingglass': Search,
-  'person.fill': User,
-  'person.2.badge': User, // Approximate
-  'person': User,
-  'map.fill': MapIcon,
-  'cloud.fill': MapIcon, // Approximate or replace later
-  'checkmark.circle.fill': CheckCircle,
-  'play.fill': Play,
-  'star.fill': Star,
-  'wifi': Wifi,
-  'wifi.slash': WifiOff,
+const MAPPING: Record<IconSymbolName, keyof typeof Ionicons.glyphMap> = {
+  'house.fill': 'home',
+  'paperplane.fill': 'send',
+  'chevron.left.forwardslash.chevron.right': 'code-slash',
+  'chevron.right': 'chevron-forward',
+  'magnifyingglass': 'search',
+  'person.fill': 'person',
+  'person.2.badge': 'people',
+  'person': 'person-outline',
+  'map.fill': 'map',
+  'cloud.fill': 'cloud',
+  'checkmark.circle.fill': 'checkmark-circle',
+  'play.fill': 'play',
+  'star.fill': 'star',
+  'wifi': 'wifi',
+  'wifi.slash': 'wifi-outline', // Ionicons doesn't have a great wifi-slash, using outline or we can use another
+  'leaf.fill': 'leaf',
 };
 
 export function IconSymbol({
@@ -50,9 +51,9 @@ export function IconSymbol({
   style?: StyleProp<ViewStyle>;
   weight?: string;
 }) {
-  const IconComponent = MAPPING[name];
-  if (!IconComponent) {
+  const iconName = MAPPING[name];
+  if (!iconName) {
     return null;
   }
-  return <IconComponent size={size} color={color} style={style} />;
+  return <Ionicons name={iconName} size={size} color={color} style={style as any} />;
 }

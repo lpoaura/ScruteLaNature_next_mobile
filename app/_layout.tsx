@@ -26,7 +26,7 @@ export const unstable_settings = {
 function AuthGuard() {
   const router = useRouter();
   const segments = useSegments();
-  const { isAuthenticated, isInitialized } = useAuthStore();
+  const { isAuthenticated, isInitialized, isGuest } = useAuthStore();
 
   useEffect(() => {
     if (!isInitialized) return;
@@ -36,8 +36,8 @@ function AuthGuard() {
     const timeout = setTimeout(() => {
       const inAuthGroup = segments[0] === '(auth)';
 
-      if (isAuthenticated && inAuthGroup) {
-        // Connecté mais sur une page auth → aller sur les tabs
+      if (isAuthenticated && !isGuest && inAuthGroup) {
+        // Connecté (vrai compte) mais sur une page auth → aller sur les tabs
         router.replace('/(tabs)');
       } else if (!isAuthenticated && !inAuthGroup) {
         // Non connecté et pas sur une page auth → aller sur login
@@ -46,7 +46,7 @@ function AuthGuard() {
     }, 0);
 
     return () => clearTimeout(timeout);
-  }, [isAuthenticated, isInitialized, segments]);
+  }, [isAuthenticated, isInitialized, isGuest, segments]);
 
   return null;
 }

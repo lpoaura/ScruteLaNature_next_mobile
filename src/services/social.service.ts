@@ -32,8 +32,35 @@ export const socialService = {
 
   /**
    * Accepter ou refuser une demande d'ami reçue
-   * → POST /social/friends/:id/respond
    */
-  respondFriendRequest: (friendshipId: string, accept: boolean): Promise<Friendship> =>
-    apiService.post<Friendship>(`/social/friends/${friendshipId}/respond`, { accept }),
+  respondFriendRequest: async (friendshipId: string, accept: boolean): Promise<void> => {
+    if (accept) {
+      await apiService.patch<void>(`/social/friends/${friendshipId}/accept`, {});
+    } else {
+      await apiService.delete<void>(`/social/friends/${friendshipId}`);
+    }
+  },
+
+  /**
+   * Envoyer une invitation de parcours à un ami
+   */
+  sendParcoursInvitation: (receiverId: string, parcoursId: string): Promise<any> =>
+    apiService.post<any>('/social/invitations', { receiverId, parcoursId }),
+
+  /**
+   * Lister les invitations de parcours reçues
+   */
+  getParcoursInvitations: (): Promise<any[]> =>
+    apiService.get<any[]>('/social/invitations'),
+
+  /**
+   * Répondre à une invitation de parcours
+   */
+  respondToInvitation: async (invitationId: string, accept: boolean): Promise<void> => {
+    if (accept) {
+      await apiService.patch<void>(`/social/invitations/${invitationId}/accept`, {});
+    } else {
+      await apiService.delete<void>(`/social/invitations/${invitationId}`);
+    }
+  },
 };

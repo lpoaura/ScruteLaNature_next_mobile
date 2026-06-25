@@ -24,21 +24,14 @@ import Animated, {
   FadeInDown,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  Camera,
-  Map,
-  RasterSource,
-  Layer,
-  GeoJSONSource,
-  Marker,
-} from '@maplibre/maplibre-react-native';
-// MapLibreGL.setAccessToken(null);
 import { apiService } from '@/src/services/api.service';
 import { DownloadButton } from '@/src/components/features/parcours/DownloadButton';
 import { useGameStore } from '@/src/store/game.store';
+import { useAuthStore } from '@/src/store/auth.store';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
-import { calculateBoundingBox } from '@/src/utils/map';
 import type { Parcours, Etape } from '@/src/types/api.types';
+import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
+import InviteFriendModal from '@/src/components/social/InviteFriendModal';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -131,108 +124,7 @@ function StatCard({
   );
 }
 
-// ─── Composant MapSection ─────────────────────────────────────────────────────
 
-function MapSection({ geojson }: { geojson: string }) {
-  // GeoJSON brut pour ShapeSource (LineLayer)
-  const lineGeoJSON = React.useMemo(() => {
-    try {
-      const parsed = JSON.parse(geojson);
-      let coords: [number, number][] = [];
-      if (parsed.type === 'LineString') coords = parsed.coordinates;
-      else if (parsed.type === 'Feature' && parsed.geometry?.type === 'LineString') coords = parsed.geometry.coordinates;
-      else if (parsed.type === 'FeatureCollection') {
-        const line = parsed.features.find((f: any) => f.geometry?.type === 'LineString');
-        if (line) coords = line.geometry.coordinates;
-      }
-      return coords.length > 0 ? {
-        type: 'Feature' as const,
-        geometry: { type: 'LineString' as const, coordinates: coords },
-        properties: {},
-      } : null;
-    } catch { return null; }
-  }, [geojson]);
-
-  const centerAndZoom = React.useMemo(() => {
-    const bbox = calculateBoundingBox(geojson);
-    if (!bbox) return null;
-    return {
-      center: [(bbox.minLng + bbox.maxLng) / 2, (bbox.minLat + bbox.maxLat) / 2] as [number, number],
-      zoom: 13,
-    };
-  }, [geojson]);
-
-  const startCoord = lineGeoJSON?.geometry.coordinates[0] as [number, number] | undefined;
-  const endCoord = lineGeoJSON?.geometry.coordinates[lineGeoJSON.geometry.coordinates.length - 1] as [number, number] | undefined;
-
-  if (!lineGeoJSON || !centerAndZoom) return null;
-
-  return (
-    <View style={styles.mapContainer}>
-      <Map
-        style={StyleSheet.absoluteFillObject}
-        logoPosition={{ bottom: -100, right: -100 }}
-        attributionPosition={{ bottom: -100, right: -100 }}
-        mapStyle=""
-      >
-        <Camera
-          initialViewState={{
-            center: centerAndZoom.center,
-            zoom: centerAndZoom.zoom,
-          }}
-        />
-        {/* Tuiles OSM */}
-        <RasterSource
-          id="osm-detail"
-          tiles={['https://tile.openstreetmap.org/{z}/{x}/{y}.png']}
-          tileSize={256}
-        >
-          <Layer id="osm-detail-layer" type="raster" source="osm-detail" />
-        </RasterSource>
-        {/* Tracé du parcours */}
-        <GeoJSONSource id="route" data={lineGeoJSON}>
-          <Layer
-            id="route-line"
-            type="line"
-            paint={{
-              'line-color': '#10b981',
-              'line-width': 4,
-              'line-cap': 'round',
-              'line-join': 'round',
-            } as any}
-          />
-        </GeoJSONSource>
-        {/* Départ */}
-        {startCoord && (
-          <Marker id="start-marker" lngLat={startCoord}>
-            <View style={styles.mapDot}>
-              <View style={styles.mapDotInner} />
-            </View>
-          </Marker>
-        )}
-        {/* Arrivée */}
-        {endCoord && lineGeoJSON.geometry.coordinates.length > 1 && (
-          <Marker id="end-marker" lngLat={endCoord}>
-            <View style={[styles.mapDot, { borderColor: '#ef4444' }]}>
-              <View style={[styles.mapDotInner, { backgroundColor: '#ef4444' }]} />
-            </View>
-          </Marker>
-        )}
-      </Map>
-      {/* Légende */}
-      <View style={styles.mapLegend}>
-        <View style={styles.mapLegendItem}>
-          <View style={[styles.mapLegendDot, { backgroundColor: '#10b981' }]} />
-          <Text style={styles.mapLegendText}>Départ</Text>
-        </View>
-        <View style={styles.mapLegendItem}>
-          <View style={[styles.mapLegendDot, { backgroundColor: '#ef4444' }]} />
-          <Text style={styles.mapLegendText}>Arrivée</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
 
 // ─── Écran principal ──────────────────────────────────────────────────────────
 
@@ -244,10 +136,15 @@ export default function ParcoursDetailScreen() {
   const [parcours, setParcours] = useState<ParcoursWithEtapes | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
-  const { downloadedParcoursIds, activeParcoursId, startParcours, downloadParcours: addDownloaded } = useGameStore();
+  // Authentification
+  const { isGuest } = useAuthStore();
+
+  const { downloadedParcoursIds, activeParcoursId, startParcours, downloadParcours: addDownloaded, currentEtapeOrder, completedParcoursIds } = useGameStore();
   const isDownloaded = id ? downloadedParcoursIds.includes(id) : false;
   const isActive = id ? activeParcoursId === id : false;
+  const isCompleted = id ? completedParcoursIds.includes(id) : false;
 
   // Animation de scroll pour l'effet parallax hero
   const scrollY = useSharedValue(0);
@@ -381,6 +278,16 @@ export default function ParcoursDetailScreen() {
   const nbJeux = etapes.reduce((acc, e) => acc + (e.jeux?.length ?? 0), 0);
   const hasRatings = (parcours.averageRating ?? 0) > 0;
 
+  // Mode Chasse : on calcule le nombre d'étapes visibles
+  const visibleEtapesCount = isCompleted
+    ? etapes.length
+    : isActive
+    ? Math.max(1, currentEtapeOrder)
+    : 1;
+
+  const visibleEtapes = etapes.slice(0, visibleEtapesCount);
+  const hiddenEtapesCount = etapes.length - visibleEtapesCount;
+
   // ─── Rendu principal ──────────────────────────────────────────────────────
 
   return (
@@ -390,23 +297,26 @@ export default function ParcoursDetailScreen() {
         pointerEvents="box-none"
         style={[styles.stickyNav, { paddingTop: insets.top }, navBarStyle]}
       >
-        <Animated.View style={titleBarOpacityStyle}>
-          <Pressable style={styles.stickyBackBtn} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={22} color="#fff" />
-          </Pressable>
-        </Animated.View>
-        <Animated.Text style={[styles.stickyTitle, titleBarOpacityStyle]} numberOfLines={1}>
-          {parcours.title}
-        </Animated.Text>
-        <View style={{ width: 40 }} />
+        <TabletWrapper maxWidth={768} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Animated.View style={titleBarOpacityStyle}>
+            <Pressable style={styles.stickyBackBtn} onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={22} color="#fff" />
+            </Pressable>
+          </Animated.View>
+          <Animated.Text style={[styles.stickyTitle, titleBarOpacityStyle]} numberOfLines={1}>
+            {parcours.title}
+          </Animated.Text>
+          <View style={{ width: 40 }} />
+        </TabletWrapper>
       </Animated.View>
 
       <Animated.ScrollView
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 32, alignItems: 'center' }}
       >
+        <TabletWrapper maxWidth={768}>
         {/* ── Image hero avec parallax ─────────────────────────────────── */}
         <View style={styles.heroWrapper}>
           <Animated.View style={[styles.heroImageContainer, heroImageStyle]}>
@@ -488,22 +398,23 @@ export default function ParcoursDetailScreen() {
               onDownloaded={handleDownloaded}
             />
           )}
+
+          {id && !isGuest && (
+            <Pressable
+              style={styles.inviteButton}
+              onPress={() => setShowInviteModal(true)}
+            >
+              <Ionicons name="gift-outline" size={20} color={GREEN} />
+              <Text style={styles.inviteButtonText}>Inviter un ami au défi</Text>
+            </Pressable>
+          )}
+
             <Text style={styles.offlineNote}>
               <Ionicons name="wifi-outline" size={12} color="#BDBDBD" />{' '}
               Téléchargez une fois, jouez partout — même sans réseau.
             </Text>
           </Animated.View>
 
-          {/* ── Section : Carte du parcours ────────────────────────── */}
-          {parcours.pathGeoJSON && (
-            <Animated.View
-              entering={FadeInDown.delay(160).duration(400).springify()}
-              style={styles.section}
-            >
-              <Text style={styles.sectionTitle}>Carte du parcours</Text>
-              <MapSection geojson={parcours.pathGeoJSON} />
-            </Animated.View>
-          )}
 
           {/* ── Section : À propos ──────────────────────────────────────── */}
           {parcours.description && (
@@ -548,7 +459,7 @@ export default function ParcoursDetailScreen() {
               </View>
 
               <View style={styles.etapeList}>
-                {etapes.map((etape, i) => (
+                {visibleEtapes.map((etape, i) => (
                   <EtapeRow
                     key={etape.id}
                     etape={etape}
@@ -557,6 +468,15 @@ export default function ParcoursDetailScreen() {
                   />
                 ))}
               </View>
+
+              {hiddenEtapesCount > 0 && (
+                <View style={styles.hiddenEtapesBanner}>
+                  <Ionicons name="lock-closed" size={16} color="#6B7280" />
+                  <Text style={styles.hiddenEtapesText}>
+                    {hiddenEtapesCount} étape{hiddenEtapesCount > 1 ? 's' : ''} mystère{hiddenEtapesCount > 1 ? 's' : ''} à découvrir
+                  </Text>
+                </View>
+              )}
             </Animated.View>
           )}
 
@@ -579,7 +499,19 @@ export default function ParcoursDetailScreen() {
           )}
 
         </View>
+        </TabletWrapper>
       </Animated.ScrollView>
+
+      {/* ── Modale d'invitation ── */}
+      {id && (
+        <InviteFriendModal
+          visible={showInviteModal}
+          parcoursId={id}
+          onClose={() => setShowInviteModal(false)}
+        />
+      )}
+
+      {/* ── Header Flottant (apparaît au scroll) ── */}
     </View>
   );
 }
@@ -755,10 +687,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: '800',
-    color: '#1A1A1A',
-    letterSpacing: -0.3,
+    color: '#1E293B',
   },
   description: {
     fontSize: 15,
@@ -766,12 +697,50 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 
+  // ── Etapes Mystères ──
+  hiddenEtapesBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    gap: 8,
+  },
+  hiddenEtapesText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+
   // ── Download / Play ──
   offlineNote: {
-    fontSize: 12,
-    color: '#BDBDBD',
     textAlign: 'center',
-    lineHeight: 18,
+    color: '#9E9E9E',
+    fontSize: 12,
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  inviteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingVertical: 14,
+    borderRadius: 16,
+    marginTop: 12,
+  },
+  inviteButtonText: {
+    color: GREEN,
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
   },
 
   // ── Accessibilité ──
@@ -925,55 +894,9 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 14,
   },
-  retryText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-
-  // ── Carte OSM ──
-  mapContainer: {
-    height: 220,
-    borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: '#e5e7eb',
-  },
-  mapDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#fff',
-    borderWidth: 3,
-    borderColor: '#10b981',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapDotInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10b981',
-  },
-  mapLegend: {
-    position: 'absolute',
-    bottom: 10,
-    left: 10,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    flexDirection: 'row',
-    gap: 12,
-  },
-  mapLegendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  mapLegendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  mapLegendText: {
-    fontSize: 11,
+  retryText: {
+    color: '#FFF',
+    fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
   },
 });

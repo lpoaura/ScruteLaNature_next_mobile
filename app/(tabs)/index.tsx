@@ -11,6 +11,7 @@ import { useRouter, Link } from 'expo-router';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useGameStore } from '@/src/store/game.store';
 import { IconSymbol } from '@/src/components/ui/icon-symbol';
+import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
 
 import { useNetInfo } from '@react-native-community/netinfo';
 
@@ -70,11 +71,12 @@ export default function DashboardScreen() {
   return (
     <ScrollView 
       className="flex-1 bg-slate-50"
-      contentContainerStyle={{ paddingTop: insets.top + 20, paddingBottom: 120 }}
+      contentContainerStyle={{ paddingTop: insets.top + 20, paddingBottom: 120, alignItems: 'center' }}
       showsVerticalScrollIndicator={false}
     >
-      {/* 1. En-tête (Personnalisation & Statut) */}
-      <View className="px-6 mb-8 flex-row justify-between items-start">
+      <TabletWrapper maxWidth={768}>
+        {/* 1. En-tête (Personnalisation & Statut) */}
+        <View className="px-6 mb-8 flex-row justify-between items-start">
         <View className="flex-1">
           <Text className="text-3xl font-extrabold text-slate-800">
             Bonjour {user?.pseudo || 'Aventurier'} 👋
@@ -236,6 +238,7 @@ export default function DashboardScreen() {
           ))}
         </View>
       </View>
+      </TabletWrapper>
     </ScrollView>
   );
 }

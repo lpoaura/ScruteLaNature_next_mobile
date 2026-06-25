@@ -32,7 +32,7 @@ import type { TileDownloadResult } from '@/src/services/filesystem.service';
 import type { Parcours, Etape, Jeu } from '@/src/types/api.types';
 
 import { useGpsTrigger } from '@/src/hooks/use-gps-trigger';
-import { formatDistance } from '@/src/utils/distance';
+import { formatDistance, haversineDistance } from '@/src/utils/distance';
 import { CarnetTransitionView } from '@/src/components/features/transition/CarnetTransitionView';
 import { MiniJeuxManager } from '@/src/components/features/jeux/MiniJeuxManager';
 import { calculateBoundingBox } from '@/src/utils/map';
@@ -166,8 +166,8 @@ export default function JeuScreen() {
 
   // ── Données ──
   const [data, setData] = useState<ParcoursComplet | null>(null);
-  // GeoJSON brut pour ShapeSource
-  const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
+  // Coordonnées complètes du tracé (pour mode Chasse)
+  const [fullRouteCoords, setFullRouteCoords] = useState<[number, number][]>([]);
   // URL des tuiles (mbtiles:// local ou OSM en ligne)
   const [tileUrlTemplates, setTileUrlTemplates] = useState<string[]>([
     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -208,13 +208,9 @@ export default function JeuScreen() {
             const line = geojson.features.find((f: any) => f.geometry?.type === 'LineString');
             if (line) coords = line.geometry.coordinates;
           }
-          // Stocker le GeoJSON structuré pour MapLibre ShapeSource
+          // Stocker les coordonnées pour le mode chasse
           if (coords.length > 0) {
-            setRouteGeoJSON({
-              type: 'Feature',
-              geometry: { type: 'LineString', coordinates: coords },
-              properties: {},
-            });
+            setFullRouteCoords(coords);
             // Centre de la carte sur la première étape
             const first = coords[0];
             if (first) setCenterCoord([first[0], first[1]]);
@@ -287,6 +283,65 @@ export default function JeuScreen() {
     runPreparation();
   }, [runPreparation]);
 
+  // ── Mode Chasse : Ligne GeoJSON découpée ──
+  const slicedRouteGeoJSON = React.useMemo(() => {
+    if (!fullRouteCoords || fullRouteCoords.length === 0 || !data) return null;
+    
+    // Si c'est terminé, on affiche tout le parcours
+    const totalEtapes = data.etapes.length;
+    if (currentEtapeOrder > totalEtapes) {
+      return {
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: fullRouteCoords },
+        properties: {},
+      };
+    }
+
+    // Sinon on cherche l'indice du point le plus proche de l'étape cible
+    const currentEtapeIndex = Math.max(0, currentEtapeOrder - 1);
+    const targetEtape = data.etapes[currentEtapeIndex] || data.etapes[0];
+
+    if (!targetEtape) return null;
+
+    let bestIndex = 0;
+    let minDiff = Infinity;
+    const targetLng = targetEtape.longitude;
+    const targetLat = targetEtape.latitude;
+
+    for (let i = 0; i < fullRouteCoords.length - 1; i++) {
+      const p1 = fullRouteCoords[i];
+      const p2 = fullRouteCoords[i + 1];
+      
+      const d1 = haversineDistance(p1[1], p1[0], targetLat, targetLng);
+      const d2 = haversineDistance(targetLat, targetLng, p2[1], p2[0]);
+      const dLine = haversineDistance(p1[1], p1[0], p2[1], p2[0]);
+      
+      // La différence (d1 + d2) - dLine est proche de 0 si le point est sur le segment
+      const diff = Math.abs((d1 + d2) - dLine);
+      
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestIndex = i;
+      }
+    }
+
+    // On coupe la ligne jusqu'au début du segment trouvé, et on ajoute le point cible
+    const slicedCoords = fullRouteCoords.slice(0, bestIndex + 1);
+    slicedCoords.push([targetLng, targetLat]);
+
+    if (slicedCoords.length < 2) return {
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: fullRouteCoords }, // fallback
+      properties: {},
+    };
+
+    return {
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: slicedCoords },
+      properties: {},
+    };
+  }, [fullRouteCoords, data, currentEtapeOrder]);
+
   // ── Centrer la caméra sur la cible quand les données sont prêtes ──
   useEffect(() => {
     if (prepStep !== 'ready' || !data) return;
@@ -339,7 +394,21 @@ export default function JeuScreen() {
       } catch (err) {
         console.error('Erreur sauvegarde fin de parcours:', err);
       }
-      router.replace({ pathname: '/parcours/[id]/victoire', params: { id } });
+      
+      const maxScore = data?.etapes.reduce((acc, etape) => acc + (etape.jeux?.length || 0) * 10, 0) || 0;
+      const finalDurationMin = Math.ceil((useGameStore.getState().startTime ? Math.floor((Date.now() - useGameStore.getState().startTime!) / 1000) : 0) / 60);
+      
+      router.replace({ 
+        pathname: '/parcours/[id]/victoire', 
+        params: { 
+          id,
+          score: useGameStore.getState().score.toString(),
+          maxScore: maxScore.toString(),
+          durationMin: finalDurationMin.toString(),
+          badgeImageUrl: data?.parcours?.badge?.imageUrl || '',
+          badgeName: data?.parcours?.badge?.name || ''
+        } 
+      });
     } else {
       completeEtape(totalEtapes);
       Alert.alert('Étape validée !', 'Bravo ! En route vers la prochaine étape.', [
@@ -416,9 +485,9 @@ export default function JeuScreen() {
           <Layer id="tiles-layer" type="raster" source="tiles-source" />
         </RasterSource>
 
-        {/* Tracé du parcours */}
-        {routeGeoJSON && (
-          <GeoJSONSource id="route" data={routeGeoJSON}>
+        {/* Tracé du parcours découpé */}
+        {slicedRouteGeoJSON && (
+          <GeoJSONSource id="route" data={slicedRouteGeoJSON as any}>
             <Layer
               id="route-line"
               type="line"
@@ -427,8 +496,8 @@ export default function JeuScreen() {
           </GeoJSONSource>
         )}
 
-        {/* Marqueurs des étapes */}
-        {data!.etapes.map((etape, index) => {
+        {/* Marqueurs des étapes filtrés (seulement <= currentEtapeIndex) */}
+        {data!.etapes.filter((_, idx) => idx <= currentEtapeIndex).map((etape, index) => {
           const isPassed = index < currentEtapeIndex;
           const isActive = index === currentEtapeIndex;
           let color = '#9CA3AF';

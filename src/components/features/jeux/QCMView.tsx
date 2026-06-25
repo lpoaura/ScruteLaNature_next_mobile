@@ -22,7 +22,7 @@ interface QCMViewProps {
 export function QCMView({ jeu, onSuccess }: QCMViewProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
@@ -46,11 +46,17 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
     transform: [{ translateX: shakeTranslateX.value }],
   }));
 
+  // Comparaison robuste pour éviter les soucis d'espaces ou de majuscules
+  const checkIsCorrect = (opt: string) => {
+    if (!jeu.reponse) return false;
+    return opt.trim().toLowerCase() === jeu.reponse.trim().toLowerCase();
+  };
+
   const handleSelect = (option: string) => {
     if (isRevealed) return; // Empêcher le clic si déjà révélé
 
     setSelectedOption(option);
-    const isCorrect = option === jeu.reponse;
+    const isCorrect = checkIsCorrect(option);
 
     if (isCorrect) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -84,7 +90,7 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
           entering={FadeIn.delay(200)}
           source={imageSource} 
           style={styles.image} 
-          resizeMode="cover"
+          resizeMode="contain"
         />
       )}
 
@@ -93,7 +99,7 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
       <View style={styles.optionsContainer}>
         {options.map((option, index) => {
           const isSelected = selectedOption === option;
-          const isCorrectAnswer = isRevealed && option === jeu.reponse;
+          const isCorrectAnswer = isRevealed && checkIsCorrect(option);
           
           let bgColor = 'white';
           let borderColor = '#D1D5DB';
