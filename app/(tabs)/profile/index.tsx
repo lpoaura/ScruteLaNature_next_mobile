@@ -10,9 +10,11 @@ import { Badge } from '@/src/types/api.types';
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, logout, deleteAccount, isGuest } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const deleteAccount = useAuthStore((state) => state.deleteAccount);
+  const isGuest = useAuthStore((state) => state.isGuest);
   
-  const [isDeleting, setIsDeleting] = useState(false);
   const [allBadges, setAllBadges] = useState<Badge[]>([]);
   const [loadingBadges, setLoadingBadges] = useState(true);
 
@@ -38,48 +40,24 @@ export default function ProfileScreen() {
   
   const co2Saved = user?.co2Saved || 0; // en kg
 
-  const handleLogout = () => {
-    Alert.alert('Déconnexion', 'Voulez-vous vraiment vous déconnecter ?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Se déconnecter', style: 'destructive', onPress: async () => {
-          await logout();
-          router.replace('/(auth)/login');
-      }},
-    ]);
-  };
-
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Suppression du compte', 
-      'Attention ! Cette action est irréversible. Toutes vos données seront définitivement effacées conformément au RGPD.', 
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { 
-          text: 'Supprimer définitivement', 
-          style: 'destructive', 
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              await deleteAccount();
-              router.replace('/(auth)/login');
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de supprimer le compte pour le moment.');
-              setIsDeleting(false);
-            }
-          }
-        },
-      ]
-    );
-  };
-
   return (
     <ScrollView 
       style={styles.container} 
       contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20 }]}
       showsVerticalScrollIndicator={false}
     >
+      {/* Settings Icon */}
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20 }}>
+        <Pressable 
+          onPress={() => router.push('/(tabs)/profile/settings')}
+          style={{ padding: 8, backgroundColor: '#FFFFFF', borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }}
+        >
+          <Settings size={24} color="#4B5563" />
+        </Pressable>
+      </View>
+
       {/* En-tête / Jauge XP */}
-      <View style={styles.header}>
+      <View style={[styles.header, { marginTop: 12 }]}>
         <View style={styles.avatarContainer}>
           <Text style={styles.avatarText}>
             {user?.pseudo ? user.pseudo.charAt(0).toUpperCase() : 'I'}
@@ -130,7 +108,7 @@ export default function ProfileScreen() {
 
         <Pressable 
           style={styles.navCard}
-          onPress={() => router.push('/(tabs)/profile/seetings')}
+          onPress={() => router.push('/(tabs)/profile/settings')}
         >
           <View style={[styles.navIcon, { backgroundColor: '#F3F4F6' }]}>
             <Settings size={24} color="#4B5563" />
@@ -164,37 +142,6 @@ export default function ProfileScreen() {
             })
           )}
         </View>
-      </View>
-
-      {/* Gestion du compte */}
-      <View style={styles.accountContainer}>
-        <Text style={styles.sectionTitle}>Mon compte</Text>
-
-        {isGuest && (
-          <Pressable 
-            style={styles.createAccountButton}
-            onPress={() => router.replace('/(auth)/register')}
-          >
-            <ShieldAlert size={20} color="#D97706" style={{ marginRight: 8 }} />
-            <Text style={styles.createAccountText}>Créer un compte pour sauvegarder</Text>
-          </Pressable>
-        )}
-
-        <Pressable style={styles.logoutButton} onPress={handleLogout}>
-          <LogOut size={20} color="#4B5563" style={{ marginRight: 8 }} />
-          <Text style={styles.logoutText}>Se déconnecter</Text>
-        </Pressable>
-
-        <Pressable 
-          style={styles.deleteButton} 
-          onPress={handleDeleteAccount}
-          disabled={isDeleting}
-        >
-          <Trash2 size={20} color="#DC2626" style={{ marginRight: 8 }} />
-          <Text style={styles.deleteText}>
-            {isDeleting ? 'Suppression...' : 'Supprimer mon compte'}
-          </Text>
-        </Pressable>
       </View>
 
     </ScrollView>
@@ -408,56 +355,5 @@ const styles = StyleSheet.create({
   },
   badgeNameLocked: {
     color: '#94A3B8',
-  },
-  accountContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  createAccountButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEF3C7',
-    paddingVertical: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  createAccountText: {
-    color: '#D97706',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  logoutText: {
-    color: '#4B5563',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    paddingVertical: 16,
-    borderRadius: 16,
-  },
-  deleteText: {
-    color: '#DC2626',
-    fontWeight: '700',
-    fontSize: 15,
   },
 });

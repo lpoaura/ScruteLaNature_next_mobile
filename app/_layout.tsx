@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { GluestackUIProvider } from '@/src/components/ui/gluestack-ui-provider';
 import { useAuthStore } from '@/src/store/auth.store';
+import { useSettingsStore } from '@/src/store/settings.store';
 import { useEffect, useState } from 'react';
 import { AppSplashScreen } from '@/src/components/features/splash/AppSplashScreen';
 
@@ -26,7 +27,9 @@ export const unstable_settings = {
 function AuthGuard() {
   const router = useRouter();
   const segments = useSegments();
-  const { isAuthenticated, isInitialized, isGuest } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const isGuest = useAuthStore((state) => state.isGuest);
 
   useEffect(() => {
     if (!isInitialized) return;
@@ -54,8 +57,10 @@ function AuthGuard() {
 // ─── Layout Root ──────────────────────────────────────────────────────────────
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const { loadStoredAuth } = useAuthStore();
+  const systemColorScheme = useColorScheme();
+  const settingsTheme = useSettingsStore((state) => state.theme);
+  const colorScheme = settingsTheme === 'system' ? systemColorScheme : settingsTheme;
+  const loadStoredAuth = useAuthStore((state) => state.loadStoredAuth);
   const router = useRouter();
 
   // Contrôle de l'écran de démarrage custom

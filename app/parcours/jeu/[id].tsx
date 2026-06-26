@@ -154,7 +154,10 @@ export default function JeuScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { startParcours, currentEtapeOrder, activeParcoursId, completeEtape } = useGameStore();
+  const startParcours = useGameStore((state) => state.startParcours);
+  const currentEtapeOrder = useGameStore((state) => state.currentEtapeOrder);
+  const activeParcoursId = useGameStore((state) => state.activeParcoursId);
+  const completeEtape = useGameStore((state) => state.completeEtape);
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
 

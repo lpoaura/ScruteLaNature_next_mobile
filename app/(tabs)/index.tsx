@@ -61,8 +61,10 @@ const COMMUNITY_FEED = [
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuthStore();
-  const { activeParcoursId, currentEtapeOrder, downloadedParcoursIds } = useGameStore();
+  const user = useAuthStore((state) => state.user);
+  const activeParcoursId = useGameStore((state) => state.activeParcoursId);
+  const currentEtapeOrder = useGameStore((state) => state.currentEtapeOrder);
+  const downloadedParcoursIds = useGameStore((state) => state.downloadedParcoursIds);
   const netInfo = useNetInfo();
 
   // Indicateur dynamique basé sur la connexion réelle

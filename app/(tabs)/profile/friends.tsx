@@ -31,6 +31,8 @@ export default function FriendsScreen() {
   const [invitations, setInvitations] = useState<ParcoursInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<Array<{ id: string; pseudo: string }>>([]);
 
   useEffect(() => {
     loadData();
@@ -56,17 +58,44 @@ export default function FriendsScreen() {
     }
   };
 
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchQuery.trim().length >= 2) {
+        setIsFetchingSuggestions(true);
+        try {
+          const suggestions = await socialService.searchUsers(searchQuery.trim());
+          setSearchSuggestions(suggestions);
+        } catch (error) {
+          // ignorer les erreurs de frappe rapide
+          setSearchSuggestions([]);
+        } finally {
+          setIsFetchingSuggestions(false);
+        }
+      } else {
+        setSearchSuggestions([]);
+        setIsFetchingSuggestions(false);
+      }
+    };
+    
+    const timeoutId = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+    handleSendRequest(searchQuery);
+  };
+
+  const handleSendRequest = async (pseudoToAdd: string) => {
+    if (!pseudoToAdd.trim()) return;
     
     setIsSearching(true);
     try {
-      await socialService.sendFriendRequest(searchQuery.trim());
-      Alert.alert('Succès', `Demande d'ami envoyée à ${searchQuery}`);
+      await socialService.sendFriendRequest(pseudoToAdd.trim());
+      Alert.alert('Succès', `Demande d'ami envoyée à ${pseudoToAdd}`);
       setSearchQuery('');
+      setSearchSuggestions([]);
     } catch (error: any) {
-      // Afficher un message d'erreur si l'utilisateur n'existe pas ou est déjà ami
-      Alert.alert('Erreur', error?.response?.data?.message || "Impossible d'envoyer la demande.");
+      Alert.alert('Erreur', error?.message || "Impossible d'envoyer la demande.");
     } finally {
       setIsSearching(false);
     }
@@ -191,25 +220,56 @@ export default function FriendsScreen() {
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Search size={20} color="#9CA3AF" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Ajouter un ami (Pseudo)"
-            placeholderTextColor="#9CA3AF"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            returnKeyType="send"
-            onSubmitEditing={handleSearch}
-          />
-          {isSearching && <ActivityIndicator size="small" color="#2D6A4F" />}
+      <View style={{ zIndex: 10 }}>
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Search size={20} color="#9CA3AF" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Ajouter un ami (Pseudo)"
+              placeholderTextColor="#9CA3AF"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              returnKeyType="send"
+              onSubmitEditing={handleSearch}
+            />
+            {isSearching && <ActivityIndicator size="small" color="#2D6A4F" />}
+          </View>
+          {searchQuery.length > 0 && (
+            <Pressable style={styles.addButton} onPress={handleSearch}>
+              <Text style={styles.addButtonText}>Envoyer</Text>
+            </Pressable>
+          )}
         </View>
-        {searchQuery.length > 0 && (
-          <Pressable style={styles.addButton} onPress={handleSearch}>
-            <Text style={styles.addButtonText}>Envoyer</Text>
-          </Pressable>
+
+        {/* Suggestions d'autocomplétion */}
+        {searchQuery.trim().length >= 2 && (
+          <View style={styles.suggestionsContainer}>
+            {isFetchingSuggestions ? (
+              <View style={{ padding: 12, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color="#2D6A4F" />
+              </View>
+            ) : searchSuggestions.length > 0 ? (
+              searchSuggestions.map((user) => (
+                <Pressable 
+                  key={user.id} 
+                  style={styles.suggestionItem}
+                  onPress={() => handleSendRequest(user.pseudo)}
+                >
+                  <View style={[styles.avatarPlaceholder, { width: 32, height: 32, borderRadius: 16, marginRight: 12 }]}>
+                    <Text style={[styles.avatarText, { fontSize: 14 }]}>{user.pseudo.charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <Text style={styles.suggestionText}>{user.pseudo}</Text>
+                  <UserPlus size={18} color="#2D6A4F" />
+                </Pressable>
+              ))
+            ) : (
+              <View style={{ padding: 12, alignItems: 'center' }}>
+                <Text style={{ color: '#6B7280', fontSize: 14 }}>Aucun utilisateur trouvé.</Text>
+              </View>
+            )}
+          </View>
         )}
       </View>
 
@@ -475,5 +535,34 @@ const styles = StyleSheet.create({
   },
   declineButton: {
     backgroundColor: '#F3F4F6',
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 70,
+    left: 20,
+    right: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    zIndex: 100,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1F2937',
   }
 });

@@ -10,6 +10,13 @@ export const socialService = {
     apiService.post<void>('/social/reviews', payload),
 
   /**
+   * Rechercher des utilisateurs par pseudo
+   * → GET /social/users/search?q=XYZ
+   */
+  searchUsers: (query: string): Promise<Array<{ id: string; pseudo: string }>> =>
+    apiService.get<Array<{ id: string; pseudo: string }>>(`/social/users/search?q=${encodeURIComponent(query)}`),
+
+  /**
    * Récupérer la liste des amis acceptés
    * → GET /social/friends
    */

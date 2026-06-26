@@ -6,7 +6,7 @@ export default function ProfileLayout() {
         <>
             <Stack>
                 <Stack.Screen name="index" options={{ title: 'Profile', headerShown: false }} />
-                <Stack.Screen name="seetings" options={{ presentation: 'card', title: 'Settings', headerShown: false }} />
+                <Stack.Screen name="settings" options={{ presentation: 'card', title: 'Settings', headerShown: false }} />
             </Stack>
             <StatusBar style="auto" />
         </>

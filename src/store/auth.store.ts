@@ -12,7 +12,7 @@ import {
   getString,
   saveString,
 } from '@/src/utils/storage';
-import type { LoginPayload, RegisterPayload, User } from '@/src/types/api.types';
+import type { LoginPayload, RegisterPayload, UpdateProfilePayload, User } from '@/src/types/api.types';
 
 // ─── Interface du store ───────────────────────────────────────────────────────
 
@@ -29,6 +29,7 @@ interface AuthState {
   login: (payload: LoginPayload) => Promise<void>;
   loginAsGuest: () => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
+  updateProfile: (payload: UpdateProfilePayload) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;
@@ -105,6 +106,24 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } catch (error) {
         set({ isLoading: false });
         throw error;
+      }
+    },
+
+    // ─── Mise à jour du profil ────────────────────────────────────────────
+    updateProfile: async (payload: UpdateProfilePayload) => {
+      set({ isLoading: true });
+      try {
+        const updatedUser = await authService.updateProfile(payload);
+        const { user } = get();
+        if (user) {
+          const newUser = { ...user, ...updatedUser };
+          await saveJson(STORAGE_KEYS.USER_PROFILE, newUser);
+          set({ user: newUser });
+        }
+      } catch (error) {
+        throw error;
+      } finally {
+        set({ isLoading: false });
       }
     },
 

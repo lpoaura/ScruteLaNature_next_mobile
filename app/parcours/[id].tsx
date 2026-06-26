@@ -139,9 +139,14 @@ export default function ParcoursDetailScreen() {
   const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Authentification
-  const { isGuest } = useAuthStore();
+  const isGuest = useAuthStore((state) => state.isGuest);
 
-  const { downloadedParcoursIds, activeParcoursId, startParcours, downloadParcours: addDownloaded, currentEtapeOrder, completedParcoursIds } = useGameStore();
+  const downloadedParcoursIds = useGameStore((state) => state.downloadedParcoursIds);
+  const activeParcoursId = useGameStore((state) => state.activeParcoursId);
+  const startParcours = useGameStore((state) => state.startParcours);
+  const addDownloaded = useGameStore((state) => state.downloadParcours);
+  const currentEtapeOrder = useGameStore((state) => state.currentEtapeOrder);
+  const completedParcoursIds = useGameStore((state) => state.completedParcoursIds);
   const isDownloaded = id ? downloadedParcoursIds.includes(id) : false;
   const isActive = id ? activeParcoursId === id : false;
   const isCompleted = id ? completedParcoursIds.includes(id) : false;

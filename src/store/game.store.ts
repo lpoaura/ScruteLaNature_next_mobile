@@ -19,6 +19,7 @@ export interface GameState {
   finishParcours: () => void;
   downloadParcours: (parcoursId: string) => void;
   removeParcours: (parcoursId: string) => void;
+  clearAllParcours: () => void;
   completeJeu: (jeuId: string, points: number) => void;
 }
 
@@ -73,6 +74,11 @@ export const useGameStore = create<GameState>()(
           downloadedParcoursIds: state.downloadedParcoursIds.filter((id) => id !== parcoursId),
           activeParcoursId: state.activeParcoursId === parcoursId ? null : state.activeParcoursId,
         })),
+
+      clearAllParcours: () =>
+        set({
+          downloadedParcoursIds: [],
+        }),
 
       completeJeu: (jeuId, points) =>
         set((state) => {
