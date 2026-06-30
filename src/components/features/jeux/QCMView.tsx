@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, ScrollView } from 'react-native';
 import Animated, { 
   FadeIn, 
   SlideInRight, 
@@ -17,10 +17,12 @@ import { resolveMediaUrl } from '@/src/services/filesystem.service';
 interface QCMViewProps {
   jeu: Jeu;
   onSuccess: () => void;
+  onFail?: () => void;
+  forceReveal?: boolean;
 }
 
-export function QCMView({ jeu, onSuccess }: QCMViewProps) {
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -29,10 +31,15 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (forceReveal) setIsRevealed(true);
+  }, [forceReveal]);
   
   // Cast sécurisé des données
   const donnees = jeu.donneesJeu as unknown as DonneesQCM | undefined;
   const options = donnees?.options || [];
+  const qcmType = donnees?.qcmType || 'text';
   
   const imageSource = jeu.imageLocalPath 
     ? { uri: jeu.imageLocalPath.startsWith('file://') ? jeu.imageLocalPath : `file://${jeu.imageLocalPath}` } 
@@ -46,23 +53,27 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
     transform: [{ translateX: shakeTranslateX.value }],
   }));
 
-  // Comparaison robuste pour éviter les soucis d'espaces ou de majuscules
-  const checkIsCorrect = (opt: string) => {
+  // Comparaison robuste via index ou fallback texte
+  const checkIsCorrect = (opt: string, index: number) => {
+    if (donnees?.bonneReponseIndex !== undefined && donnees.bonneReponseIndex !== null) {
+      return donnees.bonneReponseIndex === index;
+    }
     if (!jeu.reponse) return false;
     return opt.trim().toLowerCase() === jeu.reponse.trim().toLowerCase();
   };
 
-  const handleSelect = (option: string) => {
+  const handleSelect = (option: string, index: number) => {
     if (isRevealed) return; // Empêcher le clic si déjà révélé
 
-    setSelectedOption(option);
-    const isCorrect = checkIsCorrect(option);
+    setSelectedOptionIndex(index);
+    const isCorrect = checkIsCorrect(option, index);
 
     if (isCorrect) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setIsRevealed(true);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      onFail?.();
       // Animation Shake
       shakeTranslateX.value = withSequence(
         withTiming(-10, { duration: 50 }),
@@ -75,7 +86,7 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       
       timeoutRef.current = setTimeout(() => {
-        setSelectedOption(null);
+        setSelectedOptionIndex(null);
         timeoutRef.current = null;
       }, 500); // reduced from 800ms to feel more responsive
     }
@@ -83,7 +94,8 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-      <Text style={styles.title}>Question Nature</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>Question Nature</Text>
       
       {imageSource && (
         <Animated.Image 
@@ -96,10 +108,13 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
 
       <Text style={styles.questionText}>{jeu.question}</Text>
 
-      <View style={styles.optionsContainer}>
+      <View style={[
+        styles.optionsContainer,
+        qcmType === 'image' && { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 0 }
+      ]}>
         {options.map((option, index) => {
-          const isSelected = selectedOption === option;
-          const isCorrectAnswer = isRevealed && checkIsCorrect(option);
+          const isSelected = selectedOptionIndex === index;
+          const isCorrectAnswer = isRevealed && checkIsCorrect(option, index);
           
           let bgColor = 'white';
           let borderColor = '#D1D5DB';
@@ -121,15 +136,38 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
               key={index}
               style={[
                 styles.optionButton,
-                { backgroundColor: bgColor, borderColor }
+                { backgroundColor: bgColor, borderColor },
+                qcmType === 'image' && { paddingVertical: 8, paddingHorizontal: 8, width: '48%', marginBottom: 16 }
               ]}
-              onPress={() => handleSelect(option)}
+              onPress={() => handleSelect(option, index)}
             >
-              <Text style={[styles.optionText, { color: textColor }]}>{option}</Text>
-              {isSelected && isCorrectAnswer && (
+              {qcmType === 'image' ? (
+                <View style={{ flex: 1, position: 'relative' }}>
+                  <Image source={{ uri: resolveMediaUrl(option) }} style={{ width: '100%', height: 140, borderRadius: 8 }} resizeMode="cover" />
+                  {isSelected && isCorrectAnswer && (
+                    <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(16, 185, 129, 0.9)', borderRadius: 20 }}>
+                      <Ionicons name="checkmark-circle" size={28} color="white" />
+                    </View>
+                  )}
+                  {isSelected && !isCorrectAnswer && (
+                    <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(239, 68, 68, 0.9)', borderRadius: 20 }}>
+                      <Ionicons name="close-circle" size={28} color="white" />
+                    </View>
+                  )}
+                </View>
+              ) : qcmType === 'audio' ? (
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="musical-notes" size={24} color={textColor} style={{ marginRight: 12 }} />
+                  <Text style={[styles.optionText, { color: textColor }]} numberOfLines={1}>Extrait audio {index + 1}</Text>
+                </View>
+              ) : (
+                <Text style={[styles.optionText, { color: textColor }]}>{option}</Text>
+              )}
+              
+              {qcmType !== 'image' && isSelected && isCorrectAnswer && (
                 <Ionicons name="checkmark-circle" size={24} color="white" style={styles.optionIcon} />
               )}
-              {isSelected && !isCorrectAnswer && (
+              {qcmType !== 'image' && isSelected && !isCorrectAnswer && (
                 <Ionicons name="close-circle" size={24} color="white" style={styles.optionIcon} />
               )}
             </Pressable>
@@ -148,6 +186,7 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
           </Pressable>
         </Animated.View>
       )}
+      </ScrollView>
     </Animated.View>
   );
 }
@@ -155,9 +194,13 @@ export function QCMView({ jeu, onSuccess }: QCMViewProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F7F5',
+  },
+  scrollContent: {
+    flexGrow: 1,
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: '#F5F7F5',
+    paddingBottom: 60,
   },
   title: {
     fontSize: 28,

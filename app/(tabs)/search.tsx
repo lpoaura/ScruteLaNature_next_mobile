@@ -27,6 +27,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { parcoursService } from '@/src/services/parcours.service';
+import { useSettingsStore } from '@/src/store/settings.store';
+import { useColorScheme } from 'react-native';
 import type { Parcours } from '@/src/types/api.types';
 import Animated, {
   useSharedValue,
@@ -82,6 +84,9 @@ export default function SearchScreen() {
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const isFocused = useIsFocused();
+  const systemColorScheme = useColorScheme();
+  const settingsTheme = useSettingsStore((state: any) => state.theme);
+  const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
 
   // ── État ──
   const [mode, setMode] = useState<SearchMode>('parcours');
@@ -107,7 +112,8 @@ export default function SearchScreen() {
       damping: 25,
       stiffness: 200,
       mass: 0.8,
-    });
+    
+});
   };
 
   const panGesture = React.useMemo(
@@ -165,7 +171,8 @@ export default function SearchScreen() {
     }
     const task = InteractionManager.runAfterInteractions(() => {
       setIsReady(true);
-    });
+    
+});
     return () => task.cancel();
   }, [isFocused]);
 
@@ -178,7 +185,8 @@ export default function SearchScreen() {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          setUserLocation({ lat: 46.2276, lng: 2.2137 });
+          setUserLocation({ lat: 46.2276, lng: 2.2137 
+});
           return;
         }
 
@@ -192,7 +200,8 @@ export default function SearchScreen() {
             center: [loc.lng, loc.lat],
             zoom: 11,
             duration: 600,
-          });
+          
+});
         }
 
         // Ensuite, en arrière-plan, on demande une position précise avec timeout
@@ -201,7 +210,8 @@ export default function SearchScreen() {
           const pos = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
             timeInterval: 5000,
-          });
+          
+});
           const freshLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setUserLocation(freshLoc);
 
@@ -210,16 +220,19 @@ export default function SearchScreen() {
               center: [freshLoc.lng, freshLoc.lat],
               zoom: 11,
               duration: 600,
-            });
+            
+});
           }
         } catch {
           // Si getCurrentPosition échoue (timeout), on garde la position cached
           if (!lastKnown) {
-            setUserLocation({ lat: 46.2276, lng: 2.2137 });
+            setUserLocation({ lat: 46.2276, lng: 2.2137 
+});
           }
         }
       } catch {
-        setUserLocation({ lat: 46.2276, lng: 2.2137 });
+        setUserLocation({ lat: 46.2276, lng: 2.2137 
+});
       }
     })();
   }, [isReady]);
@@ -244,10 +257,12 @@ export default function SearchScreen() {
           lat: userLocation.lat,
           lng: userLocation.lng,
           radius: 20000,
-        });
+        
+});
         setParcours(nearby);
       } else if (mode === 'parcours') {
-        const all = await parcoursService.search({});
+        const all = await parcoursService.search({
+});
         setParcours(all);
       }
     } catch (e) {
@@ -258,7 +273,8 @@ export default function SearchScreen() {
   }, [mode, userLocation]);
 
   const handleParcoursSelect = useCallback((id: string) => {
-    router.push({ pathname: '/parcours/[id]', params: { id } });
+    router.push({ pathname: '/parcours/[id]', params: { id } 
+});
   }, []);
 
   const handleCenterLocation = useCallback(async () => {
@@ -267,15 +283,18 @@ export default function SearchScreen() {
         center: [userLocation.lng, userLocation.lat],
         zoom: 11,
         duration: 500,
-      });
+      
+});
     } else {
       try {
-        const pos = await Location.getCurrentPositionAsync({});
+        const pos = await Location.getCurrentPositionAsync({
+});
         cameraRef.current?.easeTo({
           center: [pos.coords.longitude, pos.coords.latitude],
           zoom: 11,
           duration: 500,
-        });
+        
+});
       } catch {}
     }
   }, [userLocation]);
@@ -299,7 +318,7 @@ export default function SearchScreen() {
   // Phase de chargement — afficher un placeholder léger au lieu de bloquer le menu
   if (!isReady) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, isDark && styles.darkContainer]}>
         <View style={styles.loadingPlaceholder}>
           <ActivityIndicator size="large" color="#2D6A4F" />
           <Text style={styles.loadingPlaceholderText}>Chargement de la carte…</Text>
@@ -309,7 +328,7 @@ export default function SearchScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.darkContainer]}>
       {/* --- CARTE EN PLEIN ÉCRAN (OpenStreetMap via MapLibre) --- */}
       <Map
         ref={mapRef}
@@ -356,9 +375,9 @@ export default function SearchScreen() {
                 onPress={() => handleParcoursSelect(p.id)}
                 style={styles.markerContainer}
               >
-                <View style={styles.markerBubble}>
-                  <Text style={styles.markerText} numberOfLines={1}>{p.title}</Text>
-                  <Text style={styles.markerMeta}>{p.difficulty} • {p.durationMin} min</Text>
+                <View style={[styles.markerBubble, isDark && styles.darkCard]}>
+                  <Text style={[styles.markerText, isDark && styles.darkText]} numberOfLines={1}>{p.title}</Text>
+                  <Text style={[styles.markerMeta, isDark && styles.darkTextMuted]}>{p.difficulty} • {p.durationMin} min</Text>
                 </View>
                 <View style={styles.markerDot} />
               </Pressable>
@@ -370,13 +389,13 @@ export default function SearchScreen() {
 
       {/* --- BOUTON LOCALISATION --- */}
       <Animated.View style={[styles.locationBtnContainer, locationBtnAnimatedStyle]}>
-        <Pressable style={styles.locationBtn} onPress={handleCenterLocation}>
-          <Ionicons name="navigate" size={24} color="#1F2937" />
+        <Pressable style={[styles.locationBtn, isDark && styles.darkCard]} onPress={handleCenterLocation}>
+          <Ionicons name="navigate" size={24} color={isDark ? '#F9FAFB' : '#1F2937'} />
         </Pressable>
       </Animated.View>
 
       {/* --- PANNEAU GLISSANT CUSTOM --- */}
-      <Animated.View style={[styles.panel, panelAnimatedStyle]}>
+      <Animated.View style={[styles.panel, isDark && styles.darkPanel, panelAnimatedStyle]}>
         <TabletWrapper maxWidth={768}>
           {/* Handle de drag */}
           <GestureDetector gesture={panGesture}>
@@ -398,18 +417,20 @@ export default function SearchScreen() {
             </View>
 
           {/* Toggle Switch */}
-          <View style={styles.toggleContainer}>
+          <View style={[styles.toggleContainer, isDark && { backgroundColor: '#1E293B' }]}>
             <Pressable
               onPress={() => setMode('parcours')}
               style={[
                 styles.toggleButton,
                 mode === 'parcours' && styles.toggleButtonActive,
+                mode === 'parcours' && isDark && { backgroundColor: '#334155' },
               ]}
             >
               <Text
                 style={[
                   styles.toggleText,
                   mode === 'parcours' && styles.toggleTextActive,
+                  mode === 'parcours' && isDark && { color: '#F8FAFC' },
                 ]}
               >
                 Parcours
@@ -420,12 +441,14 @@ export default function SearchScreen() {
               style={[
                 styles.toggleButton,
                 mode === 'nearby' && styles.toggleButtonActive,
+                mode === 'nearby' && isDark && { backgroundColor: '#334155' },
               ]}
             >
               <Text
                 style={[
                   styles.toggleText,
                   mode === 'nearby' && styles.toggleTextActive,
+                  mode === 'nearby' && isDark && { color: '#F8FAFC' },
                 ]}
               >
                 Autour de moi
@@ -454,12 +477,12 @@ export default function SearchScreen() {
           )}
 
           {/* Search Bar */}
-          <View style={styles.searchBar}>
+          <View style={[styles.searchBar, isDark && styles.darkSearchBar]}>
             <Ionicons name="location-outline" size={24} color="#9CA3AF" />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, isDark && styles.darkText]}
               placeholder="Où voulez-vous vous balader ?"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -469,7 +492,7 @@ export default function SearchScreen() {
           {searchQuery.length === 0 && (
             <>
               {/* Categories Grid */}
-              <Text style={styles.sectionTitle}>Catégories</Text>
+              <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Catégories</Text>
               <View style={styles.categoriesGrid}>
                 {CATEGORIES.map((cat) => (
                   <Pressable
@@ -487,16 +510,16 @@ export default function SearchScreen() {
                     >
                       <Ionicons name={cat.icon as any} size={24} color={cat.color} />
                     </View>
-                    <Text style={styles.categoryLabel}>{cat.label}</Text>
+                    <Text style={[styles.categoryLabel, isDark && styles.darkTextMuted]}>{cat.label}</Text>
                   </Pressable>
                 ))}
               </View>
 
               {/* Action Card */}
-              <View style={styles.actionCard}>
+              <View style={[styles.actionCard, isDark && styles.darkCard]}>
                 <View style={styles.actionCardContent}>
-                  <Text style={styles.actionCardTitle}>Contribuer à la carte</Text>
-                  <Text style={styles.actionCardSubtitle}>
+                  <Text style={[styles.actionCardTitle, isDark && styles.darkText]}>Contribuer à la carte</Text>
+                  <Text style={[styles.actionCardSubtitle, isDark && styles.darkTextMuted]}>
                     Vous connaissez un lieu intéressant ? Partagez-le avec la communauté.
                   </Text>
                 </View>
@@ -510,23 +533,23 @@ export default function SearchScreen() {
           {/* Liste des parcours (mode nearby ou recherche active) */}
           {(mode === 'nearby' || searchQuery.length > 0) && filteredListParcours.length > 0 && (
             <View style={styles.parcoursListSection}>
-              <Text style={styles.sectionTitle}>
+              <Text style={[styles.sectionTitle, isDark && styles.darkText]}>
                 {searchQuery.length > 0 ? 'Résultats de recherche' : 'Parcours à proximité'}
               </Text>
               {filteredListParcours.map((p) => (
                 <Pressable
                   key={p.id}
-                  style={styles.parcoursCard}
+                  style={[styles.parcoursCard, isDark && styles.darkCard]}
                   onPress={() => handleParcoursSelect(p.id)}
                 >
                   <View style={styles.parcoursCardIcon}>
                     <Ionicons name="trail-sign-outline" size={24} color="#2D6A4F" />
                   </View>
                   <View style={styles.parcoursCardInfo}>
-                    <Text style={styles.parcoursCardTitle} numberOfLines={1}>
+                    <Text style={[styles.parcoursCardTitle, isDark && styles.darkText]} numberOfLines={1}>
                       {p.title}
                     </Text>
-                    <Text style={styles.parcoursCardMeta}>
+                    <Text style={[styles.parcoursCardMeta, isDark && styles.darkTextMuted]}>
                       {p.difficulty ?? 'Non défini'} • {p.durationMin ?? '?'} min
                     </Text>
                   </View>
@@ -539,7 +562,7 @@ export default function SearchScreen() {
           {/* Aucun résultat de recherche */}
           {searchQuery.length > 0 && filteredListParcours.length === 0 && (
             <View style={styles.resultInfo}>
-              <Ionicons name="search-outline" size={20} color="#6B7280" />
+              <Ionicons name="search-outline" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
               <Text style={[styles.resultInfoText, { color: '#6B7280' }]}>
                 Aucun parcours ne correspond à votre recherche.
               </Text>
@@ -864,4 +887,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#10b981',
     marginTop: 2,
   },
+
+  darkContainer: { backgroundColor: '#0F172A' },
+  darkHeader: { backgroundColor: '#1E293B', borderBottomColor: '#334155' },
+  darkPanel: { backgroundColor: '#0F172A' },
+  darkCard: { backgroundColor: '#1E293B', borderColor: '#334155', shadowColor: '#000' },
+  darkSearchBar: { backgroundColor: '#1E293B', borderColor: '#334155' },
+  darkText: { color: '#F8FAFC' },
+  darkTextMuted: { color: '#94A3B8' },
 });

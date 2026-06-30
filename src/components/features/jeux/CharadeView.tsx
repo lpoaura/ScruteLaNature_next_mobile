@@ -16,11 +16,20 @@ import { resolveMediaUrl } from '@/src/services/filesystem.service';
 interface CharadeViewProps {
   jeu: Jeu;
   onSuccess: () => void;
+  onFail?: () => void;
+  forceReveal?: boolean;
 }
 
-export function CharadeView({ jeu, onSuccess }: CharadeViewProps) {
+export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeViewProps) {
   const [answer, setAnswer] = useState('');
   const [isRevealed, setIsRevealed] = useState(false);
+
+  React.useEffect(() => {
+    if (forceReveal) {
+      setAnswer(jeu.reponse || '');
+      setIsRevealed(true);
+    }
+  }, [forceReveal]);
 
   const imageSource = jeu.imageLocalPath 
     ? { uri: jeu.imageLocalPath.startsWith('file://') ? jeu.imageLocalPath : `file://${jeu.imageLocalPath}` } 
@@ -54,6 +63,7 @@ export function CharadeView({ jeu, onSuccess }: CharadeViewProps) {
       setIsRevealed(true);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      onFail?.();
       shakeTranslateX.value = withSequence(
         withTiming(-10, { duration: 50 }),
         withTiming(10, { duration: 50 }),

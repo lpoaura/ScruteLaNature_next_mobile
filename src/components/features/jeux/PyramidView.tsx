@@ -16,9 +16,11 @@ import { resolveMediaUrl } from '@/src/services/filesystem.service';
 interface PyramidViewProps {
   jeu: Jeu;
   onSuccess: () => void;
+  onFail?: () => void;
+  forceReveal?: boolean;
 }
 
-export function PyramidView({ jeu, onSuccess }: PyramidViewProps) {
+export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidViewProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const donnees = jeu.donneesJeu as unknown as DonneesCalcPyramidal | undefined;
   
@@ -35,6 +37,13 @@ export function PyramidView({ jeu, onSuccess }: PyramidViewProps) {
     );
     setUserGrid(initialGrid);
   }, [jeu]);
+
+  useEffect(() => {
+    if (forceReveal && donnees?.fullGrid) {
+      setUserGrid(donnees.fullGrid.map(row => row.map(String)));
+      setIsRevealed(true);
+    }
+  }, [forceReveal]);
 
   const imageSource = jeu.imageLocalPath 
     ? { uri: jeu.imageLocalPath.startsWith('file://') ? jeu.imageLocalPath : `file://${jeu.imageLocalPath}` } 
@@ -89,6 +98,7 @@ export function PyramidView({ jeu, onSuccess }: PyramidViewProps) {
       setIsRevealed(true);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      onFail?.();
       shakeTranslateX.value = withSequence(
         withTiming(-10, { duration: 50 }),
         withTiming(10, { duration: 50 }),

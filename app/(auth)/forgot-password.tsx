@@ -11,6 +11,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useColorScheme } from 'react-native';
+import { useSettingsStore } from '@/src/store/settings.store';
 import { authService } from '@/src/services/auth.service';
 
 const GREEN = '#2D6A4F';
@@ -19,6 +21,9 @@ const ERROR_COLOR = '#C62828';
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const systemColorScheme = useColorScheme();
+  const settingsTheme = useSettingsStore((state: any) => state.theme);
+  const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
 
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -52,15 +57,15 @@ export default function ForgotPasswordScreen() {
   // Écran de confirmation
   if (success) {
     return (
-      <View style={[styles.successContainer, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 32 }]}>
+      <View style={[styles.successContainer, isDark && styles.darkContainer, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 32 }]}>
         <Text style={styles.successEmoji}>📧</Text>
-        <Text style={styles.successTitle}>Email envoyé !</Text>
-        <Text style={styles.successSubtitle}>
+        <Text style={[styles.successTitle, isDark && styles.darkText]}>Email envoyé !</Text>
+        <Text style={[styles.successSubtitle, isDark && styles.darkTextMuted]}>
           Si un compte existe pour{' '}
-          <Text style={{ fontWeight: '700' }}>{email}</Text>
+          <Text style={{ fontWeight: '700', color: isDark ? '#F8FAFC' : '#111' }}>{email}</Text>
           , vous recevrez un lien pour réinitialiser votre mot de passe dans quelques minutes.
         </Text>
-        <Text style={styles.successHint}>
+        <Text style={[styles.successHint, isDark && styles.darkTextMuted]}>
           Pensez à vérifier vos spams si vous ne le trouvez pas.
         </Text>
         <Pressable
@@ -75,7 +80,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, isDark && styles.darkContainer]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View
@@ -85,11 +90,11 @@ export default function ForgotPasswordScreen() {
         ]}
       >
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>← Retour</Text>
+          <Text style={[styles.backText, isDark && { color: '#60A5FA' }]}>← Retour</Text>
         </Pressable>
 
-        <Text style={styles.title}>Mot de passe oublié</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, isDark && styles.darkText]}>Mot de passe oublié</Text>
+        <Text style={[styles.subtitle, isDark && styles.darkTextMuted]}>
           Saisissez votre adresse email. Nous vous enverrons un lien pour réinitialiser votre mot de passe.
         </Text>
 
@@ -100,13 +105,13 @@ export default function ForgotPasswordScreen() {
         ) : null}
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={[styles.label, isDark && styles.darkTextMuted]}>Email</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, isDark && styles.darkInput]}
             value={email}
             onChangeText={setEmail}
             placeholder="votre@email.fr"
-            placeholderTextColor="#aaa"
+            placeholderTextColor={isDark ? "#6B7280" : "#aaa"}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -192,4 +197,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   returnButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  darkContainer: { backgroundColor: '#0F172A' },
+  darkText: { color: '#F8FAFC' },
+  darkTextMuted: { color: '#94A3B8' },
+  darkInput: { backgroundColor: '#1E293B', borderColor: '#334155', color: '#F8FAFC' },
 });

@@ -44,9 +44,9 @@ export function ReviewModal({ visible, parcoursId, onClose, onSuccess }: ReviewM
         comment: comment.trim() || undefined,
       });
       onSuccess();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError('Erreur lors de l\'envoi de votre avis. Réessayez plus tard.');
+      setError(err.message || 'Erreur lors de l\'envoi de votre avis. Réessayez plus tard.');
     } finally {
       setIsSubmitting(false);
     }

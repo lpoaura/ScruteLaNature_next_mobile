@@ -22,7 +22,7 @@ import {
 } from '@maplibre/maplibre-react-native';
 // MapLibreGL.setAccessToken(null);
 import * as Location from 'expo-location';
-import { useKeepAwake } from 'expo-keep-awake';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getParcoursComplet } from '@/src/services/database.service';
@@ -149,7 +149,29 @@ function PrepScreen({
 // ─── Écran principal ──────────────────────────────────────────────────────────
 
 export default function JeuScreen() {
-  useKeepAwake();
+  useEffect(() => {
+    let isMounted = true;
+    const enableKeepAwake = async () => {
+      try {
+        await activateKeepAwakeAsync();
+      } catch (error) {
+        console.log('Unable to activate keep awake:', error);
+      }
+    };
+    enableKeepAwake();
+
+    return () => {
+      isMounted = false;
+      const disableKeepAwake = async () => {
+        try {
+          await deactivateKeepAwake();
+        } catch (error) {
+          console.log('Unable to deactivate keep awake:', error);
+        }
+      };
+      disableKeepAwake();
+    };
+  }, []);
 
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -196,8 +218,10 @@ export default function JeuScreen() {
       result = await getParcoursComplet(id);
       if (!result) throw new Error('Parcours non trouvé. Avez-vous bien téléchargé ce parcours ?');
       setData(result);
-
-      if (activeParcoursId !== id) startParcours(id);
+      // Ne démarrer le parcours que s'il n'est pas déjà actif pour cet ID
+      if (useGameStore.getState().activeParcoursId !== id) {
+        startParcours(id);
+      }
 
       // Parser le GeoJSON pour la Polyline
       if (result.parcours.pathGeoJSON) {
@@ -280,7 +304,7 @@ export default function JeuScreen() {
     }
 
     setPrepStep('ready');
-  }, [id, activeParcoursId, startParcours]);
+  }, [id, startParcours]);
 
   useEffect(() => {
     runPreparation();
@@ -381,31 +405,40 @@ export default function JeuScreen() {
     const totalEtapes = data?.etapes.length || 0;
 
     if (currentEtapeOrder >= totalEtapes) {
+      // 1. Sauvegarder l'état ACTUEL avant de terminer le parcours (qui réinitialise l'état)
+      const finalScore = useGameStore.getState().score;
+      const startTime = useGameStore.getState().startTime;
+      const tempsPasseSec = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+      const finalDurationMin = Math.ceil(tempsPasseSec / 60);
+      const maxScore = data?.etapes.reduce((acc, etape) => acc + (etape.jeux?.length || 0) * 10, 0) || 0;
+
+      // 2. Terminer l'étape et le parcours
       completeEtape(totalEtapes);
+
+      // 3. Sauvegarder dans la file d'attente hors-ligne
       try {
         const { markParcoursCompleted, addToQueue } = await import('@/src/services/database.service');
         const { generateUUID } = await import('@/src/utils/uuid');
         await markParcoursCompleted(id);
-        const { score, startTime } = useGameStore.getState();
-        const tempsPasse = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
         await addToQueue({
           syncId: generateUUID(),
           type: 'parcours_completed',
-          payload: JSON.stringify({ parcoursId: id, score, tempsPasse }),
+          payload: JSON.stringify({ parcoursId: id, score: finalScore, tempsPasse: tempsPasseSec }),
           createdAt: Date.now(),
         });
+
+        // Déclencher la synchronisation en arrière-plan immédiatement (si réseau dispo)
+        const { syncPendingData } = await import('@/src/services/sync.service');
+        syncPendingData();
       } catch (err) {
         console.error('Erreur sauvegarde fin de parcours:', err);
       }
-      
-      const maxScore = data?.etapes.reduce((acc, etape) => acc + (etape.jeux?.length || 0) * 10, 0) || 0;
-      const finalDurationMin = Math.ceil((useGameStore.getState().startTime ? Math.floor((Date.now() - useGameStore.getState().startTime!) / 1000) : 0) / 60);
       
       router.replace({ 
         pathname: '/parcours/[id]/victoire', 
         params: { 
           id,
-          score: useGameStore.getState().score.toString(),
+          score: finalScore.toString(),
           maxScore: maxScore.toString(),
           durationMin: finalDurationMin.toString(),
           badgeImageUrl: data?.parcours?.badge?.imageUrl || '',

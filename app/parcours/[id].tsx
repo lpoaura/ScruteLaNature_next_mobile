@@ -6,10 +6,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useColorScheme,
   View,
   Alert,
   Platform,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -28,6 +30,7 @@ import { apiService } from '@/src/services/api.service';
 import { DownloadButton } from '@/src/components/features/parcours/DownloadButton';
 import { useGameStore } from '@/src/store/game.store';
 import { useAuthStore } from '@/src/store/auth.store';
+import { useSettingsStore } from '@/src/store/settings.store';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import type { Parcours, Etape } from '@/src/types/api.types';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
@@ -67,10 +70,14 @@ function EtapeRow({
   total: number;
 }) {
   const isLast = index === total - 1;
+  const systemColorScheme = useColorScheme();
+  const settingsTheme = useSettingsStore((state: any) => state.theme);
+  const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
+
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(index * 60).duration(350).springify()}
+      entering={FadeInDown.delay(index * 60).springify()}
       style={styles.etapeRow}
     >
       {/* Ligne verticale + numéro */}
@@ -82,8 +89,8 @@ function EtapeRow({
       </View>
 
       {/* Contenu */}
-      <View style={[styles.etapeContent, isLast && { marginBottom: 0 }]}>
-        <Text style={styles.etapeTitle} numberOfLines={2}>
+      <View style={[styles.etapeContent, isLast && { marginBottom: 0 }, isDark && styles.darkEtapeContent]}>
+        <Text style={[styles.etapeTitle, isDark && styles.darkText]} numberOfLines={2}>
           {etape.title}
         </Text>
         {etape.jeux && etape.jeux.length > 0 && (
@@ -106,20 +113,24 @@ function StatCard({
   value,
   label,
   delay = 0,
+  isDark,
 }: {
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   value: string;
   label: string;
   delay?: number;
+  isDark: boolean;
 }) {
   return (
     <Animated.View
-      entering={FadeInDown.delay(delay).duration(400).springify()}
-      style={styles.statCard}
+      entering={FadeInDown.delay(delay).springify()}
+      style={[styles.statCardPremium, isDark && styles.darkStatCardPremium]}
     >
-      <Text style={styles.statIcon}>{icon}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <View style={[styles.statIconBadge, isDark && styles.darkStatIconBadge]}>
+        <Ionicons name={icon} size={20} color={isDark ? '#34D399' : '#059669'} />
+      </View>
+      <Text style={[styles.statValuePremium, isDark && styles.darkText]}>{value}</Text>
+      <Text style={[styles.statLabelPremium, isDark && styles.darkTextMuted]}>{label}</Text>
     </Animated.View>
   );
 }
@@ -140,6 +151,9 @@ export default function ParcoursDetailScreen() {
 
   // Authentification
   const isGuest = useAuthStore((state) => state.isGuest);
+  const systemColorScheme = useColorScheme();
+  const settingsTheme = useSettingsStore((state: any) => state.theme);
+  const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
 
   const downloadedParcoursIds = useGameStore((state) => state.downloadedParcoursIds);
   const activeParcoursId = useGameStore((state) => state.activeParcoursId);
@@ -273,6 +287,7 @@ export default function ParcoursDetailScreen() {
   }
 
   const diff = parcours.difficulty ? DIFFICULTY_CONFIG[parcours.difficulty] : null;
+  const accessDiff = parcours.accessibility ? DIFFICULTY_CONFIG[parcours.accessibility] : null;
   const accessItems = [
     { icon: 'accessibility', label: 'PMR', active: parcours.isPMRFriendly, color: '#1565C0' },
     { icon: 'happy-outline', label: 'Familles', active: parcours.isChildFriendly, color: '#6A1B9A' },
@@ -296,7 +311,7 @@ export default function ParcoursDetailScreen() {
   // ─── Rendu principal ──────────────────────────────────────────────────────
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.darkContainer]}>
       {/* ── Barre de navigation flottante (apparaît au scroll) ────────────── */}
       <Animated.View
         pointerEvents="box-none"
@@ -346,149 +361,137 @@ export default function ParcoursDetailScreen() {
             style={[styles.floatingBackBtn, { top: insets.top + 12, left: 16 }]}
             onPress={() => router.back()}
           >
-            <Ionicons name="chevron-back" size={22} color="#fff" />
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFillObject} />
+            <Ionicons name="chevron-back" size={24} color="#fff" />
           </Pressable>
 
           {/* Badge difficulté + titre */}
-          <View style={[styles.heroBottom, { paddingBottom: 24 }]}>
-            {diff && (
-              <View style={[styles.diffBadge, { backgroundColor: diff.bg }]}>
-                <View style={[styles.diffDot, { backgroundColor: diff.dot }]} />
-                <Text style={[styles.diffText, { color: diff.color }]}>
-                  {diff.label}
-                </Text>
+          <View style={styles.heroBottom}>
+            <BlurView intensity={isDark ? 50 : 30} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFillObject} />
+            <View style={styles.heroBottomContent}>
+              <View style={styles.badgesRow}>
+                {diff && (
+                  <View style={[styles.diffBadge, { backgroundColor: diff.bg }]}>
+                    <Ionicons name="extension-puzzle" size={14} color={diff.color} />
+                    <Text style={[styles.diffText, { color: diff.color }]}>
+                      Énigmes : {diff.label}
+                    </Text>
+                  </View>
+                )}
+                {accessDiff && (
+                  <View style={[styles.diffBadge, { backgroundColor: accessDiff.bg }]}>
+                    <Ionicons name="walk" size={14} color={accessDiff.color} />
+                    <Text style={[styles.diffText, { color: accessDiff.color }]}>
+                      Terrain : {accessDiff.label}
+                    </Text>
+                  </View>
+                )}
               </View>
-            )}
-            <Text style={styles.heroTitle}>{parcours.title}</Text>
-            {parcours.zonage && (
-              <View style={styles.zonageRow}>
-                <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.8)" />
-                <Text style={styles.zonageText}>{parcours.zonage.nom}</Text>
-              </View>
-            )}
+              <Text style={styles.heroTitle}>{parcours.title}</Text>
+              {parcours.zonage && (
+                <View style={styles.zonageRow}>
+                  <Ionicons name="location" size={16} color={isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)"} />
+                  <Text style={[styles.zonageText, isDark ? {color: 'rgba(255,255,255,0.9)'} : {color: 'rgba(0,0,0,0.8)'}]}>{parcours.zonage.nom}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
         {/* ── Corps ───────────────────────────────────────────────────────── */}
-        <View style={styles.body}>
+        <View style={[styles.body, isDark && styles.darkBody]}>
 
           {/* Stats (distance / durée / étapes / jeux) */}
-          <Animated.View entering={FadeInDown.duration(400).springify()} style={styles.statsRow}>
-            {parcours.distanceKm != null && (
-              <StatCard icon="📍" value={`${parcours.distanceKm.toFixed(1)} km`} label="Distance" delay={0} />
-            )}
-            {parcours.durationMin != null && (
-              <StatCard icon="⏱" value={`${parcours.durationMin} min`} label="Durée" delay={60} />
-            )}
-            {etapes.length > 0 && (
-              <StatCard icon="🗺" value={`${etapes.length}`} label="Étapes" delay={120} />
-            )}
-            {nbJeux > 0 && (
-              <StatCard icon="🎮" value={`${nbJeux}`} label="Jeux" delay={180} />
-            )}
-            {hasRatings && (
-              <StatCard icon="⭐" value={parcours.averageRating!.toFixed(1)} label="Note" delay={240} />
-            )}
+          <Animated.View entering={FadeInDown.springify()} style={styles.statsScrollWrapper}>
+            <View style={styles.statsScrollContent}>
+              {parcours.distanceKm != null && <StatCard icon="navigate" value={`${parcours.distanceKm.toFixed(1)} km`} label="Distance" delay={0} isDark={isDark} />}
+              {parcours.durationMin != null && <StatCard icon="time" value={`${parcours.durationMin} min`} label="Durée" delay={60} isDark={isDark} />}
+              {etapes.length > 0 && <StatCard icon="map" value={`${etapes.length}`} label="Étapes" delay={120} isDark={isDark} />}
+              {nbJeux > 0 && <StatCard icon="game-controller" value={`${nbJeux}`} label="Jeux" delay={180} isDark={isDark} />}
+              {hasRatings && <StatCard icon="star" value={parcours.averageRating!.toFixed(1)} label="Note" delay={240} isDark={isDark} />}
+            </View>
           </Animated.View>
 
           {/* ── Section : Télécharger / Jouer ──────────────────────────── */}
           <Animated.View
-            entering={FadeInDown.delay(100).duration(400).springify()}
-            style={styles.section}
+            entering={FadeInDown.delay(100).springify()}
+            style={[styles.actionPanel, isDark && styles.darkActionPanel]}
           >
-          {id && (
-            <DownloadButton
-              parcoursId={id}
-              onPlay={handlePlay}
-              onDownloaded={handleDownloaded}
-            />
-          )}
+            {id && (
+              <DownloadButton
+                parcoursId={id}
+                onPlay={handlePlay}
+                onDownloaded={handleDownloaded}
+              />
+            )}
 
-          {id && !isGuest && (
-            <Pressable
-              style={styles.inviteButton}
-              onPress={() => setShowInviteModal(true)}
-            >
-              <Ionicons name="gift-outline" size={20} color={GREEN} />
-              <Text style={styles.inviteButtonText}>Inviter un ami au défi</Text>
-            </Pressable>
-          )}
+            {id && !isGuest && (
+              <Pressable
+                style={[styles.inviteButtonPremium, isDark && styles.darkInviteButtonPremium]}
+                onPress={() => setShowInviteModal(true)}
+              >
+                <View style={styles.inviteButtonIconWrapper}>
+                  <Ionicons name="people" size={20} color={GREEN} />
+                </View>
+                <Text style={[styles.inviteButtonTextPremium, isDark && styles.darkText]}>Inviter un ami au défi</Text>
+                <Ionicons name="chevron-forward" size={16} color={isDark ? '#94A3B8' : '#9CA3AF'} />
+              </Pressable>
+            )}
 
-            <Text style={styles.offlineNote}>
-              <Ionicons name="wifi-outline" size={12} color="#BDBDBD" />{' '}
-              Téléchargez une fois, jouez partout — même sans réseau.
-            </Text>
+            <View style={styles.offlineNoteContainer}>
+              <Ionicons name="cloud-offline" size={16} color={isDark ? '#64748B' : '#9CA3AF'} />
+              <Text style={[styles.offlineNoteText, isDark && styles.darkTextMuted]}>
+                Jouez partout, même sans réseau.
+              </Text>
+            </View>
           </Animated.View>
 
 
           {/* ── Section : À propos ──────────────────────────────────────── */}
           {parcours.description && (
             <Animated.View
-              entering={FadeInDown.delay(150).duration(400).springify()}
-              style={styles.section}
+              entering={FadeInDown.delay(150).springify()}
+              style={[styles.aboutPanel, isDark && styles.darkActionPanel]}
             >
-              <Text style={styles.sectionTitle}>À propos</Text>
-              <Text style={styles.description}>{parcours.description}</Text>
+              <View style={styles.sectionHeaderRow}>
+                <View style={styles.sectionIconBadge}>
+                  <Ionicons name="information" size={20} color={GREEN} />
+                </View>
+                <Text style={[styles.sectionTitlePremium, isDark && styles.darkText]}>À propos</Text>
+              </View>
+              <Text style={[styles.descriptionPremium, isDark && styles.darkTextMuted]}>{parcours.description}</Text>
             </Animated.View>
           )}
 
           {/* ── Section : Accessibilité ─────────────────────────────────── */}
           {accessItems.length > 0 && (
             <Animated.View
-              entering={FadeInDown.delay(200).duration(400).springify()}
-              style={styles.section}
+              entering={FadeInDown.delay(200).springify()}
+              style={[styles.aboutPanel, isDark && styles.darkActionPanel]}
             >
-              <Text style={styles.sectionTitle}>Accessibilité</Text>
+              <View style={styles.sectionHeaderRow}>
+                <View style={styles.sectionIconBadge}>
+                  <Ionicons name="accessibility" size={20} color={GREEN} />
+                </View>
+                <Text style={[styles.sectionTitlePremium, isDark && styles.darkText]}>Accessibilité</Text>
+              </View>
               <View style={styles.accessRow}>
                 {accessItems.map((a) => (
-                  <View key={a.label} style={[styles.accessChip, { borderColor: `${a.color}30`, backgroundColor: `${a.color}0D` }]}>
-                    <Ionicons name={a.icon as any} size={16} color={a.color} />
-                    <Text style={[styles.accessChipLabel, { color: a.color }]}>{a.label}</Text>
+                  <View key={a.label} style={[styles.accessChipPremium, isDark && { backgroundColor: `${a.color}20`, borderColor: `${a.color}40` }, !isDark && { backgroundColor: `${a.color}15`, borderColor: `${a.color}30` }]}>
+                    <Ionicons name={a.icon as any} size={18} color={a.color} />
+                    <Text style={[styles.accessChipLabelPremium, { color: a.color }]}>{a.label}</Text>
                   </View>
                 ))}
               </View>
             </Animated.View>
           )}
 
-          {/* ── Section : Parcours (étapes) ─────────────────────────────── */}
-          {etapes.length > 0 && (
-            <Animated.View
-              entering={FadeInDown.delay(250).duration(400).springify()}
-              style={styles.section}
-            >
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Le parcours</Text>
-                <View style={styles.etapeCountBadge}>
-                  <Text style={styles.etapeCountText}>{etapes.length} étapes</Text>
-                </View>
-              </View>
 
-              <View style={styles.etapeList}>
-                {visibleEtapes.map((etape, i) => (
-                  <EtapeRow
-                    key={etape.id}
-                    etape={etape}
-                    index={i}
-                    total={etapes.length}
-                  />
-                ))}
-              </View>
-
-              {hiddenEtapesCount > 0 && (
-                <View style={styles.hiddenEtapesBanner}>
-                  <Ionicons name="lock-closed" size={16} color="#6B7280" />
-                  <Text style={styles.hiddenEtapesText}>
-                    {hiddenEtapesCount} étape{hiddenEtapesCount > 1 ? 's' : ''} mystère{hiddenEtapesCount > 1 ? 's' : ''} à découvrir
-                  </Text>
-                </View>
-              )}
-            </Animated.View>
-          )}
 
           {/* ── CTA final si déjà téléchargé ───────────────────────────── */}
           {isDownloaded && (
             <Animated.View
-              entering={FadeInDown.delay(300).duration(400).springify()}
+              entering={FadeInDown.delay(300).springify()}
               style={styles.ctaCard}
             >
               <View style={styles.ctaCardLeft}>
@@ -587,21 +590,33 @@ const styles = StyleSheet.create({
   },
   floatingBackBtn: {
     position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.1)',
   },
   heroBottom: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    overflow: 'hidden',
+  },
+  heroBottomContent: {
     paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 56,
     gap: 8,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
   },
   diffBadge: {
     flexDirection: 'row',
@@ -645,16 +660,177 @@ const styles = StyleSheet.create({
 
   // ── Corps ──
   body: {
-    padding: 20,
-    gap: 28,
+    flex: 1,
+    paddingTop: 0,
+  },
+  darkBody: {
+    backgroundColor: '#0F172A',
   },
 
-  // ── Stats ──
-  statsRow: {
+  // ── Stats Row ──
+  statsScrollWrapper: {
+    marginTop: -24,
+    marginBottom: 24,
+    zIndex: 10,
+    paddingHorizontal: 16,
+  },
+  statsScrollContent: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    justifyContent: 'space-between',
+    gap: 12,
   },
+  statCardPremium: {
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 20,
+    padding: 16,
+    width: '48%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  darkStatCardPremium: {
+    backgroundColor: '#1E293B',
+    borderColor: '#334155',
+    shadowOpacity: 0.3,
+  },
+  statIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  darkStatIconBadge: {
+    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+  },
+  statValuePremium: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  statLabelPremium: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  actionPanel: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  darkActionPanel: {
+    backgroundColor: '#1E293B',
+  },
+  inviteButtonPremium: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  darkInviteButtonPremium: {
+    backgroundColor: '#0F172A',
+    borderColor: '#334155',
+  },
+  inviteButtonIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E8F5E9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  inviteButtonTextPremium: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  offlineNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    gap: 6,
+  },
+  offlineNoteText: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  aboutPanel: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  sectionIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#E8F5E9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitlePremium: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  descriptionPremium: {
+    fontSize: 15,
+    color: '#475569',
+    lineHeight: 24,
+  },
+  accessChipPremium: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  accessChipLabelPremium: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  // ── Sections ──
   statCard: {
     flex: 1,
     minWidth: 70,
@@ -904,4 +1080,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+
+  darkContainer: { backgroundColor: '#0F172A' },
+  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000' },
+  darkText: { color: '#F8FAFC' },
+  darkTextMuted: { color: '#94A3B8' },
+  darkEtapeContent: { borderBottomColor: '#334155' },
+  darkHiddenEtapesBanner: { backgroundColor: '#1E293B', borderColor: '#334155' },
 });

@@ -12,6 +12,8 @@ import {
   View,
   Image,
 } from 'react-native';
+import { useSettingsStore } from '@/src/store/settings.store';
+import { useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/src/store/auth.store';
 
@@ -25,6 +27,9 @@ const ERROR_COLOR = '#C62828';
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const systemColorScheme = useColorScheme();
+  const settingsTheme = useSettingsStore((state: any) => state.theme);
+  const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
   const params = useLocalSearchParams<{ verified?: string }>();
 
   const { login, loginAsGuest, isLoading } = useAuthStore();
@@ -50,7 +55,8 @@ export default function LoginScreen() {
       return;
     }
     try {
-      await login({ email: email.trim().toLowerCase(), password });
+      await login({ email: email.trim().toLowerCase(), password 
+});
       // La navigation se fait automatiquement via AuthGuard dans _layout.tsx
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Identifiants incorrects.');
@@ -68,7 +74,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, isDark && styles.darkContainer]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -80,10 +86,10 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Logo / Titre */}
-        <View style={styles.header}>
+        <View style={[styles.header, isDark && styles.darkCard]}>
           <Image source={require('@/assets/images/icon.png')} style={styles.logoImage} />
-          <Text style={styles.title}>Scrute la Nature</Text>
-          <Text style={styles.subtitle}>Application LPO — Balades Nature</Text>
+          <Text style={[styles.title, isDark && styles.darkText]}>Scrute la Nature</Text>
+          <Text style={[styles.subtitle, isDark && styles.darkTextMuted]}>Application LPO — Balades Nature</Text>
         </View>
 
         {/* Message de succès (email vérifié) */}
@@ -132,9 +138,9 @@ export default function LoginScreen() {
           ) : null}
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={[styles.label, isDark && styles.darkTextMuted]}>Email</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isDark && styles.darkInput]}
               value={email}
               onChangeText={setEmail}
               placeholder="votre@email.fr"
@@ -149,9 +155,9 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Mot de passe</Text>
+            <Text style={[styles.label, isDark && styles.darkTextMuted]}>Mot de passe</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isDark && styles.darkInput]}
               value={password}
               onChangeText={setPassword}
               placeholder="••••••••"
@@ -357,4 +363,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+
+  darkContainer: { backgroundColor: '#0F172A' },
+  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000', borderColor: '#334155' },
+  darkText: { color: '#F8FAFC' },
+  darkTextMuted: { color: '#94A3B8' },
+  darkInput: { backgroundColor: '#1E293B', borderColor: '#334155', color: '#F8FAFC' },
 });

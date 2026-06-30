@@ -9,6 +9,8 @@ import { resolveMediaUrl } from '@/src/services/filesystem.service';
 interface PuzzleViewProps {
   jeu: Jeu;
   onSuccess: () => void;
+  onFail?: () => void;
+  forceReveal?: boolean;
 }
 
 const GRID_SIZE = 3;
@@ -86,10 +88,17 @@ function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, pieceS
   );
 }
 
-export function PuzzleView({ jeu, onSuccess }: PuzzleViewProps) {
+export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [pieces, setPieces] = useState<number[]>([]);
   const { width } = useWindowDimensions();
+
+  useEffect(() => {
+    if (forceReveal) {
+      setPieces([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+      setIsRevealed(true);
+    }
+  }, [forceReveal]);
   
   const puzzleSize = Math.min(width, 600) - 48; // Max 600px
   const pieceSize = puzzleSize / GRID_SIZE;

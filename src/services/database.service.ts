@@ -31,6 +31,7 @@ export async function initDatabase(): Promise<void> {
 
   await _db.execAsync(`
     PRAGMA journal_mode = WAL;
+    PRAGMA foreign_keys = ON;
 
     -- ─── Parcours téléchargés ─────────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS parcours (
@@ -289,6 +290,9 @@ export async function markParcoursCompleted(id: string): Promise<void> {
  */
 export async function deleteParcours(id: string): Promise<void> {
   const db = getDb();
+  // Suppression explicite en cascade pour garantir le nettoyage même si PRAGMA foreign_keys est ignoré par l'OS
+  await db.runAsync('DELETE FROM jeux WHERE etapeId IN (SELECT id FROM etapes WHERE parcoursId = ?)', [id]);
+  await db.runAsync('DELETE FROM etapes WHERE parcoursId = ?', [id]);
   await db.runAsync('DELETE FROM parcours WHERE id = ?', [id]);
 }
 

@@ -47,7 +47,7 @@ export function CarnetTransitionView({ etape, onContinue }: CarnetTransitionView
 
   return (
     <Animated.View entering={FadeIn.duration(400)} style={styles.overlay}>
-      <Animated.View entering={SlideInDown.duration(500).springify()} style={styles.carnetContainer}>
+      <Animated.View entering={SlideInDown.springify()} style={styles.carnetContainer}>
         {/* Style "Carnet de bord" */}
         <View style={styles.paper}>
           <View style={styles.header}>

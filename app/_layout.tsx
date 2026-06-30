@@ -39,8 +39,8 @@ function AuthGuard() {
     const timeout = setTimeout(() => {
       const inAuthGroup = segments[0] === '(auth)';
 
-      if (isAuthenticated && !isGuest && inAuthGroup) {
-        // Connecté (vrai compte) mais sur une page auth → aller sur les tabs
+      if (isAuthenticated && inAuthGroup) {
+        // Connecté (vrai compte ou invité) mais sur une page auth → aller sur les tabs
         router.replace('/(tabs)');
       } else if (!isAuthenticated && !inAuthGroup) {
         // Non connecté et pas sur une page auth → aller sur login
@@ -113,7 +113,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <GluestackUIProvider mode="light">
+      <GluestackUIProvider mode={colorScheme === 'dark' ? 'dark' : 'light'}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <AuthGuard />
           <Stack>
@@ -135,7 +135,7 @@ export default function RootLayout() {
             />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
-          <StatusBar style="light" />
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
           {/* Écran de démarrage animé — affiché par-dessus tout */}
           {showSplash && (

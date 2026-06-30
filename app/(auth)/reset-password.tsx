@@ -12,6 +12,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useColorScheme } from 'react-native';
+import { useSettingsStore } from '@/src/store/settings.store';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '@/src/services/auth.service';
 
@@ -21,6 +23,9 @@ const ERROR_COLOR = '#C62828';
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const systemColorScheme = useColorScheme();
+  const settingsTheme = useSettingsStore((state: any) => state.theme);
+  const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
   const { token } = useLocalSearchParams<{ token: string }>();
 
   const [password, setPassword] = useState('');
@@ -58,10 +63,10 @@ export default function ResetPasswordScreen() {
 
   if (success) {
     return (
-      <View style={[styles.successContainer, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 32 }]}>
+      <View style={[styles.successContainer, isDark && styles.darkContainer, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 32 }]}>
         <Text style={styles.successEmoji}>✅</Text>
-        <Text style={styles.successTitle}>Mot de passe modifié !</Text>
-        <Text style={styles.successSubtitle}>
+        <Text style={[styles.successTitle, isDark && styles.darkText]}>Mot de passe modifié !</Text>
+        <Text style={[styles.successSubtitle, isDark && styles.darkTextMuted]}>
           Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
         </Text>
         <Pressable
@@ -76,7 +81,7 @@ export default function ResetPasswordScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, isDark && styles.darkContainer]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -87,12 +92,12 @@ export default function ResetPasswordScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Pressable onPress={() => router.replace('/(auth)/login')} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={GREEN} />
-          <Text style={styles.backText}>Retour</Text>
+          <Ionicons name="arrow-back" size={24} color={isDark ? '#60A5FA' : GREEN} />
+          <Text style={[styles.backText, isDark && { color: '#60A5FA' }]}>Retour</Text>
         </Pressable>
 
-        <Text style={styles.title}>Nouveau mot de passe</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, isDark && styles.darkText]}>Nouveau mot de passe</Text>
+        <Text style={[styles.subtitle, isDark && styles.darkTextMuted]}>
           Veuillez entrer votre nouveau mot de passe ci-dessous.
         </Text>
 
@@ -105,26 +110,28 @@ export default function ResetPasswordScreen() {
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nouveau mot de passe</Text>
+            <Text style={[styles.label, isDark && styles.darkTextMuted]}>Nouveau mot de passe</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isDark && styles.darkInput]}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               autoCapitalize="none"
               placeholder="********"
+              placeholderTextColor={isDark ? '#6B7280' : '#94A3B8'}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirmer le mot de passe</Text>
+            <Text style={[styles.label, isDark && styles.darkTextMuted]}>Confirmer le mot de passe</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isDark && styles.darkInput]}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
               autoCapitalize="none"
               placeholder="********"
+              placeholderTextColor={isDark ? '#6B7280' : '#94A3B8'}
             />
           </View>
 
@@ -197,4 +204,8 @@ const styles = StyleSheet.create({
   successSubtitle: { fontSize: 16, color: '#64748B', textAlign: 'center', lineHeight: 24, marginBottom: 32 },
   successButton: { backgroundColor: GREEN, paddingVertical: 16, paddingHorizontal: 32, borderRadius: 12, width: '100%', alignItems: 'center' },
   successButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  darkContainer: { backgroundColor: '#0F172A' },
+  darkText: { color: '#F8FAFC' },
+  darkTextMuted: { color: '#94A3B8' },
+  darkInput: { backgroundColor: '#1E293B', borderColor: '#334155', color: '#F8FAFC' },
 });

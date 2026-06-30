@@ -16,11 +16,20 @@ import { resolveMediaUrl } from '@/src/services/filesystem.service';
 interface CaesarViewProps {
   jeu: Jeu;
   onSuccess: () => void;
+  onFail?: () => void;
+  forceReveal?: boolean;
 }
 
-export function CaesarView({ jeu, onSuccess }: CaesarViewProps) {
+export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewProps) {
   const [answer, setAnswer] = useState('');
   const [isRevealed, setIsRevealed] = useState(false);
+
+  React.useEffect(() => {
+    if (forceReveal) {
+      setAnswer(jeu.reponse || '');
+      setIsRevealed(true);
+    }
+  }, [forceReveal]);
 
   const donnees = jeu.donneesJeu as unknown as DonneesCaesar | undefined;
   const phraseChiffree = donnees?.phraseChiffree || '...';
@@ -57,6 +66,7 @@ export function CaesarView({ jeu, onSuccess }: CaesarViewProps) {
       setIsRevealed(true);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      onFail?.();
       shakeTranslateX.value = withSequence(
         withTiming(-10, { duration: 50 }),
         withTiming(10, { duration: 50 }),

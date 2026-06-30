@@ -11,12 +11,18 @@ interface ValidationLieuViewProps {
   jeu: Jeu;
   etape: Etape; // Passé par le manager pour avoir les coordonnées de la cible
   onSuccess: () => void;
+  onFail?: () => void;
+  forceReveal?: boolean;
 }
 
-export function ValidationLieuView({ jeu, etape, onSuccess }: ValidationLieuViewProps) {
+export function ValidationLieuView({ jeu, etape, onSuccess, onFail, forceReveal }: ValidationLieuViewProps) {
   const [isChecking, setIsChecking] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (forceReveal) setIsRevealed(true);
+  }, [forceReveal]);
 
   const imageSource = jeu.imageLocalPath 
     ? { uri: jeu.imageLocalPath.startsWith('file://') ? jeu.imageLocalPath : `file://${jeu.imageLocalPath}` } 
@@ -85,9 +91,8 @@ export function ValidationLieuView({ jeu, etape, onSuccess }: ValidationLieuView
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setIsRevealed(true);
       } else {
-        // Mode fallback (si GPS imprécis, on permet de forcer en appuyant une seconde fois ?)
-        // Pour l'instant, on bloque.
         triggerError(`Vous êtes trop loin (${Math.round(distance)}m). Rapprochez-vous !`);
+        onFail?.();
       }
     } catch (e) {
       triggerError("Impossible d'obtenir votre position. Vérifiez votre signal GPS.");

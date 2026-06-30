@@ -1,23 +1,19 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView, View, Text, Pressable, Switch, Alert, TextInput, ActivityIndicator } from 'react-native';
+import { StyleSheet, ScrollView, View, Text, Pressable, Switch, Alert, TextInput, ActivityIndicator, useColorScheme } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useSettingsStore, ThemeType } from '@/src/store/settings.store';
 import { useGameStore } from '@/src/store/game.store';
+import { deleteParcoursFiles } from '@/src/services/filesystem.service';
+import { deleteParcours } from '@/src/services/database.service';
 import { ChevronLeft, User, Bell, Volume2, Vibrate, Moon, Download, LogOut, Trash2, ShieldAlert } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
+  const systemColorScheme = useColorScheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
-  // Auth State
-  const user = useAuthStore((state) => state.user);
-  const isGuest = useAuthStore((state) => state.isGuest);
-  const logout = useAuthStore((state) => state.logout);
-  const deleteAccount = useAuthStore((state) => state.deleteAccount);
-  const updateProfile = useAuthStore((state) => state.updateProfile);
-
   // Settings State
   const { 
     soundEnabled, setSoundEnabled, 
@@ -25,6 +21,15 @@ export default function SettingsScreen() {
     theme, setTheme,
     pushNotificationsEnabled, setPushNotificationsEnabled
   } = useSettingsStore();
+
+  const isDark = (theme === 'system' ? systemColorScheme : theme) === 'dark';
+  
+  // Auth State
+  const user = useAuthStore((state) => state.user);
+  const isGuest = useAuthStore((state) => state.isGuest);
+  const logout = useAuthStore((state) => state.logout);
+  const deleteAccount = useAuthStore((state) => state.deleteAccount);
+  const updateProfile = useAuthStore((state) => state.updateProfile);
 
   // Local UI State
   const [pseudo, setPseudo] = useState(user?.pseudo || '');
@@ -35,7 +40,8 @@ export default function SettingsScreen() {
     if (!pseudo.trim() || pseudo === user?.pseudo) return;
     setIsUpdatingPseudo(true);
     try {
-      await updateProfile({ pseudo: pseudo.trim() });
+      await updateProfile({ pseudo: pseudo.trim() 
+});
       Alert.alert('Succès', 'Votre pseudo a été mis à jour.');
     } catch (error: any) {
       Alert.alert('Erreur', error?.message || 'Impossible de mettre à jour le pseudo.');
@@ -54,7 +60,16 @@ export default function SettingsScreen() {
         { 
           text: 'Vider', 
           style: 'destructive', 
-          onPress: () => {
+          onPress: async () => {
+            const downloadedIds = useGameStore.getState().downloadedParcoursIds;
+            for (const id of downloadedIds) {
+              try {
+                await deleteParcoursFiles(id);
+                await deleteParcours(id);
+              } catch (e) {
+                console.warn('Erreur suppression cache', e);
+              }
+            }
             useGameStore.getState().clearAllParcours();
             Alert.alert('Succès', 'Cache vidé avec succès.');
           }
@@ -98,13 +113,13 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, isDark && styles.darkContainer, { paddingTop: insets.top }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, isDark && styles.darkHeader]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ChevronLeft size={28} color="#1F2937" />
+          <ChevronLeft size={28} color={isDark ? '#F9FAFB' : '#1F2937'} />
         </Pressable>
-        <Text style={styles.headerTitle}>Paramètres</Text>
+        <Text style={[styles.headerTitle, isDark && styles.darkText]}>Paramètres</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -113,20 +128,20 @@ export default function SettingsScreen() {
         {/* Section: Profil */}
         {!isGuest && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Profil</Text>
-            <View style={styles.card}>
+            <Text style={[styles.sectionTitle, isDark && styles.darkTextMuted]}>Profil</Text>
+            <View style={[styles.card, isDark && styles.darkCard]}>
               <View style={styles.row}>
-                <View style={styles.iconContainer}>
+                <View style={[styles.iconContainer, isDark && styles.darkIconContainer]}>
                   <User size={20} color="#4F46E5" />
                 </View>
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Pseudo</Text>
                   <TextInput 
-                    style={styles.input}
+                    style={[styles.input, isDark && styles.darkText]}
                     value={pseudo}
                     onChangeText={setPseudo}
                     placeholder="Votre pseudo"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
                   />
                 </View>
               </View>
@@ -141,14 +156,14 @@ export default function SettingsScreen() {
 
         {/* Section: Notifications */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, isDark && styles.darkTextMuted]}>Notifications</Text>
+          <View style={[styles.card, isDark && styles.darkCard]}>
             <View style={styles.row}>
-              <View style={styles.iconContainer}>
+              <View style={[styles.iconContainer, isDark && styles.darkIconContainer]}>
                 <Bell size={20} color="#F59E0B" />
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.settingTitle}>Notifications Push</Text>
+                <Text style={[styles.settingTitle, isDark && styles.darkText]}>Notifications Push</Text>
                 <Text style={styles.settingDesc}>Recevez des alertes pour les défis et demandes d'amis.</Text>
               </View>
               <Switch 
@@ -163,14 +178,14 @@ export default function SettingsScreen() {
 
         {/* Section: Jeu et Audio */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Expérience de jeu</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, isDark && styles.darkTextMuted]}>Expérience de jeu</Text>
+          <View style={[styles.card, isDark && styles.darkCard]}>
             <View style={[styles.row, styles.borderBottom]}>
-              <View style={styles.iconContainer}>
+              <View style={[styles.iconContainer, isDark && styles.darkIconContainer]}>
                 <Volume2 size={20} color="#3B82F6" />
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.settingTitle}>Effets sonores</Text>
+                <Text style={[styles.settingTitle, isDark && styles.darkText]}>Effets sonores</Text>
                 <Text style={styles.settingDesc}>Sons lors des mini-jeux et succès.</Text>
               </View>
               <Switch 
@@ -180,11 +195,11 @@ export default function SettingsScreen() {
               />
             </View>
             <View style={styles.row}>
-              <View style={styles.iconContainer}>
+              <View style={[styles.iconContainer, isDark && styles.darkIconContainer]}>
                 <Vibrate size={20} color="#EC4899" />
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.settingTitle}>Vibrations</Text>
+                <Text style={[styles.settingTitle, isDark && styles.darkText]}>Vibrations</Text>
                 <Text style={styles.settingDesc}>Retour haptique pendant la navigation.</Text>
               </View>
               <Switch 
@@ -198,24 +213,24 @@ export default function SettingsScreen() {
 
         {/* Section: Apparence */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Apparence</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, isDark && styles.darkTextMuted]}>Apparence</Text>
+          <View style={[styles.card, isDark && styles.darkCard]}>
             <View style={styles.row}>
-              <View style={styles.iconContainer}>
+              <View style={[styles.iconContainer, isDark && styles.darkIconContainer]}>
                 <Moon size={20} color="#6366F1" />
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.settingTitle}>Thème de l'application</Text>
+                <Text style={[styles.settingTitle, isDark && styles.darkText]}>Thème de l'application</Text>
               </View>
             </View>
             <View style={styles.themeOptions}>
               {(['light', 'dark', 'system'] as ThemeType[]).map((t) => (
                 <Pressable 
                   key={t}
-                  style={[styles.themeButton, theme === t && styles.themeButtonActive]}
+                  style={[styles.themeButton, isDark && styles.darkThemeButton, theme === t && styles.themeButtonActive]}
                   onPress={() => setTheme(t)}
                 >
-                  <Text style={[styles.themeText, theme === t && styles.themeTextActive]}>
+                  <Text style={[styles.themeText, isDark && styles.darkTextMuted, theme === t && styles.themeTextActive]}>
                     {t === 'light' ? 'Clair' : t === 'dark' ? 'Sombre' : 'Système'}
                   </Text>
                 </Pressable>
@@ -226,14 +241,14 @@ export default function SettingsScreen() {
 
         {/* Section: Stockage */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Stockage local</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionTitle, isDark && styles.darkTextMuted]}>Stockage local</Text>
+          <View style={[styles.card, isDark && styles.darkCard]}>
             <Pressable style={styles.row} onPress={handleClearCache}>
-              <View style={styles.iconContainer}>
+              <View style={[styles.iconContainer, isDark && styles.darkIconContainer]}>
                 <Download size={20} color="#10B981" />
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.settingTitle}>Vider le cache des parcours</Text>
+                <Text style={[styles.settingTitle, isDark && styles.darkText]}>Vider le cache des parcours</Text>
                 <Text style={styles.settingDesc}>Supprime les données hors-ligne téléchargées.</Text>
               </View>
             </Pressable>
@@ -242,11 +257,11 @@ export default function SettingsScreen() {
 
         {/* Section: Compte (Zone Danger) */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Compte</Text>
+          <Text style={[styles.sectionTitle, isDark && styles.darkTextMuted]}>Compte</Text>
           
           {isGuest && (
             <Pressable 
-              style={[styles.card, styles.createAccountCard]}
+              style={[styles.card, styles.createAccountCard, isDark && styles.darkCreateAccountCard]}
               onPress={() => router.replace('/(auth)/register')}
             >
               <ShieldAlert size={20} color="#D97706" style={{ marginRight: 8 }} />
@@ -254,13 +269,13 @@ export default function SettingsScreen() {
             </Pressable>
           )}
 
-          <Pressable style={[styles.card, styles.logoutCard]} onPress={handleLogout}>
-            <LogOut size={20} color="#4B5563" style={{ marginRight: 12 }} />
-            <Text style={styles.logoutText}>Se déconnecter</Text>
+          <Pressable style={[styles.card, styles.logoutCard, isDark && styles.darkCard, isDark && styles.darkLogoutCard]} onPress={handleLogout}>
+            <LogOut size={20} color={isDark ? '#94A3B8' : '#4B5563'} style={{ marginRight: 12 }} />
+            <Text style={[styles.logoutText, isDark && styles.darkTextMuted]}>Se déconnecter</Text>
           </Pressable>
 
           <Pressable 
-            style={[styles.card, styles.deleteCard]} 
+            style={[styles.card, styles.deleteCard, isDark && styles.darkDeleteCard]} 
             onPress={handleDeleteAccount}
             disabled={isDeleting}
           >
@@ -449,4 +464,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
   },
+
+  darkContainer: { backgroundColor: '#0F172A' },
+  darkHeader: { backgroundColor: '#1E293B', borderBottomColor: '#334155' },
+  darkText: { color: '#F8FAFC' },
+  darkTextMuted: { color: '#94A3B8' },
+  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000' },
+  darkIconContainer: { backgroundColor: '#334155' },
+  darkThemeButton: { backgroundColor: '#334155', borderColor: '#475569' },
+  darkCreateAccountCard: { backgroundColor: '#78350F', borderBottomColor: '#92400E' },
+  darkLogoutCard: { borderBottomColor: '#334155' },
+  darkDeleteCard: { backgroundColor: '#7F1D1D' },
 });

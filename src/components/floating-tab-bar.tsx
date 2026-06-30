@@ -18,6 +18,7 @@ import Animated, {
     withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useColorScheme } from '@/src/hooks/use-color-scheme';
 
 // Détection Liquid Glass au démarrage
 const USE_GLASS = isGlassEffectAPIAvailable();
@@ -37,6 +38,7 @@ function TabButton({
     testID,
     label,
     children,
+    isDark,
 }: {
     isFocused: boolean;
     onPress: () => void;
@@ -45,6 +47,7 @@ function TabButton({
     testID?: string;
     label?: string;
     children: React.ReactNode;
+    isDark: boolean;
 }) {
     const scale = useSharedValue(1);
     const bgOpacity = useSharedValue(0);
@@ -76,7 +79,7 @@ function TabButton({
             style={styles.tabButton}
         >
             {/* Fond animé de l'onglet actif */}
-            <Animated.View style={[styles.activeBackground, animatedBgStyle]} />
+            <Animated.View style={[styles.activeBackground, isDark && styles.darkActiveBackground, animatedBgStyle]} />
 
             {/* Icône animée avec scale spring */}
             <Animated.View style={animatedIconStyle}>
@@ -87,7 +90,7 @@ function TabButton({
             {label && (
                 <Text style={[
                     styles.tabLabel,
-                    isFocused ? styles.tabLabelActive : styles.tabLabelInactive,
+                    isFocused ? (isDark ? styles.darkTabLabelActive : styles.tabLabelActive) : (isDark ? styles.darkTabLabelInactive : styles.tabLabelInactive),
                 ]}>
                     {label}
                 </Text>
@@ -100,7 +103,7 @@ function TabButton({
 // ⚠️ IMPORTANT : Ne JAMAIS mettre opacity:0 sur un parent de GlassView,
 // cela désactive complètement l'effet glass natif (limitation UIVisualEffectView d'Apple).
 // On utilise translateX + scale pour l'animation d'entrée à la place.
-function BackButton({ onPress }: { onPress: () => void }) {
+function BackButton({ onPress, isDark }: { onPress: () => void; isDark: boolean }) {
     const scale = useSharedValue(0.3);
     const translateX = useSharedValue(-20);
 
@@ -131,7 +134,7 @@ function BackButton({ onPress }: { onPress: () => void }) {
             accessibilityRole="button"
             accessibilityLabel="Retour"
         >
-            <MaterialIcons name="chevron-left" size={28} color="#111" />
+            <MaterialIcons name="chevron-left" size={28} color={isDark ? '#F8FAFC' : '#111'} />
         </Pressable>
     );
 
@@ -146,14 +149,14 @@ function BackButton({ onPress }: { onPress: () => void }) {
                 // Fallback BlurView (iOS < 26, Web) ou Solid (Android)
                 <View style={styles.shadowContainer}>
                     {Platform.OS === 'android' ? (
-                        <View style={styles.androidPill}>
+                        <View style={[styles.androidPill, isDark && { backgroundColor: '#1E293B', borderColor: '#334155' }]}>
                             {backContent}
                         </View>
                     ) : (
                         <BlurView
                             intensity={70}
-                            tint="light"
-                            style={styles.blurPill}
+                            tint={isDark ? "dark" : "light"}
+                            style={[styles.blurPill, isDark && { backgroundColor: 'rgba(30, 41, 59, 0.7)' }]}
                         >
                             {backContent}
                         </BlurView>
@@ -167,6 +170,7 @@ function BackButton({ onPress }: { onPress: () => void }) {
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const isDark = useColorScheme() === 'dark';
 
     const canGoBack = (() => {
         try {
@@ -232,10 +236,11 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                         accessibilityLabel={options.tabBarAccessibilityLabel}
                         testID={options.tabBarButtonTestID}
                         label={options.title ?? route.name}
+                        isDark={isDark}
                     >
                         {options.tabBarIcon?.({
                             focused: isFocused,
-                            color: isFocused ? '#007AFF' : '#111',
+                            color: isFocused ? (isDark ? '#60A5FA' : '#007AFF') : (isDark ? '#94A3B8' : '#111'),
                             size: 24,
                         })}
                     </TabButton>
@@ -252,7 +257,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                 <GlassContainer spacing={12} style={styles.glassWrapper}>
                     {/* Bouton retour — pilule glass séparée */}
                     {canGoBack && (
-                        <BackButton onPress={handleGoBack} />
+                        <BackButton onPress={handleGoBack} isDark={isDark} />
                     )}
 
                     {/* Pilule principale — les onglets */}
@@ -269,20 +274,20 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         <View style={[styles.wrapper, { bottom: (Platform.OS === 'ios' ? 28 : 20) + insets.bottom }]} pointerEvents="box-none">
             {/* Bouton retour — pilule séparée */}
             {canGoBack && (
-                <BackButton onPress={handleGoBack} />
+                <BackButton onPress={handleGoBack} isDark={isDark} />
             )}
 
             {/* Pilule principale — les onglets */}
             <View style={styles.shadowContainer}>
                 {Platform.OS === 'android' ? (
-                    <View style={styles.androidPill}>
+                    <View style={[styles.androidPill, isDark && { backgroundColor: '#1E293B', borderColor: '#334155' }]}>
                         {tabButtons}
                     </View>
                 ) : (
                     <BlurView
                         intensity={70}
-                        tint="light"
-                        style={styles.blurPill}
+                        tint={isDark ? "dark" : "light"}
+                        style={[styles.blurPill, isDark && { backgroundColor: 'rgba(30, 41, 59, 0.7)' }]}
                     >
                         {tabButtons}
                     </BlurView>
@@ -397,4 +402,7 @@ const styles = StyleSheet.create({
     backButtonFallbackBg: {
         backgroundColor: 'rgba(255, 255, 255, 0.4)',
     },
+    darkTabLabelActive: { color: '#60A5FA' },
+    darkTabLabelInactive: { color: '#94A3B8' },
+    darkActiveBackground: { backgroundColor: 'rgba(30, 41, 59, 0.85)' },
 });

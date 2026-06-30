@@ -18,6 +18,8 @@ import Animated, {
   interpolate,
   Extrapolation,
 } from 'react-native-reanimated';
+import { useSettingsStore } from '@/src/store/settings.store';
+import { useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { STORAGE_KEYS } from '@/src/constants/config';
 import { saveString } from '@/src/utils/storage';
@@ -55,12 +57,12 @@ const SLIDES = [
 
 // ─── Composant Slide ──────────────────────────────────────────────────────────
 
-function Slide({ item }: { item: (typeof SLIDES)[0] }) {
+function Slide({ item, isDark }: { item: (typeof SLIDES)[0]; isDark: boolean }) {
   return (
-    <View style={[styles.slide, { backgroundColor: item.bg, width }]}>
+    <View style={[styles.slide, { backgroundColor: isDark ? '#1E293B' : item.bg, width }]}>
       <Text style={styles.slideEmoji}>{item.emoji}</Text>
-      <Text style={[styles.slideTitle, { color: item.accent }]}>{item.title}</Text>
-      <Text style={styles.slideSubtitle}>{item.subtitle}</Text>
+      <Text style={[styles.slideTitle, { color: isDark ? '#60A5FA' : item.accent }]}>{item.title}</Text>
+      <Text style={[styles.slideSubtitle, isDark && styles.darkTextMuted]}>{item.subtitle}</Text>
     </View>
   );
 }
@@ -95,6 +97,9 @@ function Dot({ index, activeIndex }: { index: number; activeIndex: number }) {
 export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const systemColorScheme = useColorScheme();
+  const settingsTheme = useSettingsStore((state: any) => state.theme);
+  const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -123,12 +128,12 @@ export default function OnboardingScreen() {
   const accent = SLIDES[activeIndex].accent;
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom + 24 }]}>
+    <View style={[styles.container, isDark && styles.darkContainer, { paddingBottom: insets.bottom + 24 }]}>
       {/* Bouton "Passer" */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         {!isLast && (
           <Pressable onPress={handleSkip} style={styles.skipButton}>
-            <Text style={[styles.skipText, { color: accent }]}>Passer</Text>
+            <Text style={[styles.skipText, { color: isDark ? '#60A5FA' : accent }]}>Passer</Text>
           </Pressable>
         )}
       </View>
@@ -138,7 +143,7 @@ export default function OnboardingScreen() {
         ref={flatListRef}
         data={SLIDES}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <Slide item={item} />}
+        renderItem={({ item }) => <Slide item={item} isDark={isDark} />}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -158,7 +163,7 @@ export default function OnboardingScreen() {
 
         {/* Bouton principal */}
         <Pressable
-          style={[styles.nextButton, { backgroundColor: accent }]}
+          style={[styles.nextButton, { backgroundColor: isDark ? '#3B82F6' : accent }]}
           onPress={handleNext}
         >
           <Text style={styles.nextButtonText}>
@@ -240,4 +245,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
   },
+  darkContainer: { backgroundColor: '#0F172A' },
+  darkText: { color: '#F8FAFC' },
+  darkTextMuted: { color: '#94A3B8' },
 });

@@ -15,6 +15,8 @@ import { Stack, useRouter } from 'expo-router';
 import { Users, UserPlus, Search, Check, X, ChevronLeft, MapPin } from 'lucide-react-native';
 import { socialService } from '@/src/services/social.service';
 import type { Friendship, ParcoursInvitation } from '@/src/types/api.types';
+import { useSettingsStore } from '@/src/store/settings.store';
+import { useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Tab = 'amis' | 'demandes' | 'invitations';
@@ -22,6 +24,9 @@ type Tab = 'amis' | 'demandes' | 'invitations';
 export default function FriendsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const systemColorScheme = useColorScheme();
+  const settingsTheme = useSettingsStore((state: any) => state.theme);
+  const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
   
   const [activeTab, setActiveTab] = useState<Tab>('amis');
   const [searchQuery, setSearchQuery] = useState('');
@@ -133,11 +138,11 @@ export default function FriendsScreen() {
     const friendPseudo = item.requester?.pseudo || item.receiver?.pseudo || 'Joueur inconnu';
 
     return (
-      <View style={styles.friendCard}>
+      <View style={[styles.friendCard, isDark && styles.darkCard]}>
         <View style={styles.avatarPlaceholder}>
           <Text style={styles.avatarText}>{friendPseudo.charAt(0).toUpperCase()}</Text>
         </View>
-        <Text style={styles.friendName}>{friendPseudo}</Text>
+        <Text style={[styles.friendName, isDark && styles.darkText]}>{friendPseudo}</Text>
       </View>
     );
   };
@@ -146,12 +151,12 @@ export default function FriendsScreen() {
     const requesterPseudo = item.requester?.pseudo || 'Joueur inconnu';
 
     return (
-      <View style={styles.friendCard}>
+      <View style={[styles.friendCard, isDark && styles.darkCard]}>
         <View style={styles.avatarPlaceholder}>
           <Text style={styles.avatarText}>{requesterPseudo.charAt(0).toUpperCase()}</Text>
         </View>
         <View style={styles.requestInfo}>
-          <Text style={styles.friendName}>{requesterPseudo}</Text>
+          <Text style={[styles.friendName, isDark && styles.darkText]}>{requesterPseudo}</Text>
           <Text style={styles.requestSubtitle}>Souhaite vous ajouter</Text>
         </View>
         <View style={styles.requestActions}>
@@ -177,12 +182,12 @@ export default function FriendsScreen() {
     const parcoursTitle = item.parcours?.title || 'Parcours inconnu';
 
     return (
-      <View style={styles.friendCard}>
+      <View style={[styles.friendCard, isDark && styles.darkCard]}>
         <View style={[styles.avatarPlaceholder, { backgroundColor: '#E8F5E9' }]}>
           <MapPin size={24} color="#2D6A4F" />
         </View>
         <View style={styles.requestInfo}>
-          <Text style={styles.friendName}>{senderPseudo}</Text>
+          <Text style={[styles.friendName, isDark && styles.darkText]}>{senderPseudo}</Text>
           <Text style={styles.requestSubtitle}>vous défie sur : {parcoursTitle}</Text>
         </View>
         <View style={styles.requestActions}>
@@ -205,17 +210,17 @@ export default function FriendsScreen() {
 
   return (
     <KeyboardAvoidingView 
-      style={[styles.container, { paddingTop: insets.top }]} 
+      style={[styles.container, isDark && styles.darkContainer, { paddingTop: insets.top }]} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, isDark && styles.darkCard]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ChevronLeft size={28} color="#1F2937" />
+          <ChevronLeft size={28} color={isDark ? '#F9FAFB' : '#1F2937'} />
         </Pressable>
-        <Text style={styles.headerTitle}>Réseau d'amis</Text>
+        <Text style={[styles.headerTitle, isDark && styles.darkText]}>Réseau d'amis</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -227,7 +232,7 @@ export default function FriendsScreen() {
             <TextInput
               style={styles.searchInput}
               placeholder="Ajouter un ami (Pseudo)"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
@@ -324,7 +329,7 @@ export default function FriendsScreen() {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Users size={48} color="#D1D5DB" />
-                <Text style={styles.emptyText}>Vous n'avez pas encore d'amis.</Text>
+                <Text style={[styles.emptyText, isDark && styles.darkTextMuted]}>Vous n'avez pas encore d'amis.</Text>
                 <Text style={styles.emptySubtext}>Cherchez un pseudo ci-dessus pour envoyer une demande !</Text>
               </View>
             }
@@ -338,7 +343,7 @@ export default function FriendsScreen() {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <UserPlus size={48} color="#D1D5DB" />
-                <Text style={styles.emptyText}>Aucune demande en attente.</Text>
+                <Text style={[styles.emptyText, isDark && styles.darkTextMuted]}>Aucune demande en attente.</Text>
               </View>
             }
           />
@@ -351,7 +356,7 @@ export default function FriendsScreen() {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <MapPin size={48} color="#D1D5DB" />
-                <Text style={styles.emptyText}>Aucun défi reçu.</Text>
+                <Text style={[styles.emptyText, isDark && styles.darkTextMuted]}>Aucun défi reçu.</Text>
               </View>
             }
           />
@@ -564,5 +569,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: '#1F2937',
-  }
+  },
+
+  darkContainer: { backgroundColor: '#0F172A' },
+  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000', borderColor: '#334155' },
+  darkText: { color: '#F8FAFC' },
+  darkTextMuted: { color: '#94A3B8' },
+  darkInput: { backgroundColor: '#1E293B', borderColor: '#334155', color: '#F8FAFC' },
 });

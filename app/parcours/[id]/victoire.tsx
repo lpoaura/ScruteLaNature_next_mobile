@@ -1,21 +1,27 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, Animated, ScrollView } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Trophy, Clock, CheckCircle, Share2, Star } from 'lucide-react-native';
 import LottieView from 'lottie-react-native';
 import { ReviewModal } from '@/src/components/features/reviews/ReviewModal';
+import { useSettingsStore } from '@/src/store/settings.store';
+import { useColorScheme } from 'react-native';
 
 export default function VictoireScreen() {
+  const systemColorScheme = useColorScheme();
+  const settingsTheme = useSettingsStore((state: any) => state.theme);
+  const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
   const router = useRouter();
   const params = useLocalSearchParams();
   
   // Paramètres passés lors de la navigation
-  const parcoursId = params.id as string;
-  const score = parseInt(params.score as string || '0', 10);
-  const maxScore = parseInt(params.maxScore as string || '0', 10);
-  const durationMin = params.durationMin as string;
-  const badgeImageUrl = params.badgeImageUrl as string;
-  const badgeName = params.badgeName as string;
+  const extractParam = (p: string | string[] | undefined): string => Array.isArray(p) ? p[0] : (p || '');
+  
+  const score = parseInt(extractParam(params.score) || '0', 10);
+  const maxScore = parseInt(extractParam(params.maxScore) || '0', 10);
+  const durationMin = extractParam(params.durationMin);
+  const badgeImageUrl = extractParam(params.badgeImageUrl);
+  const badgeName = extractParam(params.badgeName);
 
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
@@ -46,38 +52,41 @@ export default function VictoireScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.darkContainer]}>
+      <Stack.Screen options={{ headerShown: false }} />
       {/* Lottie Confetti */}
-      <LottieView
-        source={require('@/assets/animations/confetti.json')}
-        autoPlay
-        loop={false}
-        style={styles.lottie}
-        resizeMode="cover"
-      />
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <LottieView
+          source={require('@/assets/animations/confetti.json')}
+          autoPlay
+          loop={false}
+          style={styles.lottie}
+          resizeMode="cover"
+        />
+      </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Animated.View style={[styles.content, { opacity: contentOpacity }]}>
           <View style={styles.header}>
             <Trophy size={64} color="#fbbf24" style={styles.trophyIcon} />
-            <Text style={styles.title}>Parcours terminé !</Text>
-            <Text style={styles.subtitle}>Félicitations, vous êtes arrivé au bout.</Text>
+            <Text style={[styles.title, isDark && styles.darkText]}>Parcours terminé !</Text>
+            <Text style={[styles.subtitle, isDark && styles.darkTextMuted]}>Félicitations, vous êtes arrivé au bout.</Text>
           </View>
 
           <View style={styles.statsContainer}>
-            <View style={styles.statBox}>
+            <View style={[styles.statBox, isDark && styles.darkCard]}>
               <CheckCircle size={24} color="#4f46e5" />
-              <Text style={styles.statValue}>{score} / {maxScore}</Text>
-              <Text style={styles.statLabel}>Score final</Text>
+              <Text style={[styles.statValue, isDark && styles.darkText]}>{score} / {maxScore}</Text>
+              <Text style={[styles.statLabel, isDark && styles.darkTextMuted]}>Score final</Text>
             </View>
-            <View style={styles.statBox}>
+            <View style={[styles.statBox, isDark && styles.darkCard]}>
               <Clock size={24} color="#4f46e5" />
-              <Text style={styles.statValue}>{durationMin || '-'} min</Text>
-              <Text style={styles.statLabel}>Temps estimé</Text>
+              <Text style={[styles.statValue, isDark && styles.darkText]}>{durationMin || '-'} min</Text>
+              <Text style={[styles.statLabel, isDark && styles.darkTextMuted]}>Temps estimé</Text>
             </View>
           </View>
 
-          {badgeName && badgeImageUrl && (
+          {badgeName !== '' && badgeImageUrl !== '' && (
             <Animated.View style={[styles.badgeContainer, { transform: [{ scale: badgeScale }] }]}>
               <Text style={styles.badgeTitle}>Nouveau Badge Débloqué !</Text>
               <Image source={{ uri: badgeImageUrl }} style={styles.badgeImage} />
@@ -118,7 +127,7 @@ export default function VictoireScreen() {
 
       <ReviewModal
         visible={reviewModalVisible}
-        parcoursId={parcoursId}
+        parcoursId={extractParam(params.id)}
         onClose={() => setReviewModalVisible(false)}
         onSuccess={() => {
           setReviewModalVisible(false);
@@ -141,7 +150,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 1,
-    pointerEvents: 'none',
   },
   scrollContent: {
     flexGrow: 1,
@@ -292,4 +300,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+
+  darkContainer: { backgroundColor: '#0F172A' },
+  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000', borderColor: '#334155' },
+  darkText: { color: '#F8FAFC' },
+  darkTextMuted: { color: '#94A3B8' },
+  darkInput: { backgroundColor: '#1E293B', borderColor: '#334155', color: '#F8FAFC' },
 });

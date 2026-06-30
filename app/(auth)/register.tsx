@@ -12,6 +12,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSettingsStore } from '@/src/store/settings.store';
+import { useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/src/store/auth.store';
@@ -59,6 +61,9 @@ function Checkbox({
 export default function RegisterScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const systemColorScheme = useColorScheme();
+  const settingsTheme = useSettingsStore((state: any) => state.theme);
+  const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
   const { register, isLoading } = useAuthStore();
 
   const [pseudo, setPseudo] = useState('');
@@ -105,7 +110,8 @@ export default function RegisterScreen() {
         password,
         pseudo: pseudo.trim(),
         rgpdAccepted: true,
-      });
+      
+});
       setSuccess(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
@@ -135,7 +141,7 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, isDark && styles.darkContainer]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -151,8 +157,8 @@ export default function RegisterScreen() {
           <Text style={styles.backText}>← Retour</Text>
         </Pressable>
 
-        <Text style={styles.title}>Créer un compte</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, isDark && styles.darkText]}>Créer un compte</Text>
+        <Text style={[styles.subtitle, isDark && styles.darkTextMuted]}>
           Rejoignez la communauté LPO et sauvegardez votre progression.
         </Text>
 
@@ -167,9 +173,9 @@ export default function RegisterScreen() {
         {/* Champs */}
         <View style={styles.form}>
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Pseudo</Text>
+            <Text style={[styles.label, isDark && styles.darkTextMuted]}>Pseudo</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isDark && styles.darkInput]}
               value={pseudo}
               onChangeText={setPseudo}
               placeholder="Votre pseudo LPO"
@@ -182,9 +188,9 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={[styles.label, isDark && styles.darkTextMuted]}>Email</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isDark && styles.darkInput]}
               value={email}
               onChangeText={setEmail}
               placeholder="votre@email.fr"
@@ -199,9 +205,9 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Mot de passe</Text>
+            <Text style={[styles.label, isDark && styles.darkTextMuted]}>Mot de passe</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isDark && styles.darkInput]}
               value={password}
               onChangeText={setPassword}
               placeholder="8 caractères minimum"
@@ -214,9 +220,9 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Confirmer le mot de passe</Text>
+            <Text style={[styles.label, isDark && styles.darkTextMuted]}>Confirmer le mot de passe</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isDark && styles.darkInput]}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder="Répétez votre mot de passe"
@@ -390,4 +396,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   successButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+
+  darkContainer: { backgroundColor: '#0F172A' },
+  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000', borderColor: '#334155' },
+  darkText: { color: '#F8FAFC' },
+  darkTextMuted: { color: '#94A3B8' },
+  darkInput: { backgroundColor: '#1E293B', borderColor: '#334155', color: '#F8FAFC' },
 });

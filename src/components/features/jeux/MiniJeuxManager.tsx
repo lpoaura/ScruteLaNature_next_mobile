@@ -24,10 +24,14 @@ interface MiniJeuxManagerProps {
 export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeuxManagerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hintsRevealed, setHintsRevealed] = useState(0);
+  const [attemptsUsed, setAttemptsUsed] = useState(0);
+  const [hasFailedAll, setHasFailedAll] = useState(false);
   const { completeJeu } = useGameStore();
 
   useEffect(() => {
     setHintsRevealed(0);
+    setAttemptsUsed(0);
+    setHasFailedAll(false);
   }, [currentIndex]);
 
   // S'il n'y a pas de jeu, on complète direct
@@ -38,15 +42,38 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
 
   const currentJeu = jeux[currentIndex];
 
-  const handleSuccess = () => {
-    // Attribuer 10 points par jeu réussi
-    completeJeu(currentJeu.id, 10);
+  const handleSuccess = (forceZeroPoints = false) => {
+    // Calcul des points selon le nombre d'essais
+    const max = currentJeu.maxAttempts || 2;
+    let points = 10;
+    if (forceZeroPoints) {
+      points = 0;
+    } else if (attemptsUsed > 0 && max > 0) {
+      points = Math.max(0, Math.round(10 * ((max - attemptsUsed) / max)));
+    }
+    
+    completeJeu(currentJeu.id, points);
 
     if (currentIndex < jeux.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      // Tous les jeux de l'étape sont réussis !
       onAllCompleted();
+    }
+  };
+
+  const handleFail = () => {
+    const max = currentJeu.maxAttempts || 2;
+    const newAttempts = attemptsUsed + 1;
+    setAttemptsUsed(newAttempts);
+
+    if (newAttempts >= max) {
+      setHasFailedAll(true);
+    } else {
+      Alert.alert(
+        "Oups !",
+        `Mauvaise réponse. Il vous reste ${max - newAttempts} essai${max - newAttempts > 1 ? 's' : ''}.`,
+        [{ text: "Réessayer" }]
+      );
     }
   };
 
@@ -77,29 +104,36 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
   };
 
   const renderGame = () => {
+    const gameProps = {
+      jeu: currentJeu,
+      onSuccess: () => handleSuccess(false),
+      onFail: handleFail,
+      forceReveal: hasFailedAll && !currentJeu.isBlocking,
+    };
+
     switch (currentJeu.type) {
       case 'INFO':
-        return <InfoView jeu={currentJeu} onSuccess={handleSuccess} />;
+        return <InfoView {...gameProps} />;
       case 'QCM':
-        return <QCMView jeu={currentJeu} onSuccess={handleSuccess} />;
+        return <QCMView {...gameProps} />;
       case 'CHARADE':
-        return <CharadeView jeu={currentJeu} onSuccess={handleSuccess} />;
+        return <CharadeView {...gameProps} />;
       case 'CODE_CAESAR':
-        return <CaesarView jeu={currentJeu} onSuccess={handleSuccess} />;
+        return <CaesarView {...gameProps} />;
       case 'CALCUL_PYRAMIDAL':
-        return <PyramidView jeu={currentJeu} onSuccess={handleSuccess} />;
+        return <PyramidView {...gameProps} />;
       case 'ECO_GESTE':
-        return <EcoGesteView jeu={currentJeu} onSuccess={handleSuccess} />;
+        return <EcoGesteView {...gameProps} />;
       case 'VALIDATION_LIEU':
-        return <ValidationLieuView jeu={currentJeu} etape={etape} onSuccess={handleSuccess} />;
+        return <ValidationLieuView {...gameProps} etape={etape} />;
       case 'PUZZLE':
-        return <PuzzleView jeu={currentJeu} onSuccess={handleSuccess} />;
+        return <PuzzleView {...gameProps} />;
       default:
         return (
           <View style={styles.fallbackContainer}>
             <Ionicons name="construct" size={64} color="#F59E0B" />
             <Text style={styles.fallbackText}>Ce jeu ({currentJeu.type}) est en cours de construction.</Text>
-            <Pressable style={styles.skipBtn} onPress={handleSuccess}>
+            <Pressable style={styles.skipBtn} onPress={() => handleSuccess(true)}>
               <Text style={styles.skipBtnText}>Passer ce jeu</Text>
             </Pressable>
           </View>
@@ -136,6 +170,41 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
       <View style={styles.gameContainer}>
         <TabletWrapper maxWidth={600}>
           {renderGame()}
+
+          {hasFailedAll && (
+            <View style={styles.failureOverlay}>
+              <View style={styles.failureCard}>
+                <Ionicons name="close-circle" size={48} color="#EF4444" />
+                <Text style={styles.failureTitle}>Tentatives épuisées</Text>
+                <Text style={styles.failureMessage}>
+                  {currentJeu.messageEchec || "Ce n'était pas la bonne réponse."}
+                </Text>
+                
+                {!currentJeu.isBlocking && currentJeu.reponse && (
+                  <View style={styles.answerBox}>
+                    <Text style={styles.answerLabel}>La bonne réponse était :</Text>
+                    <Text style={styles.answerText}>{currentJeu.reponse}</Text>
+                  </View>
+                )}
+                
+                {!currentJeu.isBlocking && currentJeu.explication && (
+                  <Text style={styles.failureExplanation}>{currentJeu.explication}</Text>
+                )}
+                
+                {currentJeu.isBlocking ? (
+                  <Pressable style={[styles.continueFailureBtn, { backgroundColor: '#F59E0B' }]} onPress={() => setHasFailedAll(false)}>
+                    <Text style={styles.continueFailureText}>Réessayer (Obligatoire)</Text>
+                    <Ionicons name="refresh" size={20} color="white" />
+                  </Pressable>
+                ) : (
+                  <Pressable style={styles.continueFailureBtn} onPress={() => handleSuccess(true)}>
+                    <Text style={styles.continueFailureText}>Continuer (0 point)</Text>
+                    <Ionicons name="arrow-forward" size={20} color="white" />
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          )}
         </TabletWrapper>
       </View>
     </View>
@@ -217,6 +286,84 @@ const styles = StyleSheet.create({
   badgeText: {
     color: 'white',
     fontSize: 10,
+    fontWeight: 'bold',
+  },
+  failureOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    paddingBottom: 40,
+    zIndex: 100,
+  },
+  failureCard: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  failureTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  failureMessage: {
+    fontSize: 15,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  answerBox: {
+    backgroundColor: '#ECFDF5',
+    padding: 12,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  answerLabel: {
+    fontSize: 12,
+    color: '#059669',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  answerText: {
+    fontSize: 18,
+    color: '#047857',
+    fontWeight: 'bold',
+  },
+  failureExplanation: {
+    fontSize: 14,
+    color: '#4B5563',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginBottom: 20,
+  },
+  continueFailureBtn: {
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 16,
+  },
+  continueFailureText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

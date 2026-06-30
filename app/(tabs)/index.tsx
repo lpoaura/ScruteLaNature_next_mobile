@@ -72,7 +72,7 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView 
-      className="flex-1 bg-slate-50"
+      className="flex-1 bg-slate-50 dark:bg-slate-900"
       contentContainerStyle={{ paddingTop: insets.top + 20, paddingBottom: 120, alignItems: 'center' }}
       showsVerticalScrollIndicator={false}
     >
@@ -80,18 +80,18 @@ export default function DashboardScreen() {
         {/* 1. En-tête (Personnalisation & Statut) */}
         <View className="px-6 mb-8 flex-row justify-between items-start">
         <View className="flex-1">
-          <Text className="text-3xl font-extrabold text-slate-800">
+          <Text className="text-3xl font-extrabold text-slate-800 dark:text-slate-100">
             Bonjour {user?.pseudo || 'Aventurier'} 👋
           </Text>
           <View className="flex-row items-center mt-3">
-            <View className="bg-emerald-100 px-3 py-1.5 rounded-full flex-row items-center mr-3 shadow-sm">
+            <View className="bg-emerald-100 dark:bg-emerald-900/50 px-3 py-1.5 rounded-full flex-row items-center mr-3 shadow-sm">
               <IconSymbol name="star.fill" size={16} color="#10B981" />
-              <Text className="text-emerald-700 font-bold ml-1.5 text-sm">
+              <Text className="text-emerald-700 dark:text-emerald-300 font-bold ml-1.5 text-sm">
                 Niveau {user?.level || 1}
               </Text>
             </View>
-            <View className="bg-amber-100 px-3 py-1.5 rounded-full flex-row items-center shadow-sm">
-              <Text className="text-amber-700 font-bold text-sm">
+            <View className="bg-amber-100 dark:bg-amber-900/50 px-3 py-1.5 rounded-full flex-row items-center shadow-sm">
+              <Text className="text-amber-700 dark:text-amber-300 font-bold text-sm">
                 {user?.totalPoints || 0} pts
               </Text>
             </View>
@@ -100,7 +100,7 @@ export default function DashboardScreen() {
         
         {/* Indicateur de connexion */}
         <View className="items-center ml-4">
-          <View className="bg-white p-2.5 rounded-full shadow-sm mb-1">
+          <View className="bg-white dark:bg-slate-800 p-2.5 rounded-full shadow-sm mb-1">
             {isOnline ? (
               <IconSymbol name="wifi" size={20} color="#10B981" />
             ) : (
@@ -115,13 +115,13 @@ export default function DashboardScreen() {
 
       {/* Bulle Nature (Le saviez-vous ?) */}
       <View className="px-6 mb-8">
-        <View className="bg-emerald-50 border border-emerald-100 rounded-3xl p-5 flex-row items-center shadow-sm">
-          <View className="bg-emerald-200/50 p-3 rounded-full mr-4">
+        <View className="bg-emerald-50 dark:bg-slate-800 border border-emerald-100 dark:border-slate-700 rounded-3xl p-5 flex-row items-center shadow-sm">
+          <View className="bg-emerald-200/50 dark:bg-emerald-900/50 p-3 rounded-full mr-4">
             <IconSymbol name="leaf.fill" size={24} color="#059669" />
           </View>
           <View className="flex-1">
-            <Text className="text-emerald-900 font-bold mb-1">Le saviez-vous ?</Text>
-            <Text className="text-emerald-800 text-sm leading-5">
+            <Text className="text-emerald-900 dark:text-emerald-100 font-bold mb-1">Le saviez-vous ?</Text>
+            <Text className="text-emerald-800 dark:text-emerald-200 text-sm leading-5">
               Le chardonneret élégant se nourrit principalement de graines de chardons, d'où il tire son nom !
             </Text>
           </View>
@@ -130,7 +130,7 @@ export default function DashboardScreen() {
 
       {/* 2. Action Immédiate (Call to Action dynamique) */}
       <View className="px-6 mb-10">
-        <Text className="text-lg font-bold text-slate-800 mb-4">Prêt pour l'aventure ?</Text>
+        <Text className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Prêt pour l'aventure ?</Text>
         
         {activeParcoursId ? (
           <Pressable 
@@ -163,13 +163,13 @@ export default function DashboardScreen() {
         ) : (
           <Pressable 
             onPress={() => router.push('/(tabs)/search')}
-            className="bg-white border-2 border-dashed border-slate-300 rounded-3xl p-8 items-center justify-center active:bg-slate-50"
+            className="bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-3xl p-8 items-center justify-center active:bg-slate-50 dark:active:bg-slate-700"
           >
-            <View className="bg-emerald-100 p-4 rounded-full mb-4">
+            <View className="bg-emerald-100 dark:bg-emerald-900/50 p-4 rounded-full mb-4">
               <IconSymbol name="map.fill" size={32} color="#10B981" />
             </View>
-            <Text className="text-slate-800 text-xl font-bold mb-2 text-center">Aucune balade prévue</Text>
-            <Text className="text-slate-500 text-center px-4">
+            <Text className="text-slate-800 dark:text-slate-100 text-xl font-bold mb-2 text-center">Aucune balade prévue</Text>
+            <Text className="text-slate-500 dark:text-slate-400 text-center px-4">
               Découvrez les parcours autour de vous et lancez-vous dans la nature !
             </Text>
           </Pressable>
@@ -179,7 +179,7 @@ export default function DashboardScreen() {
       {/* 3. Sélections LPO (Découverte) */}
       <View>
         <View className="px-6 flex-row justify-between items-center mb-4">
-          <Text className="text-lg font-bold text-slate-800">Coups de cœur de la région</Text>
+          <Text className="text-lg font-bold text-slate-800 dark:text-slate-100">Coups de cœur de la région</Text>
           <Pressable onPress={() => router.navigate('/search')}>
             <Text className="text-emerald-600 font-semibold">Voir tout</Text>
           </Pressable>
@@ -193,7 +193,7 @@ export default function DashboardScreen() {
           {SELECTIONS.map((item) => (
             <Pressable 
               key={item.id}
-              className="w-64 bg-white rounded-3xl shadow-sm overflow-hidden active:opacity-90"
+              className="w-64 bg-white dark:bg-slate-800 rounded-3xl shadow-sm overflow-hidden active:opacity-90"
               onPress={() => router.navigate('/search')}
             >
               <Image 
@@ -202,7 +202,7 @@ export default function DashboardScreen() {
                 resizeMode="cover"
               />
               <View className="p-4 flex-row justify-between items-center">
-                <Text className="text-slate-800 font-bold flex-1 text-base" numberOfLines={2}>
+                <Text className="text-slate-800 dark:text-slate-100 font-bold flex-1 text-base" numberOfLines={2}>
                   {item.title}
                 </Text>
                 <Text className="text-2xl ml-2">{item.mascot}</Text>
@@ -215,7 +215,7 @@ export default function DashboardScreen() {
       {/* 4. La Vie de la Communauté (Social) */}
       <View className="mt-8 mb-4">
         <View className="px-6 flex-row justify-between items-center mb-4">
-          <Text className="text-lg font-bold text-slate-800">La Vie de la Communauté</Text>
+          <Text className="text-lg font-bold text-slate-800 dark:text-slate-100">La Vie de la Communauté</Text>
           <Pressable>
             <Text className="text-emerald-600 font-semibold">Voir tout</Text>
           </Pressable>
@@ -223,19 +223,19 @@ export default function DashboardScreen() {
 
         <View className="px-6 gap-4">
           {COMMUNITY_FEED.map((item) => (
-            <View key={item.id} className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+            <View key={item.id} className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
               <View className="flex-row items-center mb-3">
                 <Image source={{ uri: item.avatar }} className="w-10 h-10 rounded-full mr-3" />
                 <View className="flex-1">
-                  <Text className="font-bold text-slate-800">{item.user}</Text>
-                  <Text className="text-xs text-slate-500">{item.timeAgo} • {item.parcours}</Text>
+                  <Text className="font-bold text-slate-800 dark:text-slate-100">{item.user}</Text>
+                  <Text className="text-xs text-slate-500 dark:text-slate-400">{item.timeAgo} • {item.parcours}</Text>
                 </View>
-                <View className="bg-amber-100 px-2 py-1 rounded-lg flex-row items-center">
+                <View className="bg-amber-100 dark:bg-amber-900/50 px-2 py-1 rounded-lg flex-row items-center">
                   <IconSymbol name="star.fill" size={12} color="#D97706" />
-                  <Text className="text-amber-700 font-bold text-xs ml-1">{item.rating}</Text>
+                  <Text className="text-amber-700 dark:text-amber-300 font-bold text-xs ml-1">{item.rating}</Text>
                 </View>
               </View>
-              <Text className="text-slate-600 text-sm leading-5">"{item.comment}"</Text>
+              <Text className="text-slate-600 dark:text-slate-300 text-sm leading-5">"{item.comment}"</Text>
             </View>
           ))}
         </View>

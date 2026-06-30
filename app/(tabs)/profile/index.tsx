@@ -6,6 +6,7 @@ import { Leaf, LogOut, Trash2, ShieldAlert, Users, Settings } from 'lucide-react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiService } from '@/src/services/api.service';
 import { Badge } from '@/src/types/api.types';
+import { useColorScheme } from '@/src/hooks/use-color-scheme';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -14,6 +15,8 @@ export default function ProfileScreen() {
   const logout = useAuthStore((state) => state.logout);
   const deleteAccount = useAuthStore((state) => state.deleteAccount);
   const isGuest = useAuthStore((state) => state.isGuest);
+  
+  const isDark = useColorScheme() === 'dark';
   
   const [allBadges, setAllBadges] = useState<Badge[]>([]);
   const [loadingBadges, setLoadingBadges] = useState(true);
@@ -35,14 +38,14 @@ export default function ProfileScreen() {
   // Valeurs par défaut si user n'est pas chargé
   const level = user?.level || 1;
   const points = user?.totalPoints || 0;
-  const nextLevelPoints = level * 1000; // Logique arbitraire de XP
+  const nextLevelPoints = 1000; // Chaque niveau nécessite 1000 points
   const progressPercent = Math.min((points / nextLevelPoints) * 100, 100);
   
   const co2Saved = user?.co2Saved || 0; // en kg
 
   return (
     <ScrollView 
-      style={styles.container} 
+      style={[styles.container, isDark && styles.darkContainer]} 
       contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20 }]}
       showsVerticalScrollIndicator={false}
     >
@@ -50,20 +53,20 @@ export default function ProfileScreen() {
       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20 }}>
         <Pressable 
           onPress={() => router.push('/(tabs)/profile/settings')}
-          style={{ padding: 8, backgroundColor: '#FFFFFF', borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }}
+          style={[{ padding: 8, backgroundColor: '#FFFFFF', borderRadius: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 }, isDark && styles.darkCard]}
         >
-          <Settings size={24} color="#4B5563" />
+          <Settings size={24} color={isDark ? '#F8FAFC' : '#4B5563'} />
         </Pressable>
       </View>
 
       {/* En-tête / Jauge XP */}
-      <View style={[styles.header, { marginTop: 12 }]}>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>
+      <View style={[styles.header, { marginTop: 12 }, isDark && styles.darkCard]}>
+        <View style={[styles.avatarContainer, isDark && styles.darkCard]}>
+          <Text style={[styles.avatarText, isDark && styles.darkText]}>
             {user?.pseudo ? user.pseudo.charAt(0).toUpperCase() : 'I'}
           </Text>
         </View>
-        <Text style={styles.pseudo}>{user?.pseudo || 'Invité'}</Text>
+        <Text style={[styles.pseudo, isDark && styles.darkText]}>{user?.pseudo || 'Invité'}</Text>
         
         <View style={styles.levelBadge}>
           <Text style={styles.levelText}>Niveau {level}</Text>
@@ -71,8 +74,8 @@ export default function ProfileScreen() {
 
         <View style={styles.xpContainer}>
           <View style={styles.xpHeader}>
-            <Text style={styles.xpText}>XP Total: {points} pts</Text>
-            <Text style={styles.xpTextNext}>{nextLevelPoints} pts</Text>
+            <Text style={[styles.xpText, isDark && styles.darkText]}>XP Total: {points} pts</Text>
+            <Text style={[styles.xpTextNext, isDark && styles.darkTextMuted]}>{nextLevelPoints} pts</Text>
           </View>
           <View style={styles.xpBarBackground}>
             <View style={[styles.xpBarFill, { width: `${progressPercent}%` }]} />
@@ -82,47 +85,47 @@ export default function ProfileScreen() {
 
       {/* CO2 Économisé */}
       <View style={styles.statsContainer}>
-        <View style={styles.statBox}>
+        <View style={[styles.statBox, isDark && styles.darkCard]}>
           <View style={styles.statIconContainer}>
             <Leaf size={28} color="#10B981" />
           </View>
-          <Text style={styles.statValue}>{co2Saved.toFixed(1)} kg</Text>
-          <Text style={styles.statLabel}>de CO2 économisé</Text>
+          <Text style={[styles.statValue, isDark && styles.darkText]}>{co2Saved.toFixed(1)} kg</Text>
+          <Text style={[styles.statLabel, isDark && styles.darkTextMuted]}>de CO2 économisé</Text>
         </View>
       </View>
 
       {/* Navigation Rapide (Réseau d'amis / Paramètres) */}
       <View style={styles.quickNavContainer}>
         <Pressable 
-          style={styles.navCard}
+          style={[styles.navCard, isDark && styles.darkCard]}
           onPress={() => router.push('/(tabs)/profile/friends')}
         >
           <View style={[styles.navIcon, { backgroundColor: '#E0E7FF' }]}>
             <Users size={24} color="#4F46E5" />
           </View>
           <View style={styles.navTextContainer}>
-            <Text style={styles.navTitle}>Réseau d'amis</Text>
-            <Text style={styles.navSubtitle}>Trouvez d'autres joueurs</Text>
+            <Text style={[styles.navTitle, isDark && styles.darkText]}>Réseau d'amis</Text>
+            <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Trouvez d'autres joueurs</Text>
           </View>
         </Pressable>
 
         <Pressable 
-          style={styles.navCard}
+          style={[styles.navCard, isDark && styles.darkCard]}
           onPress={() => router.push('/(tabs)/profile/settings')}
         >
           <View style={[styles.navIcon, { backgroundColor: '#F3F4F6' }]}>
             <Settings size={24} color="#4B5563" />
           </View>
           <View style={styles.navTextContainer}>
-            <Text style={styles.navTitle}>Paramètres</Text>
-            <Text style={styles.navSubtitle}>Son, permissions, etc.</Text>
+            <Text style={[styles.navTitle, isDark && styles.darkText]}>Paramètres</Text>
+            <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Son, permissions, etc.</Text>
           </View>
         </Pressable>
       </View>
 
       {/* Herbier des Badges (Mock) */}
       <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Herbier des Badges</Text>
+        <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Herbier des Badges</Text>
         <View style={styles.badgesGrid}>
           {loadingBadges ? (
             <ActivityIndicator size="small" color="#4F46E5" />
@@ -356,4 +359,8 @@ const styles = StyleSheet.create({
   badgeNameLocked: {
     color: '#94A3B8',
   },
+  darkContainer: { backgroundColor: '#0F172A' },
+  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000', borderColor: '#334155' },
+  darkText: { color: '#F8FAFC' },
+  darkTextMuted: { color: '#94A3B8' },
 });

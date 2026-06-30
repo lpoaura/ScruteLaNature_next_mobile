@@ -111,6 +111,9 @@ export interface Jeu {
   imageUrl?: string;
   donneesJeu?: Record<string, unknown>;
   reponse?: string;
+  maxAttempts?: number;
+  messageEchec?: string;
+  isBlocking?: boolean;
   // Paths locaux après téléchargement
   audioLocalPath?: string;
   imageLocalPath?: string;
@@ -119,6 +122,8 @@ export interface Jeu {
 // Données spécifiques par type de jeu
 export interface DonneesQCM {
   options: string[];
+  bonneReponseIndex?: number;
+  qcmType?: 'text' | 'image' | 'audio';
 }
 
 export interface DonneesCaesar {
@@ -128,6 +133,7 @@ export interface DonneesCaesar {
 
 export interface DonneesCalcPyramidal {
   grille: (number | null)[][];
+  fullGrid?: (number | null)[][];
 }
 
 export interface Badge {

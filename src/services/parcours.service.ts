@@ -4,6 +4,7 @@ import {
   insertEtape,
   insertJeu,
   updateJeuLocalPaths,
+  deleteParcours,
 } from './database.service';
 import {
   downloadCoverImage,
@@ -89,6 +90,8 @@ export const parcoursService = {
 
     // ── Étape 2 : Insérer dans SQLite ─────────────────────────────────────
     onProgress?.(0.10);
+    // Nettoyage complet avant l'insertion pour éviter les données fantômes (ex: étape supprimée sur le web)
+    await deleteParcours(id);
     await insertParcours(data);
 
     // ── Étape 3 : Insérer les étapes et jeux ─────────────────────────────
