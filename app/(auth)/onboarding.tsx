@@ -1,22 +1,22 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Dimensions,
-  FlatList,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
-  ViewToken,
+  Image,
 } from 'react-native';
 import Animated, {
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  withTiming,
+  SharedValue,
   interpolate,
   Extrapolation,
+  interpolateColor,
 } from 'react-native-reanimated';
 import { useSettingsStore } from '@/src/store/settings.store';
 import { useColorScheme } from 'react-native';
@@ -32,67 +32,174 @@ const SLIDES = [
   {
     id: '1',
     emoji: '🗺️',
+    image: require('@/src/assets/images/onboarding/slide1.jpg'),
     title: 'Choisis une balade',
     subtitle: 'Découvrez des parcours nature créés par les équipes LPO dans votre région.',
-    bg: '#E8F5E9',
-    accent: '#2D6A4F',
+    bgLight: '#E8F5E9',
+    bgDark: '#064E3B',
+    accent: '#10B981',
   },
   {
     id: '2',
-    emoji: '📥',
-    title: 'Télécharge pour jouer sans réseau',
+    emoji: '🎒',
+    image: require('@/src/assets/images/onboarding/slide2.jpg'),
+    title: 'Télécharge pour jouer',
     subtitle: 'Emportez la balade dans votre poche. Elle fonctionne entièrement hors-ligne en forêt.',
-    bg: '#E3F2FD',
-    accent: '#1565C0',
+    bgLight: '#E0F2FE',
+    bgDark: '#0C4A6E',
+    accent: '#0EA5E9',
   },
   {
     id: '3',
-    emoji: '🌿',
-    title: 'Résous les énigmes en pleine nature',
-    subtitle: 'Suivez votre mascotte, observez la faune et découvrez les secrets de la nature.',
-    bg: '#FFF3E0',
-    accent: '#E65100',
+    emoji: '🔍',
+    image: require('@/src/assets/images/onboarding/slide3.png'),
+    title: 'Résous les énigmes',
+    subtitle: 'Suivez votre animateur LPO, observez la faune et découvrez les secrets de la nature.',
+    bgLight: '#FFF7ED',
+    bgDark: '#78350F',
+    accent: '#F59E0B',
   },
 ];
 
-// ─── Composant Slide ──────────────────────────────────────────────────────────
+// ─── Composant Slide Animé (Parallax) ─────────────────────────────────────────
 
-function Slide({ item, isDark }: { item: (typeof SLIDES)[0]; isDark: boolean }) {
+interface SlideProps {
+  item: (typeof SLIDES)[0];
+  index: number;
+  scrollX: SharedValue<number>;
+  isDark: boolean;
+}
+
+function Slide({ item, index, scrollX, isDark }: SlideProps) {
+  // Animation Parallax pour l'Emoji/Image
+  const imageAnimatedStyle = useAnimatedStyle(() => {
+    const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+    
+    const translateX = interpolate(
+      scrollX.value,
+      inputRange,
+      [width * 0.5, 0, -width * 0.5], // L'image bouge plus vite que la page
+      Extrapolation.CLAMP
+    );
+
+    const scale = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.5, 1, 0.5], // Effet de zoom in/out
+      Extrapolation.CLAMP
+    );
+
+    const opacity = interpolate(
+      scrollX.value,
+      inputRange,
+      [0, 1, 0],
+      Extrapolation.CLAMP
+    );
+
+    return {
+      transform: [{ translateX }, { scale }],
+      opacity,
+    };
+  });
+
+  // Animation Parallax pour le Texte (plus lent)
+  const textAnimatedStyle = useAnimatedStyle(() => {
+    const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+    
+    const translateX = interpolate(
+      scrollX.value,
+      inputRange,
+      [width * 0.2, 0, -width * 0.2],
+      Extrapolation.CLAMP
+    );
+
+    const opacity = interpolate(
+      scrollX.value,
+      inputRange,
+      [0, 1, 0],
+      Extrapolation.CLAMP
+    );
+
+    return {
+      transform: [{ translateX }],
+      opacity,
+    };
+  });
+
   return (
-    <View style={[styles.slide, { backgroundColor: isDark ? '#1E293B' : item.bg, width }]}>
-      <Text style={styles.slideEmoji}>{item.emoji}</Text>
-      <Text style={[styles.slideTitle, { color: isDark ? '#60A5FA' : item.accent }]}>{item.title}</Text>
-      <Text style={[styles.slideSubtitle, isDark && styles.darkTextMuted]}>{item.subtitle}</Text>
+    <View style={[styles.slide, { width }]}>
+      {/* Conteneur de l'image (Prêt pour la graphiste) */}
+      <View style={styles.imageContainer}>
+        {item.image ? (
+          <Animated.Image 
+            source={item.image} 
+            style={[styles.fullImage, imageAnimatedStyle]} 
+            resizeMode="contain" 
+          />
+        ) : (
+          <Animated.View style={[styles.emojiWrapper, imageAnimatedStyle, { backgroundColor: isDark ? item.bgDark : item.bgLight }]}>
+            <Text style={styles.slideEmoji}>{item.emoji}</Text>
+          </Animated.View>
+        )}
+      </View>
+
+      {/* Conteneur du texte */}
+      <Animated.View style={[styles.textContainer, textAnimatedStyle]}>
+        <Text style={[styles.slideTitle, { color: isDark ? '#F8FAFC' : '#1F2937' }]}>{item.title}</Text>
+        <Text style={[styles.slideSubtitle, isDark ? styles.darkTextMuted : styles.lightTextMuted]}>{item.subtitle}</Text>
+      </Animated.View>
     </View>
   );
 }
 
-// ─── Indicateur de pagination ─────────────────────────────────────────────────
+// ─── Indicateur de pagination animé ───────────────────────────────────────────
 
-function Dot({ index, activeIndex }: { index: number; activeIndex: number }) {
-  const isActive = index === activeIndex;
-  const width = useSharedValue(isActive ? 24 : 8);
-
-  useEffect(() => {
-    width.value = withSpring(isActive ? 24 : 8);
-  }, [isActive]);
-
-  const style = useAnimatedStyle(() => ({
-    width: width.value,
-  }));
-
+function Paginator({ scrollX, isDark }: { scrollX: SharedValue<number>; isDark: boolean }) {
   return (
-    <Animated.View
-      style={[
-        styles.dot,
-        { backgroundColor: SLIDES[activeIndex].accent },
-        style,
-      ]}
-    />
+    <View style={styles.dotsContainer}>
+      {SLIDES.map((_, i) => {
+        const animatedDotStyle = useAnimatedStyle(() => {
+          const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
+          
+          const dotWidth = interpolate(
+            scrollX.value,
+            inputRange,
+            [8, 24, 8],
+            Extrapolation.CLAMP
+          );
+
+          const opacity = interpolate(
+            scrollX.value,
+            inputRange,
+            [0.3, 1, 0.3],
+            Extrapolation.CLAMP
+          );
+
+          return {
+            width: dotWidth,
+            opacity,
+          };
+        });
+
+        // La couleur du dot dépend du slide actif
+        const color = SLIDES[i].accent;
+
+        return (
+          <Animated.View
+            key={i}
+            style={[
+              styles.dot,
+              { backgroundColor: color },
+              animatedDotStyle,
+            ]}
+          />
+        );
+      })}
+    </View>
   );
 }
 
-// ─── Écran Onboarding ─────────────────────────────────────────────────────────
+// ─── Écran Onboarding Principal ───────────────────────────────────────────────
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -100,16 +207,24 @@ export default function OnboardingScreen() {
   const systemColorScheme = useColorScheme();
   const settingsTheme = useSettingsStore((state: any) => state.theme);
   const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
-  const [activeIndex, setActiveIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
+  
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const scrollX = useSharedValue(0);
+  const flatListRef = useRef<Animated.FlatList<any>>(null);
 
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems.length > 0) {
-        setActiveIndex(viewableItems[0].index ?? 0);
-      }
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollX.value = event.contentOffset.x;
+    },
+  });
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems[0]) {
+      setCurrentIndex(viewableItems[0].index);
     }
-  ).current;
+  }).current;
+
+  const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
   const handleSkip = async () => {
     await saveString(STORAGE_KEYS.ONBOARDING_DONE, 'true');
@@ -117,53 +232,58 @@ export default function OnboardingScreen() {
   };
 
   const handleNext = () => {
-    if (activeIndex < SLIDES.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
+    if (currentIndex < SLIDES.length - 1) {
+      flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
     } else {
       handleSkip();
     }
   };
 
-  const isLast = activeIndex === SLIDES.length - 1;
-  const accent = SLIDES[activeIndex].accent;
+  const isLast = currentIndex === SLIDES.length - 1;
+  const currentAccent = SLIDES[currentIndex].accent;
+
+  // Animation de fond global (transition de couleurs)
+  const animatedBackgroundStyle = useAnimatedStyle(() => {
+    const backgroundColor = interpolateColor(
+      scrollX.value,
+      SLIDES.map((_, i) => i * width),
+      SLIDES.map((s) => (isDark ? '#0F172A' : '#F8FAFC')) // Fond principal uniforme
+    );
+    return { backgroundColor };
+  });
 
   return (
-    <View style={[styles.container, isDark && styles.darkContainer, { paddingBottom: insets.bottom + 24 }]}>
-      {/* Bouton "Passer" */}
+    <Animated.View style={[styles.container, animatedBackgroundStyle, { paddingBottom: insets.bottom + 24 }]}>
+      {/* Header : Bouton Passer */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        {!isLast && (
-          <Pressable onPress={handleSkip} style={styles.skipButton}>
-            <Text style={[styles.skipText, { color: isDark ? '#60A5FA' : accent }]}>Passer</Text>
-          </Pressable>
-        )}
+        <Pressable onPress={handleSkip} style={styles.skipButton}>
+          <Text style={[styles.skipText, { color: isDark ? '#94A3B8' : '#6B7280' }]}>Passer</Text>
+        </Pressable>
       </View>
 
-      {/* Slides */}
-      <FlatList
+      {/* FlatList Animée */}
+      <Animated.FlatList
         ref={flatListRef}
         data={SLIDES}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <Slide item={item} isDark={isDark} />}
+        renderItem={({ item, index }) => <Slide item={item} index={index} scrollX={scrollX} isDark={isDark} />}
         horizontal
-        pagingEnabled
         showsHorizontalScrollIndicator={false}
+        pagingEnabled
+        bounces={false}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
         onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
+        viewabilityConfig={viewConfig}
         style={styles.flatList}
       />
 
-      {/* Footer : dots + bouton */}
+      {/* Footer : Glassmorphism / Carte du bas */}
       <View style={styles.footer}>
-        {/* Indicateurs de pagination */}
-        <View style={styles.dots}>
-          {SLIDES.map((_, i) => (
-            <Dot key={i} index={i} activeIndex={activeIndex} />
-          ))}
-        </View>
+        <Paginator scrollX={scrollX} isDark={isDark} />
 
-        {/* Bouton principal */}
         <Pressable
-          style={[styles.nextButton, { backgroundColor: isDark ? '#3B82F6' : accent }]}
+          style={[styles.nextButton, { backgroundColor: currentAccent }]}
           onPress={handleNext}
         >
           <Text style={styles.nextButtonText}>
@@ -171,19 +291,19 @@ export default function OnboardingScreen() {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   header: {
     paddingHorizontal: 24,
     alignItems: 'flex-end',
     height: 60,
+    zIndex: 10,
   },
   skipButton: {
     paddingVertical: 8,
@@ -191,7 +311,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   flatList: {
     flex: 1,
@@ -199,36 +319,64 @@ const styles = StyleSheet.create({
   slide: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 40,
+    paddingHorizontal: 32,
+  },
+  imageContainer: {
+    flex: 0.6,
+    width: '100%',
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 40,
-    gap: 20,
+  },
+  fullImage: {
+    width: '90%',
+    height: '90%',
+  },
+  emojiWrapper: {
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
   },
   slideEmoji: {
-    fontSize: 80,
-    marginBottom: 8,
+    fontSize: 100,
+  },
+  textContainer: {
+    flex: 0.4,
+    width: '100%',
+    alignItems: 'center',
+    paddingTop: 40,
   },
   slideTitle: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: '800',
     textAlign: 'center',
-    lineHeight: 34,
+    marginBottom: 16,
   },
   slideSubtitle: {
-    fontSize: 17,
-    color: '#555',
+    fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
   },
+  lightTextMuted: { color: '#4B5563' },
+  darkTextMuted: { color: '#94A3B8' },
   footer: {
-    paddingHorizontal: 24,
-    gap: 24,
+    paddingHorizontal: 32,
+    gap: 32,
     paddingTop: 24,
   },
-  dots: {
+  dotsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   dot: {
     height: 8,
@@ -239,13 +387,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   nextButtonText: {
     color: '#fff',
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
   },
-  darkContainer: { backgroundColor: '#0F172A' },
-  darkText: { color: '#F8FAFC' },
-  darkTextMuted: { color: '#94A3B8' },
 });
