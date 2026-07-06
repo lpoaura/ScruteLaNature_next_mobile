@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, useWindowDimensions, ScrollView } from 'react-native';
 import Animated, { FadeIn, SlideInRight, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -190,58 +190,60 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
   };
 
   return (
-    <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-      <View style={styles.headerBadge}>
-        <Ionicons name="extension-puzzle" size={24} color="#0EA5E9" />
-        <Text style={styles.title}>Taquin</Text>
-      </View>
-      
-      {jeu.question ? (
-        <Text style={styles.questionText}>{jeu.question}</Text>
-      ) : (
-        <Text style={styles.questionText}>Reconstituez l'image en faisant glisser les pièces.</Text>
-      )}
+    <Animated.View style={[styles.container, shakeStyle]}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerBadge}>
+          <Ionicons name="extension-puzzle" size={24} color="#0EA5E9" />
+          <Text style={styles.title}>{jeu.titre || 'Taquin'}</Text>
+        </View>
+        
+        {jeu.question ? (
+          <Text style={styles.questionText}>{jeu.question}</Text>
+        ) : (
+          <Text style={styles.questionText}>Reconstituez l'image en faisant glisser les pièces.</Text>
+        )}
 
-      {/* ZONE DU PUZZLE */}
-      <View style={[styles.puzzleBoard, { width: puzzleSize, height: puzzleSize }]}>
-        {pieces.map((pieceValue, index) => (
-          <PuzzlePiece
-            key={`piece-${pieceValue}`}
-            pieceValue={pieceValue}
-            currentIndex={index}
-            isRevealed={isRevealed}
-            imageSource={imageSource}
-            pieceSize={pieceSize}
-            puzzleSize={puzzleSize}
-            onPress={() => handlePressPiece(index)}
-          />
-        ))}
-      </View>
+        {/* ZONE DU PUZZLE */}
+        <View style={[styles.puzzleBoard, { width: puzzleSize, height: puzzleSize }]}>
+          {pieces.map((pieceValue, index) => (
+            <PuzzlePiece
+              key={`piece-${pieceValue}`}
+              pieceValue={pieceValue}
+              currentIndex={index}
+              isRevealed={isRevealed}
+              imageSource={imageSource}
+              pieceSize={pieceSize}
+              puzzleSize={puzzleSize}
+              onPress={() => handlePressPiece(index)}
+            />
+          ))}
+        </View>
 
-      {!isRevealed && (
-         <Pressable style={styles.bypassBtn} onPress={handleBypass}>
-           <Text style={styles.bypassText}>Passer le puzzle (Mode Facile)</Text>
-         </Pressable>
-      )}
+        {!isRevealed && (
+          <Pressable style={styles.bypassBtn} onPress={handleBypass}>
+            <Text style={styles.bypassText}>Passer le puzzle (Mode Facile)</Text>
+          </Pressable>
+        )}
 
-      {isRevealed && (
-        <Animated.View entering={FadeIn}>
-          <View style={styles.successBadge}>
-            <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-            <Text style={styles.successText}>Image reconstituée !</Text>
-          </View>
-          
-          <Animated.View entering={SlideInRight.springify()} style={styles.explicationContainer}>
-            {jeu.explication && (
-              <Text style={styles.explicationText}>{jeu.explication}</Text>
-            )}
-            <Pressable style={styles.continueButton} onPress={onSuccess}>
-              <Text style={styles.continueButtonText}>Continuer</Text>
-              <Ionicons name="arrow-forward" size={20} color="white" />
-            </Pressable>
+        {isRevealed && (
+          <Animated.View entering={FadeIn}>
+            <View style={styles.successBadge}>
+              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+              <Text style={styles.successText}>Image reconstituée !</Text>
+            </View>
+            
+            <Animated.View entering={SlideInRight.springify()} style={styles.explicationContainer}>
+              {jeu.explication && (
+                <Text style={styles.explicationText}>{jeu.explication}</Text>
+              )}
+              <Pressable style={styles.continueButton} onPress={onSuccess}>
+                <Text style={styles.continueButtonText}>Continuer</Text>
+                <Ionicons name="arrow-forward" size={20} color="white" />
+              </Pressable>
+            </Animated.View>
           </Animated.View>
-        </Animated.View>
-      )}
+        )}
+      </ScrollView>
     </Animated.View>
   );
 }
@@ -249,9 +251,13 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F0F9FF',
+  },
+  scrollContent: {
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: '#F0F9FF', // Sky blue très léger
+    alignItems: 'center',
+    flexGrow: 1,
   },
   headerBadge: {
     flexDirection: 'row',

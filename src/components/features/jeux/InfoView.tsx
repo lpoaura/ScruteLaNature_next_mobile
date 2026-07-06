@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, ScrollView } from 'react-native';
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import type { Jeu } from '@/src/types/api.types';
@@ -20,28 +20,30 @@ export function InfoView({ jeu, onSuccess }: InfoViewProps) {
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={styles.container}>
-      <Text style={styles.title}>Le saviez-vous ?</Text>
-      
-      {imageSource && (
-        <Animated.Image 
-          entering={FadeIn.delay(200)}
-          source={imageSource} 
-          style={styles.image} 
-          resizeMode="contain"
-        />
-      )}
-
-      <View style={styles.contentCard}>
-        <Text style={styles.questionText}>{jeu.question}</Text>
-        {jeu.explication && (
-          <Text style={styles.explicationText}>{jeu.explication}</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>{jeu.titre || 'Le saviez-vous ?'}</Text>
+        
+        {imageSource && (
+          <Animated.Image 
+            entering={FadeIn.delay(200)}
+            source={imageSource} 
+            style={styles.image} 
+            resizeMode="contain"
+          />
         )}
-      </View>
 
-      <Pressable style={styles.button} onPress={onSuccess}>
-        <Text style={styles.buttonText}>Continuer</Text>
-        <Ionicons name="checkmark-circle" size={24} color="white" />
-      </Pressable>
+        <View style={styles.contentCard}>
+          <Text style={styles.questionText}>{jeu.question}</Text>
+          {jeu.explication && (
+            <Text style={styles.explicationText}>{jeu.explication}</Text>
+          )}
+        </View>
+
+        <Pressable style={styles.button} onPress={onSuccess}>
+          <Text style={styles.buttonText}>Continuer</Text>
+          <Ionicons name="checkmark-circle" size={24} color="white" />
+        </Pressable>
+      </ScrollView>
     </Animated.View>
   );
 }
@@ -49,9 +51,12 @@ export function InfoView({ jeu, onSuccess }: InfoViewProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F7F5',
+  },
+  scrollContent: {
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: '#F5F7F5',
+    flexGrow: 1,
   },
   title: {
     fontSize: 28,

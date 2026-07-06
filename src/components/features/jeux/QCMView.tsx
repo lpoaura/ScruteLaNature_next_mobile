@@ -95,7 +95,7 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
   return (
     <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Question Nature</Text>
+        <Text style={styles.title}>{jeu.titre || 'Question Nature'}</Text>
       
       {imageSource && (
         <Animated.Image 

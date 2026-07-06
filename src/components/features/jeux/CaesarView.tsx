@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ScrollView } from 'react-native';
 import Animated, { 
   FadeIn, 
   SlideInRight, 
@@ -84,10 +84,11 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         
         <View style={styles.headerBadge}>
           <Ionicons name="key" size={20} color="#F59E0B" />
-          <Text style={styles.title}>Code César</Text>
+          <Text style={styles.title}>{jeu.titre || 'Code César'}</Text>
         </View>
         
         {imageSource && (
@@ -153,8 +154,9 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
               <Text style={styles.continueButtonText}>Continuer</Text>
               <Ionicons name="arrow-forward" size={20} color="white" />
             </Pressable>
-          </Animated.View>
-        )}
+            </Animated.View>
+          )}
+          </ScrollView>
         </Animated.View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -164,9 +166,12 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F7F5',
+  },
+  scrollContent: {
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: '#FFFBEB', // Fond très léger jaune/ambre pour l'aspect mystère
+    flexGrow: 1,
   },
   headerBadge: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ScrollView } from 'react-native';
 import Animated, { 
   FadeIn, 
   SlideInRight, 
@@ -81,7 +81,8 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-        <Text style={styles.title}>Charade</Text>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>{jeu.titre || 'Charade'}</Text>
         
         {imageSource && (
           <Animated.Image 
@@ -138,6 +139,7 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
             </Pressable>
           </Animated.View>
         )}
+        </ScrollView>
         </Animated.View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -147,9 +149,12 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F7F5',
+  },
+  scrollContent: {
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: '#F5F7F5',
+    flexGrow: 1,
   },
   title: {
     fontSize: 28,

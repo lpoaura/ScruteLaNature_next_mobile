@@ -91,6 +91,10 @@ export default function ProfileScreen() {
           </View>
           <Text style={[styles.statValue, isDark && styles.darkText]}>{co2Saved.toFixed(1)} kg</Text>
           <Text style={[styles.statLabel, isDark && styles.darkTextMuted]}>de CO2 économisé</Text>
+          
+          <Text style={[styles.statExplanation, isDark && styles.darkTextMuted]}>
+            En marchant plutôt qu'en conduisant lors de vos balades, vous avez évité l'émission de cette quantité de CO2 ! 🌍
+          </Text>
         </View>
       </View>
 
@@ -267,6 +271,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#10B981',
     fontWeight: '600',
+  },
+  statExplanation: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 18,
   },
   quickNavContainer: {
     marginBottom: 24,

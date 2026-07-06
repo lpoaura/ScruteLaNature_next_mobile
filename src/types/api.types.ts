@@ -105,6 +105,7 @@ export interface Jeu {
   etapeId: string;
   order: number;
   type: JeuType;
+  titre?: string;
   question: string;
   explication?: string;
   audioUrl?: string;

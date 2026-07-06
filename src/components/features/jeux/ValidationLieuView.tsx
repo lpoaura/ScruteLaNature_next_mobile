@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import Animated, { FadeIn, SlideInRight, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -109,9 +109,10 @@ export function ValidationLieuView({ jeu, etape, onSuccess, onFail, forceReveal 
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.headerBadge}>
         <Ionicons name="location" size={24} color="#E11D48" />
-        <Text style={styles.title}>Lieu Atteint ?</Text>
+        <Text style={styles.title}>{jeu.titre || 'Lieu Atteint ?'}</Text>
       </View>
       
       {imageSource && (
@@ -173,8 +174,9 @@ export function ValidationLieuView({ jeu, etape, onSuccess, onFail, forceReveal 
             <Text style={styles.continueButtonText}>Continuer</Text>
             <Ionicons name="arrow-forward" size={20} color="white" />
           </Pressable>
-        </Animated.View>
-      )}
+          </Animated.View>
+        )}
+      </ScrollView>
     </Animated.View>
   );
 }
@@ -182,9 +184,12 @@ export function ValidationLieuView({ jeu, etape, onSuccess, onFail, forceReveal 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFF1F2', // Rose très pâle
+  },
+  scrollContent: {
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: '#FFF1F2', // Rose pâle
+    flexGrow: 1,
   },
   headerBadge: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Linking from 'expo-linking';
@@ -31,11 +31,13 @@ function AuthGuard() {
   const isInitialized = useAuthStore((state) => state.isInitialized);
   const isGuest = useAuthStore((state) => state.isGuest);
 
-  useEffect(() => {
-    if (!isInitialized) return;
+  const rootNavigationState = useRootNavigationState();
 
-    // Utilisation de setTimeout pour éviter les conflits de cycle de rendu avec React Navigation
-    // qui peuvent causer l'erreur "Couldn't find a navigation context".
+  useEffect(() => {
+    // Ne rien faire tant que l'auth n'est pas initialisée OU que la navigation n'est pas prête
+    if (!isInitialized || !rootNavigationState?.key) return;
+
+    // Utilisation de setTimeout pour s'assurer que le rendu actuel est terminé
     const timeout = setTimeout(() => {
       const inAuthGroup = segments[0] === '(auth)';
 
@@ -49,7 +51,7 @@ function AuthGuard() {
     }, 0);
 
     return () => clearTimeout(timeout);
-  }, [isAuthenticated, isInitialized, isGuest, segments]);
+  }, [isAuthenticated, isInitialized, isGuest, segments, rootNavigationState?.key]);
 
   return null;
 }

@@ -34,9 +34,14 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
     setHasFailedAll(false);
   }, [currentIndex]);
 
-  // S'il n'y a pas de jeu, on complète direct
+  useEffect(() => {
+    // S'il n'y a pas de jeu, on complète direct après le montage
+    if (!jeux || jeux.length === 0) {
+      onAllCompleted();
+    }
+  }, [jeux, onAllCompleted]);
+
   if (!jeux || jeux.length === 0) {
-    onAllCompleted();
     return null;
   }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import type { Jeu } from '@/src/types/api.types';
@@ -19,9 +19,10 @@ export function EcoGesteView({ jeu, onSuccess }: EcoGesteViewProps) {
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.headerBadge}>
         <Ionicons name="leaf" size={24} color="#10B981" />
-        <Text style={styles.title}>Éco-Geste</Text>
+        <Text style={styles.title}>{jeu.titre || 'Éco-Geste'}</Text>
       </View>
       
       {imageSource && (
@@ -44,6 +45,7 @@ export function EcoGesteView({ jeu, onSuccess }: EcoGesteViewProps) {
         <Text style={styles.buttonText}>Je m'engage !</Text>
         <Ionicons name="heart" size={24} color="white" />
       </Pressable>
+      </ScrollView>
     </Animated.View>
   );
 }
@@ -51,9 +53,12 @@ export function EcoGesteView({ jeu, onSuccess }: EcoGesteViewProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#ECFDF5', // Très léger vert
+  },
+  scrollContent: {
     padding: 24,
     justifyContent: 'center',
-    backgroundColor: '#ECFDF5', // Très léger vert
+    flexGrow: 1,
   },
   headerBadge: {
     flexDirection: 'row',

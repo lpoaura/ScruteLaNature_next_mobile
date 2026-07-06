@@ -344,7 +344,7 @@ export default function ParcoursDetailScreen() {
               <Image
                 source={{ uri: resolveMediaUrl(parcours.coverImage) }}
                 style={styles.heroImage}
-                resizeMode="cover"
+                resizeMode="contain"
               />
             ) : (
               <View style={styles.heroPlaceholder}>

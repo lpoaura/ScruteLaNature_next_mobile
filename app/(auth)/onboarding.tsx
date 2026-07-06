@@ -32,7 +32,7 @@ const SLIDES = [
   {
     id: '1',
     emoji: '🗺️',
-    image: require('@/src/assets/images/onboarding/slide1.jpg'),
+    image: require('@/src/assets/images/onboarding/slide1.png'),
     title: 'Choisis une balade',
     subtitle: 'Découvrez des parcours nature créés par les équipes LPO dans votre région.',
     bgLight: '#E8F5E9',
@@ -42,7 +42,7 @@ const SLIDES = [
   {
     id: '2',
     emoji: '🎒',
-    image: require('@/src/assets/images/onboarding/slide2.jpg'),
+    image: require('@/src/assets/images/onboarding/slide2.png'),
     title: 'Télécharge pour jouer',
     subtitle: 'Emportez la balade dans votre poche. Elle fonctionne entièrement hors-ligne en forêt.',
     bgLight: '#E0F2FE',

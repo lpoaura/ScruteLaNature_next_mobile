@@ -122,7 +122,7 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
           
           <View style={styles.headerBadge}>
             <Ionicons name="calculator" size={20} color="#6366F1" />
-            <Text style={styles.title}>Calcul Pyramidal</Text>
+            <Text style={styles.title}>{jeu.titre || 'Calcul Pyramidal'}</Text>
           </View>
           
           {imageSource && (
