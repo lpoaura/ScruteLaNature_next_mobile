@@ -181,10 +181,12 @@ export default function SearchScreen() {
     if (!isReady || !isFocused) return;
     
     let locationSubscription: Location.LocationSubscription | null = null;
+    let isMounted = true;
 
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
+        if (!isMounted) return;
         if (status !== 'granted') {
           setHasLocationPermission(false);
           setUserLocation(null);
@@ -195,7 +197,7 @@ export default function SearchScreen() {
         // getLastKnownPositionAsync est INSTANTANÉ (cache GPS du système)
         // et ne bloque jamais le thread JS contrairement à getCurrentPositionAsync
         const lastKnown = await Location.getLastKnownPositionAsync();
-        if (lastKnown) {
+        if (lastKnown && isMounted) {
           const loc = { lat: lastKnown.coords.latitude, lng: lastKnown.coords.longitude };
           setUserLocation(loc);
           cameraRef.current?.easeTo({
@@ -206,9 +208,10 @@ export default function SearchScreen() {
         }
 
         // Ensuite, en arrière-plan, on demande une position continue avec watchPositionAsync
-        locationSubscription = await Location.watchPositionAsync(
+        const sub = await Location.watchPositionAsync(
           { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
           (pos) => {
+            if (!isMounted) return;
             const freshLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             
             // Ne recentrer la caméra automatiquement que si on n'avait aucune position avant
@@ -225,13 +228,23 @@ export default function SearchScreen() {
             }
           }
         );
+
+        if (!isMounted) {
+          // Si le composant a été démonté pendant l'attente de watchPositionAsync
+          sub.remove();
+        } else {
+          locationSubscription = sub;
+        }
       } catch (err) {
-        console.warn("Erreur de localisation", err);
-        setUserLocation(null);
+        if (isMounted) {
+          console.warn("Erreur de localisation", err);
+          setUserLocation(null);
+        }
       }
     })();
 
     return () => {
+      isMounted = false;
       if (locationSubscription) {
         locationSubscription.remove();
       }
