@@ -36,7 +36,7 @@ const SLIDES = [
     title: 'Choisis une balade',
     subtitle: 'Découvrez des parcours nature créés par les équipes LPO dans votre région.',
     bgLight: '#D8E8C5',
-    bgDark: '#0087CC',
+    bgDark: '#082f49', // Dark Bleu LPO
     accent: '#007E84',
   },
   {
