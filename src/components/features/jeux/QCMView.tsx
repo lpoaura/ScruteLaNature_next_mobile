@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Audio } from 'expo-av';
 import type { Jeu, DonneesQCM } from '@/src/types/api.types';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 
@@ -24,17 +25,56 @@ interface QCMViewProps {
 export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [playingAudioIndex, setPlayingAudioIndex] = useState<number | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
     };
   }, []);
 
   useEffect(() => {
     if (forceReveal) setIsRevealed(true);
   }, [forceReveal]);
+
+  const toggleAudio = async (option: string, index: number) => {
+    try {
+      if (playingAudioIndex === index) {
+        if (soundRef.current) {
+          const status = await soundRef.current.getStatusAsync();
+          if (status.isLoaded && status.isPlaying) {
+            await soundRef.current.pauseAsync();
+          } else if (status.isLoaded) {
+            await soundRef.current.playAsync();
+          }
+        }
+      } else {
+        if (soundRef.current) {
+          await soundRef.current.unloadAsync();
+          soundRef.current = null;
+        }
+        
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: resolveMediaUrl(option) },
+          { shouldPlay: true },
+          (status) => {
+            if (status.isLoaded && status.didJustFinish) {
+              setPlayingAudioIndex(null);
+            }
+          }
+        );
+        soundRef.current = sound;
+        setPlayingAudioIndex(index);
+      }
+    } catch (error) {
+      console.error("Error playing audio:", error);
+    }
+  };
   
   // Cast sécurisé des données
   const donnees = jeu.donneesJeu as unknown as DonneesQCM | undefined;
@@ -131,6 +171,49 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
             textColor = 'white';
           }
 
+          if (qcmType === 'audio') {
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.optionButton,
+                  { backgroundColor: bgColor, borderColor, paddingVertical: 8, paddingHorizontal: 12 }
+                ]}
+              >
+                <Pressable 
+                  onPress={() => toggleAudio(option, index)}
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: playingAudioIndex === index ? '#EEF2FF' : '#F3F4F6',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12
+                  }}
+                >
+                  <Ionicons name={playingAudioIndex === index ? "pause" : "play"} size={24} color={playingAudioIndex === index ? "#0087CC" : (isSelected ? textColor : '#4B5563')} />
+                </Pressable>
+                
+                <Pressable 
+                  onPress={() => handleSelect(option, index)}
+                  style={{ flex: 1, paddingVertical: 10 }}
+                >
+                  <Text style={[styles.optionText, { color: textColor }]} numberOfLines={1}>
+                    Extrait audio {index + 1}
+                  </Text>
+                </Pressable>
+
+                {isSelected && isCorrectAnswer && (
+                  <Ionicons name="checkmark-circle" size={24} color="white" style={styles.optionIcon} />
+                )}
+                {isSelected && !isCorrectAnswer && (
+                  <Ionicons name="close-circle" size={24} color="white" style={styles.optionIcon} />
+                )}
+              </View>
+            );
+          }
+
           return (
             <Pressable
               key={index}
@@ -154,11 +237,6 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
                       <Ionicons name="close-circle" size={28} color="white" />
                     </View>
                   )}
-                </View>
-              ) : qcmType === 'audio' ? (
-                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-                  <Ionicons name="musical-notes" size={24} color={textColor} style={{ marginRight: 12 }} />
-                  <Text style={[styles.optionText, { color: textColor }]} numberOfLines={1}>Extrait audio {index + 1}</Text>
                 </View>
               ) : (
                 <Text style={[styles.optionText, { color: textColor }]}>{option}</Text>
