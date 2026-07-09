@@ -92,6 +92,7 @@ export default function SearchScreen() {
   const [mode, setMode] = useState<SearchMode>('parcours');
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [parcours, setParcours] = useState<Parcours[]>([]);
   const [allMapParcours, setAllMapParcours] = useState<Parcours[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -100,7 +101,6 @@ export default function SearchScreen() {
   // les composants lourds (MapView). Cela empêche le blocage du thread JS
   // qui rendait le menu tactile non-réactif.
   const [isReady, setIsReady] = useState(false);
-  const hasLoadedLocation = useRef(false);
 
   // ── Bottom Panel Animation ──
   const panelHeight = useSharedValue(SNAP_MID);
@@ -178,17 +178,19 @@ export default function SearchScreen() {
 
   // ── Localisation — lancée APRÈS le montage des composants lourds ──
   useEffect(() => {
-    if (!isReady || hasLoadedLocation.current) return;
-    hasLoadedLocation.current = true;
+    if (!isReady || !isFocused) return;
+    
+    let locationSubscription: Location.LocationSubscription | null = null;
 
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          setUserLocation({ lat: 46.2276, lng: 2.2137 
-});
+          setHasLocationPermission(false);
+          setUserLocation(null);
           return;
         }
+        setHasLocationPermission(true);
 
         // getLastKnownPositionAsync est INSTANTANÉ (cache GPS du système)
         // et ne bloque jamais le thread JS contrairement à getCurrentPositionAsync
@@ -200,42 +202,41 @@ export default function SearchScreen() {
             center: [loc.lng, loc.lat],
             zoom: 11,
             duration: 600,
-          
-});
+          });
         }
 
-        // Ensuite, en arrière-plan, on demande une position précise avec timeout
-        // pour mettre à jour si la position cached était trop vieille
-        try {
-          const pos = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-            timeInterval: 5000,
-          
-});
-          const freshLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          setUserLocation(freshLoc);
-
-          if (!lastKnown) {
-            cameraRef.current?.easeTo({
-              center: [freshLoc.lng, freshLoc.lat],
-              zoom: 11,
-              duration: 600,
+        // Ensuite, en arrière-plan, on demande une position continue avec watchPositionAsync
+        locationSubscription = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
+          (pos) => {
+            const freshLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             
-});
+            // Ne recentrer la caméra automatiquement que si on n'avait aucune position avant
+            const shouldCenter = !userLocation && !lastKnown;
+            
+            setUserLocation(freshLoc);
+
+            if (shouldCenter) {
+              cameraRef.current?.easeTo({
+                center: [freshLoc.lng, freshLoc.lat],
+                zoom: 11,
+                duration: 600,
+              });
+            }
           }
-        } catch {
-          // Si getCurrentPosition échoue (timeout), on garde la position cached
-          if (!lastKnown) {
-            setUserLocation({ lat: 46.2276, lng: 2.2137 
-});
-          }
-        }
-      } catch {
-        setUserLocation({ lat: 46.2276, lng: 2.2137 
-});
+        );
+      } catch (err) {
+        console.warn("Erreur de localisation", err);
+        setUserLocation(null);
       }
     })();
-  }, [isReady]);
+
+    return () => {
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+    };
+  }, [isReady, isFocused]);
 
   // ── Chargement de tous les parcours pour la carte ──
   useEffect(() => {
@@ -283,19 +284,26 @@ export default function SearchScreen() {
         center: [userLocation.lng, userLocation.lat],
         zoom: 11,
         duration: 500,
-      
-});
+      });
     } else {
       try {
-        const pos = await Location.getCurrentPositionAsync({
-});
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          alert("Permission de localisation requise pour cette fonctionnalité.");
+          return;
+        }
+        setHasLocationPermission(true);
+        const pos = await Location.getCurrentPositionAsync({});
+        const freshLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(freshLoc);
         cameraRef.current?.easeTo({
-          center: [pos.coords.longitude, pos.coords.latitude],
+          center: [freshLoc.lng, freshLoc.lat],
           zoom: 11,
           duration: 500,
-        
-});
-      } catch {}
+        });
+      } catch (e) {
+        alert("Impossible d'obtenir votre position. Vérifiez si votre GPS est activé.");
+      }
     }
   }, [userLocation]);
 
@@ -345,9 +353,6 @@ export default function SearchScreen() {
           }}
         />
 
-        {/* Position GPS de l'utilisateur */}
-        <UserLocation animated />
-
         {/* Tuiles OpenStreetMap — 100% gratuit */}
         <RasterSource
           id="osm-source"
@@ -358,6 +363,16 @@ export default function SearchScreen() {
         >
           <Layer id="osm-layer" type="raster" source="osm-source" />
         </RasterSource>
+
+        {/* Position GPS de l'utilisateur - Placé après les tuiles */}
+        {hasLocationPermission && <UserLocation animated />}
+
+        {/* Fallback Marker si UserLocation natif ne fonctionne pas */}
+        {userLocation && (
+          <Marker id="user-location-fallback" lngLat={[userLocation.lng, userLocation.lat]}>
+            <View style={styles.userLocationDot} />
+          </Marker>
+        )}
 
         {/* Marqueurs des parcours */}
         {filteredMapParcours.map((p) => {
@@ -877,8 +892,21 @@ const styles = StyleSheet.create({
   },
   markerMeta: {
     fontSize: 10,
+    fontWeight: '700',
     color: '#6B7280',
-    marginTop: 2,
+  },
+  userLocationDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#3B82F6',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
+    elevation: 4,
   },
   markerDot: {
     width: 8,
