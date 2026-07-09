@@ -17,6 +17,7 @@ interface DownloadButtonProps {
   parcoursId: string;
   onDownloaded?: () => void;
   onPlay?: () => void;
+  isPreview?: boolean;
 }
 
 /**
@@ -29,7 +30,7 @@ interface DownloadButtonProps {
  * - downloaded → "Jouer" (plein) + "Supprimer" (outline)
  * - error      → message d'erreur + "Réessayer"
  */
-export function DownloadButton({ parcoursId, onDownloaded, onPlay }: DownloadButtonProps) {
+export function DownloadButton({ parcoursId, onDownloaded, onPlay, isPreview = false }: DownloadButtonProps) {
   const [state, setState] = useState<DownloadState>('checking');
   const [errorMsg, setErrorMsg] = useState('');
   const [pct, setPct] = useState(0);
@@ -57,10 +58,14 @@ export function DownloadButton({ parcoursId, onDownloaded, onPlay }: DownloadBut
     setErrorMsg('');
 
     try {
-      await parcoursService.download(parcoursId, (p) => {
-        progress.value = withTiming(p, { duration: 200 });
-        setPct(Math.round(p * 100));
-      });
+      await parcoursService.download(
+        parcoursId, 
+        (p) => {
+          progress.value = withTiming(p, { duration: 200 });
+          setPct(Math.round(p * 100));
+        },
+        isPreview
+      );
 
       if (!cancelRef.current) {
         progress.value = withTiming(1, { duration: 300 });

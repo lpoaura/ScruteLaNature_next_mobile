@@ -93,7 +93,7 @@ export default function ProfileScreen() {
           <Text style={[styles.statLabel, isDark && styles.darkTextMuted]}>de CO2 économisé</Text>
           
           <Text style={[styles.statExplanation, isDark && styles.darkTextMuted]}>
-            En marchant plutôt qu'en conduisant lors de vos balades, vous avez évité l'émission de cette quantité de CO2 ! 🌍
+            Le CO2 est un gaz responsable du réchauffement climatique. En choisissant de faire vos balades à pied plutôt qu'en voiture, vous avez évité de polluer l'air de cette quantité ! 🌍
           </Text>
         </View>
       </View>

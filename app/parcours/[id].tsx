@@ -140,7 +140,7 @@ function StatCard({
 // ─── Écran principal ──────────────────────────────────────────────────────────
 
 export default function ParcoursDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, preview } = useLocalSearchParams<{ id: string, preview?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -184,14 +184,6 @@ export default function ParcoursDetailScreen() {
           Extrapolation.CLAMP
         ),
       },
-      {
-        scale: interpolate(
-          scrollY.value,
-          [-HERO_HEIGHT, 0],
-          [1.5, 1],
-          Extrapolation.CLAMP
-        ),
-      },
     ],
   }));
 
@@ -231,7 +223,10 @@ export default function ParcoursDetailScreen() {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiService.get<ParcoursWithEtapes>(`/mobile/parcours/${parcoursId}/download`);
+      const url = preview === 'true' 
+        ? `/mobile/parcours/${parcoursId}/preview` 
+        : `/mobile/parcours/${parcoursId}/download`;
+      const data = await apiService.get<ParcoursWithEtapes>(url);
       setParcours(data);
     } catch {
       setError('Impossible de charger ce parcours.');
@@ -244,8 +239,8 @@ export default function ParcoursDetailScreen() {
     if (!id) return;
     startParcours(id);
     // Navigation vers l'écran de jeu (Sprint 3)
-    router.push({ pathname: '/parcours/jeu/[id]', params: { id } });
-  }, [id, startParcours, router]);
+    router.push({ pathname: '/parcours/jeu/[id]', params: { id, preview } });
+  }, [id, preview, startParcours, router]);
 
   const handleDownloaded = useCallback(() => {
     if (id) addDownloaded(id);
@@ -324,7 +319,7 @@ export default function ParcoursDetailScreen() {
             </Pressable>
           </Animated.View>
           <Animated.Text style={[styles.stickyTitle, titleBarOpacityStyle]} numberOfLines={1}>
-            {parcours.title}
+            {preview === 'true' ? '🚧 TEST :' : ''} {parcours.title}
           </Animated.Text>
           <View style={{ width: 40 }} />
         </TabletWrapper>
@@ -356,7 +351,6 @@ export default function ParcoursDetailScreen() {
           {/* Overlay gradient */}
           <Animated.View style={[styles.heroGradient, heroOverlayStyle]} />
 
-          {/* Bouton retour (sur le hero) */}
           <Pressable
             style={[styles.floatingBackBtn, { top: insets.top + 12, left: 16 }]}
             onPress={() => router.back()}
@@ -364,6 +358,13 @@ export default function ParcoursDetailScreen() {
             <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFillObject} />
             <Ionicons name="chevron-back" size={24} color="#fff" />
           </Pressable>
+
+          {/* Badge MODE TEST si actif */}
+          {preview === 'true' && (
+            <View style={[styles.floatingBackBtn, { top: insets.top + 12, right: 20, width: 'auto', paddingHorizontal: 12, backgroundColor: '#EF4444' }]}>
+              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>MODE TEST</Text>
+            </View>
+          )}
 
           {/* Badge difficulté + titre */}
           <View style={styles.heroBottom}>
@@ -422,6 +423,7 @@ export default function ParcoursDetailScreen() {
                 parcoursId={id}
                 onPlay={handlePlay}
                 onDownloaded={handleDownloaded}
+                isPreview={preview === 'true'}
               />
             )}
 

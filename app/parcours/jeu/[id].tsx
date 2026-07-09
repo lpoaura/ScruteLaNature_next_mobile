@@ -173,7 +173,7 @@ export default function JeuScreen() {
     };
   }, []);
 
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, preview } = useLocalSearchParams<{ id: string, preview?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const startParcours = useGameStore((state) => state.startParcours);
@@ -550,10 +550,15 @@ export default function JeuScreen() {
       </Map>
 
       {/* ── HEADER ── */}
-      <View style={[styles.headerOverlay, { top: insets.top + 10 }]}>
+      <View style={[styles.headerOverlay, { top: insets.top + 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
         <Pressable style={styles.iconBtn} onPress={handleQuit}>
           <Ionicons name="close" size={24} color="#1F2937" />
         </Pressable>
+        {preview === 'true' && (
+          <View style={{ backgroundColor: '#EF4444', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>MODE TEST</Text>
+          </View>
+        )}
       </View>
 
       {/* ── FOOTER : Panneau info étape ── */}
@@ -574,6 +579,19 @@ export default function JeuScreen() {
               <Ionicons name="navigate-circle" size={20} color="#10B981" />
               <Text style={styles.distanceText}>À {formatDistance(distanceToNext)}</Text>
             </View>
+          )}
+
+          {/* Bypass en MODE TEST */}
+          {preview === 'true' && !isTransitionActive && !isPlayingGame && (
+            <Pressable 
+              style={{ marginTop: 12, backgroundColor: '#EF4444', padding: 12, borderRadius: 8, alignItems: 'center' }} 
+              onPress={() => {
+                setReachedEtape(currentEtape as unknown as Etape);
+                setIsTransitionActive(true);
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>Passer à l'étape (Test)</Text>
+            </Pressable>
           )}
         </View>
       </View>

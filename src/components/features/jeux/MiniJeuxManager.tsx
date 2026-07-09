@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Pressable, Alert } from 'react-native';
+import { View, StyleSheet, Text, Pressable, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Jeu, Etape } from '@/src/types/api.types';
 import { InfoView } from './InfoView';
@@ -178,8 +178,12 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
 
           {hasFailedAll && (
             <View style={styles.failureOverlay}>
-              <View style={styles.failureCard}>
-                <Ionicons name="close-circle" size={48} color="#EF4444" />
+              <ScrollView 
+                contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', padding: 20, paddingBottom: 40 }} 
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.failureCard}>
+                  <Ionicons name="close-circle" size={48} color="#EF4444" />
                 <Text style={styles.failureTitle}>Tentatives épuisées</Text>
                 <Text style={styles.failureMessage}>
                   {currentJeu.messageEchec || "Ce n'était pas la bonne réponse."}
@@ -208,6 +212,7 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
                   </Pressable>
                 )}
               </View>
+              </ScrollView>
             </View>
           )}
         </TabletWrapper>
@@ -295,11 +300,11 @@ const styles = StyleSheet.create({
   },
   failureOverlay: {
     position: 'absolute',
+    top: 0,
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
-    paddingBottom: 40,
+    backgroundColor: 'rgba(0,0,0,0.4)', // Dim background to focus on modal
     zIndex: 100,
   },
   failureCard: {

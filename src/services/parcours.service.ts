@@ -82,11 +82,13 @@ export const parcoursService = {
    */
   download: async (
     id: string,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    isPreview = false
   ): Promise<void> => {
     // ── Étape 1 : Récupérer le JSON complet depuis l'API ──────────────────
     onProgress?.(0.05);
-    const data = await apiService.get<ParcoursDownload>(`/mobile/parcours/${id}/download`);
+    const url = isPreview ? `/mobile/parcours/${id}/preview` : `/mobile/parcours/${id}/download`;
+    const data = await apiService.get<ParcoursDownload>(url);
 
     // ── Étape 2 : Insérer dans SQLite ─────────────────────────────────────
     onProgress?.(0.10);
