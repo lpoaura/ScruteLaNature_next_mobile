@@ -23,3 +23,7 @@ Application mobile du projet "Scrute La Nature" pour la LPO, conçue spécialeme
 3. Installez les dépendances : `npm install`
 4. Démarrez l'application localement sur votre terminal : `npx expo start`
 5. Scannez le QR Code depuis votre application mobile (ou lancez l'émulateur avec la touche 'i' ou 'a').
+
+
+
+ipconfig getifaddr en0

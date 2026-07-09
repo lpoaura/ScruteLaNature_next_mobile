@@ -1,34 +1,44 @@
-// Fallback for using MaterialIcons on Android and web.
+import React from 'react';
+import { StyleProp, TextStyle, ViewStyle } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolViewProps, SymbolWeight } from 'expo-symbols';
-import { ComponentProps } from 'react';
-import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
+export type IconSymbolName = 
+  | 'house.fill'
+  | 'paperplane.fill'
+  | 'chevron.left.forwardslash.chevron.right'
+  | 'chevron.right'
+  | 'magnifyingglass'
+  | 'person.fill'
+  | 'person.2.badge'
+  | 'person'
+  | 'map.fill'
+  | 'cloud.fill'
+  | 'checkmark.circle.fill'
+  | 'play.fill'
+  | 'star.fill'
+  | 'wifi'
+  | 'wifi.slash'
+  | 'leaf.fill';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
-type IconSymbolName = keyof typeof MAPPING;
-
-/**
- * Add your SF Symbols to Material Icons mappings here.
- * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
- * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
- */
-const MAPPING = {
+const MAPPING: Record<IconSymbolName, keyof typeof Ionicons.glyphMap> = {
   'house.fill': 'home',
   'paperplane.fill': 'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
+  'chevron.left.forwardslash.chevron.right': 'code-slash',
+  'chevron.right': 'chevron-forward',
   'magnifyingglass': 'search',
   'person.fill': 'person',
   'person.2.badge': 'people',
-  'person': 'person',
-} as IconMapping;
+  'person': 'person-outline',
+  'map.fill': 'map',
+  'cloud.fill': 'cloud',
+  'checkmark.circle.fill': 'checkmark-circle',
+  'play.fill': 'play',
+  'star.fill': 'star',
+  'wifi': 'wifi',
+  'wifi.slash': 'wifi-outline', // Ionicons doesn't have a great wifi-slash, using outline or we can use another
+  'leaf.fill': 'leaf',
+};
 
-/**
- * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
- * This ensures a consistent look across platforms, and optimal resource usage.
- * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
- */
 export function IconSymbol({
   name,
   size = 24,
@@ -37,9 +47,13 @@ export function IconSymbol({
 }: {
   name: IconSymbolName;
   size?: number;
-  color: string | OpaqueColorValue;
-  style?: StyleProp<TextStyle>;
-  weight?: SymbolWeight;
+  color: string;
+  style?: StyleProp<ViewStyle>;
+  weight?: string;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const iconName = MAPPING[name];
+  if (!iconName) {
+    return null;
+  }
+  return <Ionicons name={iconName} size={size} color={color} style={style as any} />;
 }

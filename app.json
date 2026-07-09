@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "tp-expo-project",
-    "slug": "tp-expo-project",
+    "name": "Scrute La Nature",
+    "slug": "scrute-la-nature",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tpexpoproject",
-    "userInterfaceStyle": "light",
+    "scheme": "scrutelanature",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.tp-expo-project"
+      "bundleIdentifier": "fr.lpo.scrutelanature"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +20,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "fr.lpo.scrutelanature"
     },
     "web": {
       "output": "static",
@@ -38,6 +39,17 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      "expo-secure-store",
+      "expo-sqlite",
+      "@maplibre/maplibre-react-native",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "L'application a besoin d'accéder à votre position pour vous centrer sur la carte et trouver des parcours autour de vous.",
+          "locationAlwaysPermission": "L'application a besoin d'accéder à votre position pour vous centrer sur la carte et trouver des parcours autour de vous.",
+          "locationWhenInUsePermission": "L'application a besoin d'accéder à votre position pour vous centrer sur la carte et trouver des parcours autour de vous."
         }
       ]
     ],
