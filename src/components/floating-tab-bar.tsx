@@ -129,7 +129,7 @@ function BackButton({ onPress, isDark }: { onPress: () => void; isDark: boolean 
             }}
             style={[
                 styles.backButton,
-                !USE_GLASS && styles.backButtonFallbackBg,
+                !USE_GLASS && (isDark ? styles.darkBackButtonFallbackBg : styles.backButtonFallbackBg),
             ]}
             accessibilityRole="button"
             accessibilityLabel="Retour"
@@ -198,7 +198,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
     const tabButtons = (
         <View style={[
             styles.container,
-            !USE_GLASS && styles.containerFallbackBg,
+            !USE_GLASS && (isDark ? styles.darkContainerFallbackBg : styles.containerFallbackBg),
         ]}>
             {state.routes.map((route, index) => {
                 const { options } = descriptors[route.key];
@@ -240,7 +240,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                     >
                         {options.tabBarIcon?.({
                             focused: isFocused,
-                            color: isFocused ? (isDark ? '#60A5FA' : '#007AFF') : (isDark ? '#94A3B8' : '#111'),
+                            color: isFocused ? (isDark ? '#7EC5C3' : '#0087CC') : (isDark ? '#94A3B8' : '#111'),
                             size: 24,
                         })}
                     </TabButton>
@@ -361,6 +361,9 @@ const styles = StyleSheet.create({
     containerFallbackBg: {
         backgroundColor: 'rgba(255, 255, 255, 0.4)',
     },
+    darkContainerFallbackBg: {
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    },
 
     // ─── Boutons ───
     tabButton: {
@@ -402,7 +405,10 @@ const styles = StyleSheet.create({
     backButtonFallbackBg: {
         backgroundColor: 'rgba(255, 255, 255, 0.4)',
     },
-    darkTabLabelActive: { color: '#60A5FA' },
+    darkBackButtonFallbackBg: {
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    },
+    darkTabLabelActive: { color: '#7EC5C3' },
     darkTabLabelInactive: { color: '#94A3B8' },
-    darkActiveBackground: { backgroundColor: 'rgba(30, 41, 59, 0.85)' },
+    darkActiveBackground: { backgroundColor: 'rgba(255, 255, 255, 0.15)' },
 });
