@@ -35,9 +35,9 @@ const SLIDES = [
     image: require('@/src/assets/images/onboarding/slide1.png'),
     title: 'Choisis une balade',
     subtitle: 'Découvrez des parcours nature créés par les équipes LPO dans votre région.',
-    bgLight: '#E8F5E9',
-    bgDark: '#064E3B',
-    accent: '#10B981',
+    bgLight: '#D8E8C5',
+    bgDark: '#0087CC',
+    accent: '#007E84',
   },
   {
     id: '2',
@@ -57,7 +57,7 @@ const SLIDES = [
     subtitle: 'Suivez votre animateur LPO, observez la faune et découvrez les secrets de la nature.',
     bgLight: '#FFF7ED',
     bgDark: '#78350F',
-    accent: '#F59E0B',
+    accent: '#EB601A',
   },
 ];
 

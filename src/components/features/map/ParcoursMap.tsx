@@ -110,7 +110,7 @@ export default function ParcoursMap({
             <Layer
               id="route-line"
               type="line"
-              paint={{ 'line-color': '#10b981', 'line-width': 4, 'line-cap': 'round', 'line-join': 'round' } as any}
+              paint={{ 'line-color': '#007E84', 'line-width': 4, 'line-cap': 'round', 'line-join': 'round' } as any}
             />
           </GeoJSONSource>
         )}

@@ -21,7 +21,7 @@ export function EcoGesteView({ jeu, onSuccess }: EcoGesteViewProps) {
     <Animated.View entering={SlideInRight.springify()} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.headerBadge}>
-        <Ionicons name="leaf" size={24} color="#10B981" />
+        <Ionicons name="leaf" size={24} color="#007E84" />
         <Text style={styles.title}>{jeu.titre || 'Éco-Geste'}</Text>
       </View>
       
@@ -53,7 +53,7 @@ export function EcoGesteView({ jeu, onSuccess }: EcoGesteViewProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ECFDF5', // Très léger vert
+    backgroundColor: '#D8E8C5', // Très léger vert
   },
   scrollContent: {
     padding: 24,
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#065F46',
+    color: '#0087CC',
   },
   image: {
     width: '100%',
@@ -94,12 +94,12 @@ const styles = StyleSheet.create({
     elevation: 4,
     marginBottom: 32,
     borderLeftWidth: 4,
-    borderLeftColor: '#10B981',
+    borderLeftColor: '#007E84',
   },
   questionText: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#065F46',
+    color: '#0087CC',
     marginBottom: 12,
     lineHeight: 30,
   },
@@ -112,11 +112,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: '#007E84',
     paddingVertical: 18,
     borderRadius: 100,
     gap: 12,
-    shadowColor: '#10B981',
+    shadowColor: '#007E84',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

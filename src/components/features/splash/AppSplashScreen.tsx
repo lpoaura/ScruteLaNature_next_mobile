@@ -164,7 +164,7 @@ export function AppSplashScreen({ onFinished }: AppSplashScreenProps) {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#0087CC',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 999,

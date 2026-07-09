@@ -80,10 +80,10 @@ function PrepScreen({
   }, [tileProgress]);
 
   const stepConfig: Record<PrepStep, { icon: string; label: string; color: string }> = {
-    loading_data:      { icon: 'cloud-download-outline', label: 'Chargement des données…',       color: '#10b981' },
+    loading_data:      { icon: 'cloud-download-outline', label: 'Chargement des données…',       color: '#007E84' },
     requesting_gps:    { icon: 'navigate-outline',       label: 'Activation du GPS…',            color: '#3b82f6' },
-    downloading_tiles: { icon: 'map-outline',            label: 'Préparation de la carte…',      color: '#f59e0b' },
-    ready:             { icon: 'checkmark-circle-outline', label: 'Prêt !',                      color: '#10b981' },
+    downloading_tiles: { icon: 'map-outline',            label: 'Préparation de la carte…',      color: '#EB601A' },
+    ready:             { icon: 'checkmark-circle-outline', label: 'Prêt !',                      color: '#007E84' },
     error:             { icon: 'warning-outline',        label: error || 'Erreur',               color: '#ef4444' },
   };
 
@@ -527,7 +527,7 @@ export default function JeuScreen() {
             <Layer
               id="route-line"
               type="line"
-              paint={{ 'line-color': '#10b981', 'line-width': 4, 'line-cap': 'round', 'line-join': 'round' } as any}
+              paint={{ 'line-color': '#007E84', 'line-width': 4, 'line-cap': 'round', 'line-join': 'round' } as any}
             />
           </GeoJSONSource>
         )}
@@ -537,8 +537,8 @@ export default function JeuScreen() {
           const isPassed = index < currentEtapeIndex;
           const isActive = index === currentEtapeIndex;
           let color = '#9CA3AF';
-          if (isPassed) color = '#10B981';
-          if (isActive) color = '#F59E0B';
+          if (isPassed) color = '#007E84';
+          if (isActive) color = '#EB601A';
           return (
             <Marker id={`etape-${etape.id}`} key={etape.id} lngLat={[etape.longitude, etape.latitude]}>
               <View style={[styles.markerBubble, { backgroundColor: color }]}>
@@ -576,7 +576,7 @@ export default function JeuScreen() {
           {/* Distance en direct */}
           {distanceToNext !== null && !isTransitionActive && !isPlayingGame && (
             <View style={styles.distancePill}>
-              <Ionicons name="navigate-circle" size={20} color="#10B981" />
+              <Ionicons name="navigate-circle" size={20} color="#007E84" />
               <Text style={styles.distanceText}>À {formatDistance(distanceToNext)}</Text>
             </View>
           )}
@@ -671,7 +671,7 @@ const prepStyles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#f59e0b',
+    backgroundColor: '#EB601A',
     borderRadius: 4,
   },
   progressLabel: {
@@ -680,7 +680,7 @@ const prepStyles = StyleSheet.create({
     fontWeight: '500',
   },
   retryBtn: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#007E84',
     paddingHorizontal: 28,
     paddingVertical: 12,
     borderRadius: 12,
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   objectifLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#10B981',
+    color: '#007E84',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -763,13 +763,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 6,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#D8E8C5',
     padding: 8,
     borderRadius: 10,
     alignSelf: 'flex-start',
     gap: 6,
   },
-  distanceText: { color: '#065F46', fontWeight: '700', fontSize: 14 },
+  distanceText: { color: '#0087CC', fontWeight: '700', fontSize: 14 },
 
   markerBubble: {
     width: 32,

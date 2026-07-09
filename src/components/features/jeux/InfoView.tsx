@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2D6A4F',
+    color: '#0087CC',
     marginBottom: 12,
   },
   explicationText: {
@@ -97,11 +97,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: '#007E84',
     paddingVertical: 18,
     borderRadius: 100,
     gap: 12,
-    shadowColor: '#10B981',
+    shadowColor: '#007E84',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

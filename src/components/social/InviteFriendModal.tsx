@@ -59,7 +59,7 @@ export default function InviteFriendModal({ visible, parcoursId, onClose }: Prop
           </View>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#2D6A4F" style={{ marginTop: 40 }} />
+            <ActivityIndicator size="large" color="#0087CC" style={{ marginTop: 40 }} />
           ) : friends.length === 0 ? (
             <Text style={styles.emptyText}>Vous n'avez pas encore d'amis à inviter.</Text>
           ) : (
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   inviteBtn: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#0087CC',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,

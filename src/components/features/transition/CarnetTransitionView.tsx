@@ -51,9 +51,9 @@ export function CarnetTransitionView({ etape, onContinue }: CarnetTransitionView
         {/* Style "Carnet de bord" */}
         <View style={styles.paper}>
           <View style={styles.header}>
-            <Ionicons name="leaf-outline" size={32} color="#2D6A4F" />
+            <Ionicons name="leaf-outline" size={32} color="#0087CC" />
             <Text style={styles.carnetTitle}>Carnet de Bord</Text>
-            <Ionicons name="leaf-outline" size={32} color="#2D6A4F" style={{ transform: [{ scaleX: -1 }] }} />
+            <Ionicons name="leaf-outline" size={32} color="#0087CC" style={{ transform: [{ scaleX: -1 }] }} />
           </View>
 
           <View style={styles.divider} />
@@ -67,7 +67,7 @@ export function CarnetTransitionView({ etape, onContinue }: CarnetTransitionView
               style={[styles.audioBtn, isSpeaking && styles.audioBtnActive]} 
               onPress={handleSpeech}
             >
-              <Ionicons name={isSpeaking ? "volume-mute" : "volume-medium"} size={24} color={isSpeaking ? "white" : "#2D6A4F"} />
+              <Ionicons name={isSpeaking ? "volume-mute" : "volume-medium"} size={24} color={isSpeaking ? "white" : "#0087CC"} />
               <Text style={[styles.audioBtnText, isSpeaking && { color: 'white' }]}>
                 {isSpeaking ? 'Arrêter' : 'Écouter'}
               </Text>
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Georgia', // Typo serif pour le style carnet
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#2D6A4F',
+    color: '#0087CC',
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#D8E8C5',
     paddingVertical: 14,
     borderRadius: 100,
     borderWidth: 1,
@@ -159,11 +159,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   audioBtnActive: {
-    backgroundColor: '#2D6A4F',
-    borderColor: '#2D6A4F',
+    backgroundColor: '#0087CC',
+    borderColor: '#0087CC',
   },
   audioBtnText: {
-    color: '#2D6A4F',
+    color: '#0087CC',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -171,11 +171,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: '#007E84',
     paddingVertical: 16,
     borderRadius: 100,
     gap: 8,
-    shadowColor: '#10B981',
+    shadowColor: '#007E84',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

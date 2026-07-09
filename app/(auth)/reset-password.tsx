@@ -17,7 +17,7 @@ import { useSettingsStore } from '@/src/store/settings.store';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '@/src/services/auth.service';
 
-const GREEN = '#2D6A4F';
+const GREEN = '#0087CC';
 const ERROR_COLOR = '#C62828';
 
 export default function ResetPasswordScreen() {

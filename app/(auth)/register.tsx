@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/src/store/auth.store';
 
-const GREEN = '#2D6A4F';
+const GREEN = '#0087CC';
 const ERROR_COLOR = '#C62828';
 const RGPD_URL = 'https://auvergne-rhone-alpes.lpo.fr/projets/scrute-la-nature-politique-de-confidentialite/';
 

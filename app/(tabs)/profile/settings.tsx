@@ -132,7 +132,7 @@ export default function SettingsScreen() {
             <View style={[styles.card, isDark && styles.darkCard]}>
               <View style={styles.row}>
                 <View style={[styles.iconContainer, isDark && styles.darkIconContainer]}>
-                  <User size={20} color="#4F46E5" />
+                  <User size={20} color="#0087CC" />
                 </View>
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Pseudo</Text>
@@ -160,7 +160,7 @@ export default function SettingsScreen() {
           <View style={[styles.card, isDark && styles.darkCard]}>
             <View style={styles.row}>
               <View style={[styles.iconContainer, isDark && styles.darkIconContainer]}>
-                <Bell size={20} color="#F59E0B" />
+                <Bell size={20} color="#EB601A" />
               </View>
               <View style={styles.textContainer}>
                 <Text style={[styles.settingTitle, isDark && styles.darkText]}>Notifications Push</Text>
@@ -169,7 +169,7 @@ export default function SettingsScreen() {
               <Switch 
                 value={pushNotificationsEnabled} 
                 onValueChange={setPushNotificationsEnabled} 
-                trackColor={{ false: '#D1D5DB', true: '#10B981' }}
+                trackColor={{ false: '#D1D5DB', true: '#007E84' }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -191,7 +191,7 @@ export default function SettingsScreen() {
               <Switch 
                 value={soundEnabled} 
                 onValueChange={setSoundEnabled} 
-                trackColor={{ false: '#D1D5DB', true: '#10B981' }}
+                trackColor={{ false: '#D1D5DB', true: '#007E84' }}
               />
             </View>
             <View style={styles.row}>
@@ -205,7 +205,7 @@ export default function SettingsScreen() {
               <Switch 
                 value={vibrationEnabled} 
                 onValueChange={setVibrationEnabled} 
-                trackColor={{ false: '#D1D5DB', true: '#10B981' }}
+                trackColor={{ false: '#D1D5DB', true: '#007E84' }}
               />
             </View>
           </View>
@@ -245,7 +245,7 @@ export default function SettingsScreen() {
           <View style={[styles.card, isDark && styles.darkCard]}>
             <Pressable style={styles.row} onPress={handleClearCache}>
               <View style={[styles.iconContainer, isDark && styles.darkIconContainer]}>
-                <Download size={20} color="#10B981" />
+                <Download size={20} color="#007E84" />
               </View>
               <View style={styles.textContainer}>
                 <Text style={[styles.settingTitle, isDark && styles.darkText]}>Vider le cache des parcours</Text>
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   saveButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#0087CC',
     paddingVertical: 12,
     alignItems: 'center',
     borderTopWidth: 1,
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   },
   themeButtonActive: {
     backgroundColor: '#EEF2FF',
-    borderColor: '#4F46E5',
+    borderColor: '#0087CC',
   },
   themeText: {
     fontSize: 14,
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     color: '#4B5563',
   },
   themeTextActive: {
-    color: '#4F46E5',
+    color: '#0087CC',
     fontWeight: '600',
   },
   createAccountCard: {

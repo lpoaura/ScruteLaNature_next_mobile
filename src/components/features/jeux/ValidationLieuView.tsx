@@ -158,7 +158,7 @@ export function ValidationLieuView({ jeu, etape, onSuccess, onFail, forceReveal 
         ) : (
           <Animated.View entering={FadeIn}>
             <View style={styles.successBadge}>
-              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+              <Ionicons name="checkmark-circle" size={24} color="#007E84" />
               <Text style={styles.successText}>Position validée !</Text>
             </View>
           </Animated.View>
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   successText: {
-    color: '#10B981',
+    color: '#007E84',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: '#007E84',
     paddingVertical: 16,
     borderRadius: 100,
     gap: 8,

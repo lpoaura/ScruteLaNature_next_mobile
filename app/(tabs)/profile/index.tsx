@@ -87,7 +87,7 @@ export default function ProfileScreen() {
       <View style={styles.statsContainer}>
         <View style={[styles.statBox, isDark && styles.darkCard]}>
           <View style={styles.statIconContainer}>
-            <Leaf size={28} color="#10B981" />
+            <Leaf size={28} color="#007E84" />
           </View>
           <Text style={[styles.statValue, isDark && styles.darkText]}>{co2Saved.toFixed(1)} kg</Text>
           <Text style={[styles.statLabel, isDark && styles.darkTextMuted]}>de CO2 économisé</Text>
@@ -105,7 +105,7 @@ export default function ProfileScreen() {
           onPress={() => router.push('/(tabs)/profile/friends')}
         >
           <View style={[styles.navIcon, { backgroundColor: '#E0E7FF' }]}>
-            <Users size={24} color="#4F46E5" />
+            <Users size={24} color="#0087CC" />
           </View>
           <View style={styles.navTextContainer}>
             <Text style={[styles.navTitle, isDark && styles.darkText]}>Réseau d'amis</Text>
@@ -132,7 +132,7 @@ export default function ProfileScreen() {
         <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Herbier des Badges</Text>
         <View style={styles.badgesGrid}>
           {loadingBadges ? (
-            <ActivityIndicator size="small" color="#4F46E5" />
+            <ActivityIndicator size="small" color="#0087CC" />
           ) : (
             allBadges.map((badge) => {
               const isUnlocked = user?.badges?.some((ub) => ub.badge.id === badge.id);
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#4F46E5',
+    color: '#0087CC',
   },
   pseudo: {
     fontSize: 24,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   levelBadge: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#0087CC',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   xpText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#4F46E5',
+    color: '#0087CC',
   },
   xpTextNext: {
     fontSize: 14,
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   },
   xpBarFill: {
     height: '100%',
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#0087CC',
     borderRadius: 6,
   },
   statsContainer: {
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#D8E8C5',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -264,12 +264,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#065F46',
+    color: '#0087CC',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 16,
-    color: '#10B981',
+    color: '#007E84',
     fontWeight: '600',
   },
   statExplanation: {
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-    shadowColor: '#F59E0B',
+    shadowColor: '#EB601A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

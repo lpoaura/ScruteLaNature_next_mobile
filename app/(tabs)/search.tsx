@@ -55,7 +55,7 @@ interface Category {
 
 const CATEGORIES: Category[] = [
   { id: 'FACILE', label: 'Facile', icon: 'leaf', color: '#4ADE80' },
-  { id: 'MOYEN', label: 'Moyen', icon: 'walk', color: '#FACC15' },
+  { id: 'MOYEN', label: 'Moyen', icon: 'walk', color: '#EFCB8C' },
   { id: 'DIFFICILE', label: 'Difficile', icon: 'fitness', color: '#F87171' },
   { id: 'PMR', label: 'PMR', icon: 'body', color: '#60A5FA' },
   { id: 'CHILD', label: 'Enfants', icon: 'happy', color: '#A78BFA' },
@@ -341,7 +341,7 @@ export default function SearchScreen() {
     return (
       <View style={[styles.container, isDark && styles.darkContainer]}>
         <View style={styles.loadingPlaceholder}>
-          <ActivityIndicator size="large" color="#2D6A4F" />
+          <ActivityIndicator size="large" color="#0087CC" />
           <Text style={styles.loadingPlaceholderText}>Chargement de la carte…</Text>
         </View>
       </View>
@@ -487,7 +487,7 @@ export default function SearchScreen() {
           {/* Indicateur de chargement */}
           {isLoading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#2D6A4F" />
+              <ActivityIndicator size="small" color="#0087CC" />
               <Text style={styles.loadingText}>Chargement…</Text>
             </View>
           )}
@@ -495,7 +495,7 @@ export default function SearchScreen() {
           {/* Résultat pour le mode nearby */}
           {mode === 'nearby' && !isLoading && (
             <View style={styles.resultInfo}>
-              <Ionicons name="navigate-circle-outline" size={20} color="#2D6A4F" />
+              <Ionicons name="navigate-circle-outline" size={20} color="#0087CC" />
               <Text style={styles.resultInfoText}>
                 {parcours.length > 0
                   ? `${parcours.length} parcours trouvé${parcours.length > 1 ? 's' : ''} à proximité`
@@ -571,7 +571,7 @@ export default function SearchScreen() {
                   onPress={() => handleParcoursSelect(p.id)}
                 >
                   <View style={styles.parcoursCardIcon}>
-                    <Ionicons name="trail-sign-outline" size={24} color="#2D6A4F" />
+                    <Ionicons name="trail-sign-outline" size={24} color="#0087CC" />
                   </View>
                   <View style={styles.parcoursCardInfo}>
                     <Text style={[styles.parcoursCardTitle, isDark && styles.darkText]} numberOfLines={1}>
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
   panelTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#2D6A4F',
+    color: '#0087CC',
     letterSpacing: -0.3,
   },
   // ── Toggle ──
@@ -713,14 +713,14 @@ const styles = StyleSheet.create({
   resultInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#D8E8C5',
     borderRadius: 12,
     padding: 12,
     gap: 8,
     marginBottom: 16,
   },
   resultInfoText: {
-    color: '#2D6A4F',
+    color: '#0087CC',
     fontSize: 14,
     fontWeight: '500',
     flex: 1,
@@ -812,7 +812,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   actionCardButton: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#0087CC',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
@@ -845,7 +845,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#D8E8C5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -925,7 +925,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10b981',
+    backgroundColor: '#007E84',
     marginTop: 2,
   },
 

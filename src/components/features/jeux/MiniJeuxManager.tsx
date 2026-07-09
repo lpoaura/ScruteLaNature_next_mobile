@@ -136,7 +136,7 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
       default:
         return (
           <View style={styles.fallbackContainer}>
-            <Ionicons name="construct" size={64} color="#F59E0B" />
+            <Ionicons name="construct" size={64} color="#EB601A" />
             <Text style={styles.fallbackText}>Ce jeu ({currentJeu.type}) est en cours de construction.</Text>
             <Pressable style={styles.skipBtn} onPress={() => handleSuccess(true)}>
               <Text style={styles.skipBtnText}>Passer ce jeu</Text>
@@ -201,7 +201,7 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
                 )}
                 
                 {currentJeu.isBlocking ? (
-                  <Pressable style={[styles.continueFailureBtn, { backgroundColor: '#F59E0B' }]} onPress={() => setHasFailedAll(false)}>
+                  <Pressable style={[styles.continueFailureBtn, { backgroundColor: '#EB601A' }]} onPress={() => setHasFailedAll(false)}>
                     <Text style={styles.continueFailureText}>Réessayer (Obligatoire)</Text>
                     <Ionicons name="refresh" size={20} color="white" />
                   </Pressable>
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     marginVertical: 24,
   },
   skipBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#007E84',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 100,
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   answerBox: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#D8E8C5',
     padding: 12,
     borderRadius: 12,
     width: '100%',
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   continueFailureBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#007E84',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

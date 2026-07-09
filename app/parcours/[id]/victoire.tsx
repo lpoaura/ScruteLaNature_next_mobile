@@ -75,12 +75,12 @@ export default function VictoireScreen() {
 
           <View style={styles.statsContainer}>
             <View style={[styles.statBox, isDark && styles.darkCard]}>
-              <CheckCircle size={24} color="#4f46e5" />
+              <CheckCircle size={24} color="#0087CC" />
               <Text style={[styles.statValue, isDark && styles.darkText]}>{score} / {maxScore}</Text>
               <Text style={[styles.statLabel, isDark && styles.darkTextMuted]}>Score final</Text>
             </View>
             <View style={[styles.statBox, isDark && styles.darkCard]}>
-              <Clock size={24} color="#4f46e5" />
+              <Clock size={24} color="#0087CC" />
               <Text style={[styles.statValue, isDark && styles.darkText]}>{durationMin || '-'} min</Text>
               <Text style={[styles.statLabel, isDark && styles.darkTextMuted]}>Temps estimé</Text>
             </View>
@@ -105,13 +105,13 @@ export default function VictoireScreen() {
               </Pressable>
             ) : (
               <View style={styles.reviewSuccess}>
-                <CheckCircle size={20} color="#10b981" />
+                <CheckCircle size={20} color="#007E84" />
                 <Text style={styles.reviewSuccessText}>Merci pour votre avis !</Text>
               </View>
             )}
 
             <Pressable style={styles.shareButton} onPress={handleShare}>
-              <Share2 size={20} color="#4f46e5" />
+              <Share2 size={20} color="#0087CC" />
               <Text style={styles.shareButtonText}>Partager ma victoire</Text>
             </Pressable>
 
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#ecfdf5',
+    backgroundColor: '#D8E8C5',
     paddingVertical: 16,
     borderRadius: 16,
     borderWidth: 1,
@@ -286,10 +286,10 @@ const styles = StyleSheet.create({
   shareButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#4f46e5',
+    color: '#0087CC',
   },
   homeButton: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#0087CC',
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',

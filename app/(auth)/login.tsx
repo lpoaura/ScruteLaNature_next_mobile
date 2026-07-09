@@ -18,8 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/src/store/auth.store';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
-const GREEN = '#2D6A4F';
-const GREEN_LIGHT = '#E8F5E9';
+const GREEN = '#0087CC';
+const GREEN_LIGHT = '#D8E8C5';
 const ERROR_COLOR = '#C62828';
 
 // ─── Écran de Connexion ───────────────────────────────────────────────────────
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   successBanner: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#D8E8C5',
     borderRadius: 12,
     padding: 14,
     borderLeftWidth: 4,

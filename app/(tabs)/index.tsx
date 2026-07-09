@@ -85,7 +85,7 @@ export default function DashboardScreen() {
           </Text>
           <View className="flex-row items-center mt-3">
             <View className="bg-emerald-100 dark:bg-emerald-900/50 px-3 py-1.5 rounded-full flex-row items-center mr-3 shadow-sm">
-              <IconSymbol name="star.fill" size={16} color="#10B981" />
+              <IconSymbol name="star.fill" size={16} color="#007E84" />
               <Text className="text-emerald-700 dark:text-emerald-300 font-bold ml-1.5 text-sm">
                 Niveau {user?.level || 1}
               </Text>
@@ -102,7 +102,7 @@ export default function DashboardScreen() {
         <View className="items-center ml-4">
           <View className="bg-white dark:bg-slate-800 p-2.5 rounded-full shadow-sm mb-1">
             {isOnline ? (
-              <IconSymbol name="wifi" size={20} color="#10B981" />
+              <IconSymbol name="wifi" size={20} color="#007E84" />
             ) : (
               <IconSymbol name="wifi.slash" size={20} color="#EF4444" />
             )}
@@ -166,7 +166,7 @@ export default function DashboardScreen() {
             className="bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-3xl p-8 items-center justify-center active:bg-slate-50 dark:active:bg-slate-700"
           >
             <View className="bg-emerald-100 dark:bg-emerald-900/50 p-4 rounded-full mb-4">
-              <IconSymbol name="map.fill" size={32} color="#10B981" />
+              <IconSymbol name="map.fill" size={32} color="#007E84" />
             </View>
             <Text className="text-slate-800 dark:text-slate-100 text-xl font-bold mb-2 text-center">Aucune balade prévue</Text>
             <Text className="text-slate-500 dark:text-slate-400 text-center px-4">

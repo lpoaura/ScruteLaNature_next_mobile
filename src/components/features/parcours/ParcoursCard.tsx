@@ -2,8 +2,8 @@ import { Pressable, StyleSheet, Text, View, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Parcours } from '@/src/types/api.types';
 
-const GREEN = '#2D6A4F';
-const GREEN_LIGHT = '#E8F5E9';
+const GREEN = '#0087CC';
+const GREEN_LIGHT = '#D8E8C5';
 
 interface ParcoursCardProps {
   parcours: Parcours;
@@ -11,7 +11,7 @@ interface ParcoursCardProps {
 }
 
 const DIFFICULTY_CONFIG = {
-  FACILE: { label: 'Facile', color: '#2E7D32', bg: '#E8F5E9' },
+  FACILE: { label: 'Facile', color: '#2E7D32', bg: '#D8E8C5' },
   MOYEN: { label: 'Moyen', color: '#F57F17', bg: '#FFF8E1' },
   DIFFICILE: { label: 'Difficile', color: '#B71C1C', bg: '#FFEBEE' },
 } as const;

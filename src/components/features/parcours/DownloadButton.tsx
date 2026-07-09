@@ -9,7 +9,7 @@ import { parcoursService } from '@/src/services/parcours.service';
 import { deleteParcours, isParcoursDownloaded } from '@/src/services/database.service';
 import { deleteParcoursFiles } from '@/src/services/filesystem.service';
 
-const GREEN = '#2D6A4F';
+const GREEN = '#0087CC';
 
 type DownloadState = 'checking' | 'idle' | 'downloading' | 'downloaded' | 'error';
 

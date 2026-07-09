@@ -121,13 +121,13 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
           let textColor = '#4B5563';
 
           if (isSelected) {
-            bgColor = isCorrectAnswer ? '#10B981' : '#EF4444';
-            borderColor = isCorrectAnswer ? '#10B981' : '#EF4444';
+            bgColor = isCorrectAnswer ? '#007E84' : '#EF4444';
+            borderColor = isCorrectAnswer ? '#007E84' : '#EF4444';
             textColor = 'white';
           } else if (isCorrectAnswer) {
             // Si c'est la bonne réponse mais pas sélectionnée (impossible ici car on force)
-            bgColor = '#10B981';
-            borderColor = '#10B981';
+            bgColor = '#007E84';
+            borderColor = '#007E84';
             textColor = 'white';
           }
 
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#2D6A4F',
+    color: '#0087CC',
     marginBottom: 32,
     textAlign: 'center',
   },
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: '#007E84',
     paddingVertical: 16,
     borderRadius: 100,
     gap: 8,

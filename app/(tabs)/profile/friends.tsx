@@ -183,8 +183,8 @@ export default function FriendsScreen() {
 
     return (
       <View style={[styles.friendCard, isDark && styles.darkCard]}>
-        <View style={[styles.avatarPlaceholder, { backgroundColor: '#E8F5E9' }]}>
-          <MapPin size={24} color="#2D6A4F" />
+        <View style={[styles.avatarPlaceholder, { backgroundColor: '#D8E8C5' }]}>
+          <MapPin size={24} color="#0087CC" />
         </View>
         <View style={styles.requestInfo}>
           <Text style={[styles.friendName, isDark && styles.darkText]}>{senderPseudo}</Text>
@@ -239,7 +239,7 @@ export default function FriendsScreen() {
               returnKeyType="send"
               onSubmitEditing={handleSearch}
             />
-            {isSearching && <ActivityIndicator size="small" color="#2D6A4F" />}
+            {isSearching && <ActivityIndicator size="small" color="#0087CC" />}
           </View>
           {searchQuery.length > 0 && (
             <Pressable style={styles.addButton} onPress={handleSearch}>
@@ -253,7 +253,7 @@ export default function FriendsScreen() {
           <View style={styles.suggestionsContainer}>
             {isFetchingSuggestions ? (
               <View style={{ padding: 12, alignItems: 'center' }}>
-                <ActivityIndicator size="small" color="#2D6A4F" />
+                <ActivityIndicator size="small" color="#0087CC" />
               </View>
             ) : searchSuggestions.length > 0 ? (
               searchSuggestions.map((user) => (
@@ -266,7 +266,7 @@ export default function FriendsScreen() {
                     <Text style={[styles.avatarText, { fontSize: 14 }]}>{user.pseudo.charAt(0).toUpperCase()}</Text>
                   </View>
                   <Text style={styles.suggestionText}>{user.pseudo}</Text>
-                  <UserPlus size={18} color="#2D6A4F" />
+                  <UserPlus size={18} color="#0087CC" />
                 </Pressable>
               ))
             ) : (
@@ -284,14 +284,14 @@ export default function FriendsScreen() {
           style={[styles.tab, activeTab === 'amis' && styles.activeTab]} 
           onPress={() => setActiveTab('amis')}
         >
-          <Users size={20} color={activeTab === 'amis' ? '#2D6A4F' : '#6B7280'} />
+          <Users size={20} color={activeTab === 'amis' ? '#0087CC' : '#6B7280'} />
           <Text style={[styles.tabText, activeTab === 'amis' && styles.activeTabText]}>Mes amis</Text>
         </Pressable>
         <Pressable 
           style={[styles.tab, activeTab === 'demandes' && styles.activeTab]} 
           onPress={() => setActiveTab('demandes')}
         >
-          <UserPlus size={20} color={activeTab === 'demandes' ? '#2D6A4F' : '#6B7280'} />
+          <UserPlus size={20} color={activeTab === 'demandes' ? '#0087CC' : '#6B7280'} />
           <Text style={[styles.tabText, activeTab === 'demandes' && styles.activeTabText]}>Demandes</Text>
           {requests.length > 0 && activeTab !== 'demandes' && (
             <View style={styles.badge}>
@@ -304,7 +304,7 @@ export default function FriendsScreen() {
           style={[styles.tab, activeTab === 'invitations' && styles.activeTab]} 
           onPress={() => setActiveTab('invitations')}
         >
-          <MapPin size={20} color={activeTab === 'invitations' ? '#2D6A4F' : '#6B7280'} />
+          <MapPin size={20} color={activeTab === 'invitations' ? '#0087CC' : '#6B7280'} />
           <Text style={[styles.tabText, activeTab === 'invitations' && styles.activeTabText]}>Défis</Text>
           {invitations.length > 0 && activeTab !== 'invitations' && (
             <View style={styles.badge}>
@@ -318,7 +318,7 @@ export default function FriendsScreen() {
       <View style={styles.listContainer}>
         {isLoading ? (
           <View style={styles.centerContent}>
-            <ActivityIndicator size="large" color="#2D6A4F" />
+            <ActivityIndicator size="large" color="#0087CC" />
           </View>
         ) : activeTab === 'amis' ? (
           <FlatList
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   addButton: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#0087CC',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   activeTab: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#D8E8C5',
   },
   tabText: {
     fontSize: 15,
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   activeTabText: {
-    color: '#2D6A4F',
+    color: '#0087CC',
   },
   badge: {
     backgroundColor: '#EF4444',
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   acceptButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#007E84',
   },
   declineButton: {
     backgroundColor: '#F3F4F6',

@@ -40,8 +40,8 @@ import InviteFriendModal from '@/src/components/social/InviteFriendModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = 340;
-const GREEN = '#2D6A4F';
-const GREEN_LIGHT = '#E8F5E9';
+const GREEN = '#0087CC';
+const GREEN_LIGHT = '#D8E8C5';
 const GREEN_MID = '#52B788';
 
 const DIFFICULTY_CONFIG = {
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#D8E8C5',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -760,7 +760,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#D8E8C5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#D8E8C5',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#D8E8C5',
     paddingVertical: 14,
     borderRadius: 16,
     marginTop: 12,
@@ -995,7 +995,7 @@ const styles = StyleSheet.create({
   etapeLine: {
     flex: 1,
     width: 2,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#D8E8C5',
     marginVertical: 4,
     marginBottom: 0,
     borderRadius: 1,

@@ -5,7 +5,7 @@ import { Camera } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
-const GREEN = '#2D6A4F';
+const GREEN = '#0087CC';
 
 interface PermissionStatus {
   location: 'granted' | 'denied' | 'undetermined';
