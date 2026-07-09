@@ -133,9 +133,10 @@ export default function FriendsScreen() {
     }
   };
 
-  const renderFriend = ({ item }: { item: Friendship }) => {
-    // Dans la liste d'amis, l'autre personne peut être le requester ou le receiver.
-    const friendPseudo = item.requester?.pseudo || item.receiver?.pseudo || 'Joueur inconnu';
+  const renderFriend = ({ item }: { item: any }) => {
+    // getFriends renvoie { friendshipId, friend, since } côté backend
+    // on vérifie donc item.friend en priorité, ou on retombe sur la structure complète
+    const friendPseudo = item.friend?.pseudo || item.requester?.pseudo || item.receiver?.pseudo || 'Joueur inconnu';
 
     return (
       <View style={[styles.friendCard, isDark && styles.darkCard]}>
