@@ -35,6 +35,7 @@ import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import type { Parcours, Etape } from '@/src/types/api.types';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
 import InviteFriendModal from '@/src/components/social/InviteFriendModal';
+import Markdown from 'react-native-markdown-display';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -461,7 +462,7 @@ export default function ParcoursDetailScreen() {
                 </View>
                 <Text style={[styles.sectionTitlePremium, isDark && styles.darkText]}>À propos</Text>
               </View>
-              <Text style={[styles.descriptionPremium, isDark && styles.darkTextMuted]}>{parcours.description}</Text>
+              <Markdown style={isDark ? darkMarkdownStyles : markdownStyles}>{parcours.description}</Markdown>
             </Animated.View>
           )}
 
@@ -1089,4 +1090,34 @@ const styles = StyleSheet.create({
   darkTextMuted: { color: '#94A3B8' },
   darkEtapeContent: { borderBottomColor: '#334155' },
   darkHiddenEtapesBanner: { backgroundColor: '#1E293B', borderColor: '#334155' },
+});
+
+const markdownStyles = StyleSheet.create({
+  body: {
+    fontSize: 16,
+    color: '#4A4A4A',
+    lineHeight: 24,
+  },
+  strong: {
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+  },
+  em: {
+    fontStyle: 'italic',
+  },
+});
+
+const darkMarkdownStyles = StyleSheet.create({
+  body: {
+    fontSize: 16,
+    color: '#94A3B8',
+    lineHeight: 24,
+  },
+  strong: {
+    fontWeight: 'bold',
+    color: '#F8FAFC',
+  },
+  em: {
+    fontStyle: 'italic',
+  },
 });
