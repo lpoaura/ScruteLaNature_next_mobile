@@ -327,13 +327,15 @@ export default function SearchScreen() {
   const filteredMapParcours = allMapParcours.filter(p => 
     !searchQuery || 
     p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))
   );
   
   const filteredListParcours = parcours.filter(p => 
     !searchQuery || 
     p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Phase de chargement — afficher un placeholder léger au lieu de bloquer le menu
