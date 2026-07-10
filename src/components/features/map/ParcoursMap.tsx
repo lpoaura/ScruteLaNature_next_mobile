@@ -99,7 +99,7 @@ export default function ParcoursMap({
             zoom: centerAndZoom?.zoom ?? 5,
           }}
         />
-        {hasLocationPermission && <UserLocation animated />}
+        {hasLocationPermission && <UserLocation animated heading />}
 
         <RasterSource id="osm" tiles={tileUrlTemplates} tileSize={256}>
           <Layer id="osm-layer" type="raster" source="osm" />
