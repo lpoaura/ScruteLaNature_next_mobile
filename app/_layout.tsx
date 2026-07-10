@@ -43,11 +43,11 @@ function AuthGuard() {
 
       if (isAuthenticated && inAuthGroup) {
         // Connecté (vrai compte ou invité) mais sur une page auth
-        if (isGuest && segments[1] === 'register') {
-          // L'invité a le droit d'aller sur la page de création de compte
+        if (isGuest) {
+          // L'invité a le droit d'aller sur toutes les pages d'auth (login, register) pour se convertir
           return;
         }
-        // Sinon, on redirige vers les tabs (ex: un user normal sur login, ou un invité sur login)
+        // Sinon, on redirige vers les tabs (un user normal n'a rien à faire sur login/register)
         router.replace('/(tabs)');
       } else if (!isAuthenticated && !inAuthGroup) {
         // Non connecté et pas sur une page auth → aller sur login

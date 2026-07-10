@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Animated, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Animated, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Trophy, Clock, CheckCircle, Share2, Star } from 'lucide-react-native';
 import LottieView from 'lottie-react-native';
 import { ReviewModal } from '@/src/components/features/reviews/ReviewModal';
 import { useSettingsStore } from '@/src/store/settings.store';
+import { useAuthStore } from '@/src/store/auth.store';
 import { useColorScheme } from 'react-native';
 
 export default function VictoireScreen() {
@@ -13,6 +14,7 @@ export default function VictoireScreen() {
   const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
   const router = useRouter();
   const params = useLocalSearchParams();
+  const isGuest = useAuthStore((state: any) => state.isGuest);
   
   // Paramètres passés lors de la navigation
   const extractParam = (p: string | string[] | undefined): string => Array.isArray(p) ? p[0] : (p || '');
@@ -98,7 +100,13 @@ export default function VictoireScreen() {
             {!reviewSubmitted ? (
               <Pressable
                 style={styles.reviewButton}
-                onPress={() => setReviewModalVisible(true)}
+                onPress={() => {
+                  if (isGuest) {
+                    Alert.alert('Mode Invité', 'Créez un compte pour laisser un avis sur ce parcours !');
+                  } else {
+                    setReviewModalVisible(true);
+                  }
+                }}
               >
                 <Star size={20} color="#fbbf24" fill="#fbbf24" />
                 <Text style={styles.reviewButtonText}>Laisser un avis</Text>

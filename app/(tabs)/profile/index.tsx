@@ -59,6 +59,15 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
+      {/* Bannière Invité */}
+      {isGuest && (
+        <View style={[styles.guestBanner, isDark && styles.darkGuestBanner]}>
+          <Text style={[styles.guestBannerText, isDark && styles.darkText]}>
+            ⚠️ Mode invité : Vos progrès (badges, xp) peuvent être perdus si vous désinstallez l'application. Créez un compte pour les sauvegarder.
+          </Text>
+        </View>
+      )}
+
       {/* En-tête / Jauge XP */}
       <View style={[styles.header, { marginTop: 12 }, isDark && styles.darkCard]}>
         <View style={[styles.avatarContainer, isDark && styles.darkCard]}>
@@ -102,7 +111,13 @@ export default function ProfileScreen() {
       <View style={styles.quickNavContainer}>
         <Pressable 
           style={[styles.navCard, isDark && styles.darkCard]}
-          onPress={() => router.push('/(tabs)/profile/friends')}
+          onPress={() => {
+            if (isGuest) {
+              Alert.alert('Mode Invité', 'Créez un compte pour vous faire des amis et lancer des défis !');
+            } else {
+              router.push('/(tabs)/profile/friends');
+            }
+          }}
         >
           <View style={[styles.navIcon, { backgroundColor: '#E0E7FF' }]}>
             <Users size={24} color="#0087CC" />
@@ -159,6 +174,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  guestBanner: {
+    backgroundColor: '#FEF3C7', // amber-100
+    marginHorizontal: 20,
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A', // amber-200
+  },
+  darkGuestBanner: {
+    backgroundColor: '#78350F', // amber-900
+    borderColor: '#92400E', // amber-800
+  },
+  guestBannerText: {
+    color: '#92400E', // amber-800
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   scrollContent: {
     paddingHorizontal: 20,
