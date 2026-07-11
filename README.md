@@ -27,3 +27,22 @@ Application mobile du projet "Scrute La Nature" pour la LPO, conçue spécialeme
 
 
 ipconfig getifaddr en0
+
+## Compilation
+
+### Configuration des variables d'environnement sur expo pour la compilation
+
+```bash
+eas env:create --name EXPO_PUBLIC_API_URL --value "https://..." --environment production --visibility plaintext
+eas env:create --name EXPO_PUBLIC_API_IMAGES --value "https://..." --environment production --visibility plaintext
+
+eas env:create --name EXPO_PUBLIC_API_URL --value "https://..." --environment preview --visibility plaintext
+eas env:create --name EXPO_PUBLIC_API_IMAGES --value "https://..." --environment preview --visibility plaintext
+```
+### Compilation de l'appli sur expo
+
+La version `preview` compile un `apk`, la version `production` un `aab` pour le play store.
+
+```bash
+eas build -p android --profile <preview,production>
+```
