@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, Link } from 'expo-router';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useGameStore } from '@/src/store/game.store';
+import { useDownloadedParcours } from '@/src/hooks/use-downloaded-parcours';
 import { IconSymbol } from '@/src/components/ui/icon-symbol';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
 
@@ -65,6 +66,7 @@ export default function DashboardScreen() {
   const activeParcoursId = useGameStore((state) => state.activeParcoursId);
   const currentEtapeOrder = useGameStore((state) => state.currentEtapeOrder);
   const downloadedParcoursIds = useGameStore((state) => state.downloadedParcoursIds);
+  const { data: downloadedData } = useDownloadedParcours();
   const netInfo = useNetInfo();
 
   // Indicateur dynamique basé sur la connexion réelle
@@ -133,46 +135,72 @@ export default function DashboardScreen() {
         <Text className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Prêt pour l'aventure ?</Text>
         
         {activeParcoursId ? (
-          <Pressable 
-            onPress={() => router.push(`/parcours/${activeParcoursId}`)}
-            className="bg-emerald-600 rounded-3xl p-6 shadow-md flex-row items-center justify-between active:opacity-90"
-          >
-            <View className="flex-1 mr-4">
-              <Text className="text-emerald-100 font-medium mb-1">Balade en cours</Text>
-              <Text className="text-white text-2xl font-bold mb-2">Reprendre ma balade</Text>
-              <Text className="text-emerald-50 text-sm font-medium">Étape {currentEtapeOrder}</Text>
+          <Link href={`/parcours/${activeParcoursId}`} asChild>
+            <Pressable 
+              className="bg-emerald-600 rounded-3xl p-6 shadow-md flex-row items-center justify-between active:opacity-90"
+            >
+              <View className="flex-1 mr-4">
+                <Text className="text-emerald-100 font-medium mb-1">Balade en cours</Text>
+                <Text className="text-white text-2xl font-bold mb-2">Reprendre ma balade</Text>
+                <Text className="text-emerald-50 text-sm font-medium">Étape {currentEtapeOrder}</Text>
+              </View>
+              <View className="bg-white/20 p-4 rounded-full">
+                <IconSymbol name="play.fill" size={32} color="#fff" />
+              </View>
+            </Pressable>
+          </Link>
+        ) : downloadedData.length > 0 ? (
+          <View>
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider text-xs">Vos téléchargements</Text>
+              <Link href="/(tabs)/profile/downloads" asChild>
+                <Pressable><Text className="text-emerald-600 font-semibold text-sm">Gérer</Text></Pressable>
+              </Link>
             </View>
-            <View className="bg-white/20 p-4 rounded-full">
-              <IconSymbol name="play.fill" size={32} color="#fff" />
-            </View>
-          </Pressable>
-        ) : downloadedParcoursIds.length > 0 ? (
-          <Pressable 
-            onPress={() => router.push(`/parcours/${downloadedParcoursIds[0]}`)}
-            className="bg-indigo-600 rounded-3xl p-6 shadow-md flex-row items-center justify-between active:opacity-90"
-          >
-            <View className="flex-1 mr-4">
-              <Text className="text-indigo-100 font-medium mb-1">Téléchargé</Text>
-              <Text className="text-white text-2xl font-bold mb-2">Départ hors-ligne</Text>
-              <Text className="text-indigo-50 text-sm font-medium">Jouer sans réseau</Text>
-            </View>
-            <View className="bg-white/20 p-4 rounded-full">
-              <IconSymbol name="play.fill" size={32} color="#fff" />
-            </View>
-          </Pressable>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 16 }}
+            >
+              {downloadedData.map((item) => (
+                <Link key={item.parcours.id} href={`/parcours/${item.parcours.id}`} asChild>
+                  <Pressable className="bg-indigo-600 rounded-3xl p-5 shadow-md flex-row items-center w-72 active:opacity-90">
+                    <View className="flex-1 mr-3">
+                      <Text className="text-white text-lg font-bold mb-1" numberOfLines={1}>{item.parcours.title}</Text>
+                      <View className="flex-row items-center">
+                        <IconSymbol name="sdcard" size={14} color="#e0e7ff" />
+                        <Text className="text-indigo-100 text-xs font-medium ml-1">
+                          {item.sizeFormatted}
+                        </Text>
+                      </View>
+                      {item.hasUpdate && (
+                        <View className="bg-amber-400/20 px-2 py-0.5 rounded-md self-start mt-1.5 border border-amber-400/30">
+                          <Text className="text-amber-100 text-[10px] font-bold">⚠️ Mise à jour dispo</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View className="bg-white/20 p-3 rounded-full">
+                      <IconSymbol name="play.fill" size={24} color="#fff" />
+                    </View>
+                  </Pressable>
+                </Link>
+              ))}
+            </ScrollView>
+          </View>
         ) : (
-          <Pressable 
-            onPress={() => router.push('/(tabs)/search')}
-            className="bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-3xl p-8 items-center justify-center active:bg-slate-50 dark:active:bg-slate-700"
-          >
-            <View className="bg-emerald-100 dark:bg-emerald-900/50 p-4 rounded-full mb-4">
-              <IconSymbol name="map.fill" size={32} color="#007E84" />
-            </View>
-            <Text className="text-slate-800 dark:text-slate-100 text-xl font-bold mb-2 text-center">Aucune balade prévue</Text>
-            <Text className="text-slate-500 dark:text-slate-400 text-center px-4">
-              Découvrez les parcours autour de vous et lancez-vous dans la nature !
-            </Text>
-          </Pressable>
+          <Link href="/(tabs)/search" asChild>
+            <Pressable 
+              className="bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-3xl p-8 items-center justify-center active:bg-slate-50 dark:active:bg-slate-700"
+            >
+              <View className="bg-emerald-100 dark:bg-emerald-900/50 p-4 rounded-full mb-4">
+                <IconSymbol name="map.fill" size={32} color="#007E84" />
+              </View>
+              <Text className="text-slate-800 dark:text-slate-100 text-xl font-bold mb-2 text-center">Aucune balade prévue</Text>
+              <Text className="text-slate-500 dark:text-slate-400 text-center px-4">
+                Découvrez les parcours autour de vous et lancez-vous dans la nature !
+              </Text>
+            </Pressable>
+          </Link>
         )}
       </View>
 
@@ -180,9 +208,11 @@ export default function DashboardScreen() {
       <View>
         <View className="px-6 flex-row justify-between items-center mb-4">
           <Text className="text-lg font-bold text-slate-800 dark:text-slate-100">Coups de cœur de la région</Text>
-          <Pressable onPress={() => router.navigate('/search')}>
-            <Text className="text-emerald-600 font-semibold">Voir tout</Text>
-          </Pressable>
+          <Link href="/(tabs)/search" asChild>
+            <Pressable>
+              <Text className="text-emerald-600 font-semibold">Voir tout</Text>
+            </Pressable>
+          </Link>
         </View>
         
         <ScrollView 
@@ -191,23 +221,23 @@ export default function DashboardScreen() {
           contentContainerStyle={{ paddingHorizontal: 24, gap: 16 }}
         >
           {SELECTIONS.map((item) => (
-            <Pressable 
-              key={item.id}
-              className="w-64 bg-white dark:bg-slate-800 rounded-3xl shadow-sm overflow-hidden active:opacity-90"
-              onPress={() => router.navigate('/search')}
-            >
-              <Image 
-                source={{ uri: item.image }} 
-                className="w-full h-32"
-                resizeMode="cover"
-              />
-              <View className="p-4 flex-row justify-between items-center">
-                <Text className="text-slate-800 dark:text-slate-100 font-bold flex-1 text-base" numberOfLines={2}>
-                  {item.title}
-                </Text>
-                <Text className="text-2xl ml-2">{item.mascot}</Text>
-              </View>
-            </Pressable>
+            <Link key={item.id} href="/(tabs)/search" asChild>
+              <Pressable 
+                className="w-64 bg-white dark:bg-slate-800 rounded-3xl shadow-sm overflow-hidden active:opacity-90"
+              >
+                <Image 
+                  source={{ uri: item.image }} 
+                  className="w-full h-32"
+                  resizeMode="cover"
+                />
+                <View className="p-4 flex-row justify-between items-center">
+                  <Text className="text-slate-800 dark:text-slate-100 font-bold flex-1 text-base" numberOfLines={2}>
+                    {item.title}
+                  </Text>
+                  <Text className="text-2xl ml-2">{item.mascot}</Text>
+                </View>
+              </Pressable>
+            </Link>
           ))}
         </ScrollView>
       </View>

@@ -1,0 +1,236 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image, Pressable } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ArrowLeft, Clock, Trophy, MapPin } from 'lucide-react-native';
+import { HistoryService } from '@/src/services/history.service';
+import { useAuthStore } from '@/src/store/auth.store';
+import { useColorScheme } from '@/src/hooks/use-color-scheme';
+import { resolveMediaUrl, getLocalCoverImage } from '@/src/services/filesystem.service';
+
+export default function HistoryScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const isDark = useColorScheme() === 'dark';
+  const isGuest = useAuthStore((state: any) => state.isGuest);
+
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadHistory() {
+      try {
+        const data = await HistoryService.getHistory(isGuest);
+        // Trier par date décroissante
+        const sortedData = data.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+        setHistory(sortedData);
+      } catch (e) {
+        console.error("Failed to load history", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadHistory();
+  }, [isGuest]);
+
+  const renderItem = ({ item }: { item: any }) => {
+    const isServerData = !!item.parcours;
+    
+    // Si c'est une donnée locale, on a que l'ID du parcours. Idéalement on ferait un join.
+    // Pour l'instant on affiche un truc basique si la donnée locale est orpheline.
+    const title = isServerData ? item.parcours.title : `Parcours ${item.parcoursId.substring(0, 8)}`;
+    const score = item.score;
+    const date = new Date(item.completedAt).toLocaleDateString('fr-FR', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    });
+    
+    // Détermination de l'image (serveur vs local)
+    const coverUrl = isServerData && item.parcours.coverImage
+      ? resolveMediaUrl(item.parcours.coverImage)
+      : undefined; // TODO: handle local cover via getLocalCoverImage(item.parcoursId)
+
+    return (
+      <View style={[styles.card, isDark && styles.darkCard]}>
+        {coverUrl ? (
+          <Image source={{ uri: coverUrl }} style={styles.cardImage} />
+        ) : (
+          <View style={[styles.cardImagePlaceholder, isDark && styles.darkCardImagePlaceholder]}>
+            <MapPin size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+          </View>
+        )}
+        
+        <View style={styles.cardContent}>
+          <Text style={[styles.cardTitle, isDark && styles.darkText]} numberOfLines={1}>
+            {title}
+          </Text>
+          <Text style={[styles.cardDate, isDark && styles.darkTextMuted]}>{date}</Text>
+          
+          <View style={styles.cardStats}>
+            <View style={styles.statBadge}>
+              <Trophy size={14} color="#fbbf24" style={styles.statIcon} />
+              <Text style={styles.statText}>{score} pts</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <View style={[styles.container, isDark && styles.darkContainer, { paddingTop: insets.top }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={24} color={isDark ? '#F8FAFC' : '#1E293B'} />
+        </Pressable>
+        <Text style={[styles.headerTitle, isDark && styles.darkText]}>Mon Historique</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {loading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#0087CC" />
+        </View>
+      ) : history.length === 0 ? (
+        <View style={styles.centerContainer}>
+          <Clock size={48} color={isDark ? '#4B5563' : '#9CA3AF'} style={{ marginBottom: 16 }} />
+          <Text style={[styles.emptyText, isDark && styles.darkText]}>Aucun parcours terminé pour le moment.</Text>
+          <Text style={[styles.emptySubtext, isDark && styles.darkTextMuted]}>
+            Lancez-vous dans l'aventure pour commencer à remplir votre historique !
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={history}
+          keyExtractor={(item, index) => item.syncId || index.toString()}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  darkContainer: {
+    backgroundColor: '#0F172A',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  darkText: {
+    color: '#F8FAFC',
+  },
+  darkTextMuted: {
+    color: '#94A3B8',
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E293B',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  listContainer: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 16,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  darkCard: {
+    backgroundColor: '#1E293B',
+  },
+  cardImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+  },
+  cardImagePlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  darkCardImagePlaceholder: {
+    backgroundColor: '#334155',
+  },
+  cardContent: {
+    flex: 1,
+    marginLeft: 16,
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  cardDate: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 8,
+  },
+  cardStats: {
+    flexDirection: 'row',
+  },
+  statBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statIcon: {
+    marginRight: 4,
+  },
+  statText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+});

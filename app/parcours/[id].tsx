@@ -237,11 +237,26 @@ export default function ParcoursDetailScreen() {
   };
 
   const handlePlay = useCallback(() => {
-    if (!id) return;
-    startParcours(id);
-    // Navigation vers l'écran de jeu (Sprint 3)
-    router.push({ pathname: '/parcours/jeu/[id]', params: { id, preview } });
-  }, [id, preview, startParcours, router]);
+    if (!id || !parcours) return;
+    
+    const startGame = (mode: 'normal' | 'escape') => {
+      startParcours(id);
+      router.push({ pathname: '/parcours/jeu/[id]', params: { id, preview, mode } });
+    };
+
+    if ((parcours as any).isEscapeGame) {
+      Alert.alert(
+        "Mode de jeu",
+        "Voulez-vous jouer en mode Escape Game (chronométré) ou en mode Balade Normale (libre) ?",
+        [
+          { text: "Balade Normale", onPress: () => startGame('normal'), style: "cancel" },
+          { text: "Escape Game", onPress: () => startGame('escape') }
+        ]
+      );
+    } else {
+      startGame('normal');
+    }
+  }, [id, preview, startParcours, router, parcours]);
 
   const handleDownloaded = useCallback(() => {
     if (id) addDownloaded(id);
@@ -388,6 +403,14 @@ export default function ParcoursDetailScreen() {
                     </Text>
                   </View>
                 )}
+                {(parcours as any).isEscapeGame && (
+                  <View style={[styles.diffBadge, { backgroundColor: '#FFFBEB' }]}>
+                    <Ionicons name="lock-closed" size={14} color="#F59E0B" />
+                    <Text style={[styles.diffText, { color: '#F59E0B' }]}>
+                      Escape Game
+                    </Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.heroTitle}>{parcours.title}</Text>
               {parcours.zonage && (
@@ -406,8 +429,12 @@ export default function ParcoursDetailScreen() {
           {/* Stats (distance / durée / étapes / jeux) */}
           <Animated.View entering={FadeInDown.springify()} style={styles.statsScrollWrapper}>
             <View style={styles.statsScrollContent}>
-              {parcours.distanceKm != null && <StatCard icon="navigate" value={`${parcours.distanceKm.toFixed(1)} km`} label="Distance" delay={0} isDark={isDark} />}
-              {parcours.durationMin != null && <StatCard icon="time" value={`${parcours.durationMin} min`} label="Durée" delay={60} isDark={isDark} />}
+              {(parcours as any).isEscapeGame && (parcours as any).timeLimitMinutes != null ? (
+                <StatCard icon="timer-outline" value={`${(parcours as any).timeLimitMinutes} min`} label="Temps Limite" delay={0} isDark={isDark} />
+              ) : (
+                parcours.durationMin != null && <StatCard icon="time" value={`${parcours.durationMin} min`} label="Durée" delay={0} isDark={isDark} />
+              )}
+              {parcours.distanceKm != null && <StatCard icon="navigate" value={`${parcours.distanceKm.toFixed(1)} km`} label="Distance" delay={60} isDark={isDark} />}
               {etapes.length > 0 && <StatCard icon="map" value={`${etapes.length}`} label="Étapes" delay={120} isDark={isDark} />}
               {nbJeux > 0 && <StatCard icon="game-controller" value={`${nbJeux}`} label="Jeux" delay={180} isDark={isDark} />}
               {hasRatings && <StatCard icon="star" value={parcours.averageRating!.toFixed(1)} label="Note" delay={240} isDark={isDark} />}

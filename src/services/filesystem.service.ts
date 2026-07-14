@@ -136,6 +136,18 @@ export async function downloadCoverImage(
 }
 
 /**
+ * Retourne l'URI local de l'image de couverture si elle a été téléchargée
+ */
+export function getLocalCoverImage(
+  parcoursId: string,
+  coverImageUrl: string | undefined
+): string | null {
+  if (!coverImageUrl) return null;
+  const ext = getExtension(coverImageUrl, 'jpg');
+  return `${getParcoursDir(parcoursId)}cover.${ext}`;
+}
+
+/**
  * Génère un nom de fichier local unique pour un jeu.
  */
 export function getMediaFilename(
@@ -372,3 +384,17 @@ export function getLocalTileUrlTemplate(parcoursId: string): string {
   return `${getParcoursTilesDir(parcoursId)}{z}/{x}/{y}.png`;
 }
 
+/**
+ * Formate une taille en octets en chaîne lisible (ex: 15.4 Mo)
+ */
+export function formatBytes(bytes: number, decimals = 1): string {
+  if (!+bytes) return '0 o';
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['o', 'Ko', 'Mo', 'Go', 'To'];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}

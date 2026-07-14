@@ -67,6 +67,8 @@ export default function LoginScreen() {
     setError('');
     try {
       await loginAsGuest();
+      // Redirection explicite car le AuthGuard ne force plus les invités hors des pages d'auth
+      router.replace('/(tabs)');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Impossible de continuer en invité.');
     }
@@ -88,7 +90,7 @@ export default function LoginScreen() {
         {/* Logo / Titre */}
         <View style={[styles.header, isDark && styles.darkCard]}>
           <Image source={require('@/assets/images/icon.png')} style={styles.logoImage} />
-          <Text style={[styles.title, isDark && styles.darkText]}>Scrute la Nature</Text>
+          {/* <Text style={[styles.title, isDark && styles.darkText]}>Scrute la Nature</Text> */}
           <Text style={[styles.subtitle, isDark && styles.darkTextMuted]}>Application LPO — Balades Nature</Text>
         </View>
 
@@ -112,7 +114,7 @@ export default function LoginScreen() {
           ) : (
             <>
               <Text style={styles.guestButtonIcon}>🎮</Text>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.guestButtonTitle}>Jouer immédiatement</Text>
                 <Text style={styles.guestButtonSubtitle}>
                   Sans compte — votre progression est sauvegardée localement
@@ -216,13 +218,13 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    gap: 5,
+    marginBottom: 2,
   },
   logoImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
+    width: 400,
+    height: 400,
+    resizeMode: 'contain',
   },
   title: {
     fontSize: 26,

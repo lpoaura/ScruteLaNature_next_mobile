@@ -173,7 +173,7 @@ export default function JeuScreen() {
     };
   }, []);
 
-  const { id, preview } = useLocalSearchParams<{ id: string, preview?: string }>();
+  const { id, preview, mode } = useLocalSearchParams<{ id: string, preview?: string, mode?: 'normal' | 'escape' }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const startParcours = useGameStore((state) => state.startParcours);
@@ -203,6 +203,42 @@ export default function JeuScreen() {
   const [isTransitionActive, setIsTransitionActive] = useState(false);
   const [reachedEtape, setReachedEtape] = useState<Etape | null>(null);
   const [isPlayingGame, setIsPlayingGame] = useState(false);
+
+  // ── Escape Game ──
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+  // Timer Effect
+  useEffect(() => {
+    if (mode === 'normal') return;
+    if (data?.parcours.isEscapeGame && data.parcours.timeLimitMinutes) {
+      if (timeLeft === null) {
+        setTimeLeft(data.parcours.timeLimitMinutes * 60);
+      }
+    }
+  }, [data, mode]);
+
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0 || prepStep !== 'ready') return;
+    
+    const timer = setInterval(() => {
+      setTimeLeft(prev => (prev === null ? prev : prev - 1));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft, prepStep]);
+
+  // Navigation quand le temps est écoulé
+  useEffect(() => {
+    if (timeLeft === 0) {
+      router.replace({ pathname: '/parcours/jeu/gameover' });
+    }
+  }, [timeLeft, router]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   // ────────────────────────────────────────────────────────────────────────────
   // Séquence de préparation : données → GPS → tuiles → go
@@ -554,6 +590,12 @@ export default function JeuScreen() {
         <Pressable style={styles.iconBtn} onPress={handleQuit}>
           <Ionicons name="close" size={24} color="#1F2937" />
         </Pressable>
+        {timeLeft !== null && (
+          <View style={{ backgroundColor: timeLeft < 60 ? '#EF4444' : '#F59E0B', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 5 }}>
+            <Ionicons name="timer-outline" size={18} color="white" />
+            <Text style={{ color: 'white', fontWeight: '900', fontSize: 16, fontVariant: ['tabular-nums'] }}>{formatTime(timeLeft)}</Text>
+          </View>
+        )}
         {preview === 'true' && (
           <View style={{ backgroundColor: '#EF4444', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
             <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>MODE TEST</Text>

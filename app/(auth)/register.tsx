@@ -121,10 +121,10 @@ export default function RegisterScreen() {
   // Écran de succès — demander de vérifier l'email
   if (success) {
     return (
-      <View style={[styles.successContainer, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 32 }]}>
+      <View style={[styles.successContainer, isDark && styles.darkContainer, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 32 }]}>
         <Text style={styles.successEmoji}>📬</Text>
-        <Text style={styles.successTitle}>Vérifiez votre boîte mail !</Text>
-        <Text style={styles.successSubtitle}>
+        <Text style={[styles.successTitle, isDark && styles.darkText]}>Vérifiez votre boîte mail !</Text>
+        <Text style={[styles.successSubtitle, isDark && styles.darkTextMuted]}>
           Un email de confirmation a été envoyé à{' '}
           <Text style={{ fontWeight: '700' }}>{email}</Text>.{'\n'}
           Cliquez sur le lien pour activer votre compte.

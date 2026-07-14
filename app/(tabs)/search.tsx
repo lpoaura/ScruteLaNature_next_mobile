@@ -400,9 +400,9 @@ export default function SearchScreen() {
               id={p.id}
               key={p.id}
               lngLat={[lng, lat]}
+              onPress={() => handleParcoursSelect(p.id)}
             >
-              <Pressable
-                onPress={() => handleParcoursSelect(p.id)}
+              <View
                 style={styles.markerContainer}
               >
                 <View style={[styles.markerBubble, isDark && styles.darkCard]}>
@@ -410,7 +410,7 @@ export default function SearchScreen() {
                   <Text style={[styles.markerMeta, isDark && styles.darkTextMuted]}>{p.difficulty} • {p.durationMin} min</Text>
                 </View>
                 <View style={styles.markerDot} />
-              </Pressable>
+              </View>
             </Marker>
           );
         })}

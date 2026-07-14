@@ -140,6 +140,33 @@ export default function ProfileScreen() {
             <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Son, permissions, etc.</Text>
           </View>
         </Pressable>
+
+        {/* Bouton Historique */}
+        <Pressable 
+          style={[styles.navCard, isDark && styles.darkCard]}
+          onPress={() => router.push('/(tabs)/profile/history')}
+        >
+          <View style={[styles.navIcon, { backgroundColor: '#F0FDF4' }]}>
+            <Leaf size={24} color="#16A34A" />
+          </View>
+          <View style={styles.navTextContainer}>
+            <Text style={[styles.navTitle, isDark && styles.darkText]}>Historique de mes balades</Text>
+            <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Retrouver mes parcours terminés</Text>
+          </View>
+        </Pressable>
+
+        <Pressable 
+          style={[styles.navCard, isDark && styles.darkCard]}
+          onPress={() => router.push('/(tabs)/profile/downloads')}
+        >
+          <View style={[styles.navIcon, { backgroundColor: '#E0F2FE' }]}>
+            <ShieldAlert size={24} color="#0284C7" />
+          </View>
+          <View style={styles.navTextContainer}>
+            <Text style={[styles.navTitle, isDark && styles.darkText]}>Gérer mes téléchargements</Text>
+            <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Libérer de l'espace ou mettre à jour</Text>
+          </View>
+        </Pressable>
       </View>
 
       {/* Herbier des Badges (Mock) */}

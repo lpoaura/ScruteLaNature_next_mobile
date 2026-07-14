@@ -79,6 +79,8 @@ export interface Parcours {
   isPMRFriendly: boolean;
   isChildFriendly: boolean;
   isMentalHandicapFriendly: boolean;
+  isEscapeGame?: boolean;
+  timeLimitMinutes?: number;
   organismeId: string;
   zonageId?: string;
   zonage?: Zonage;

@@ -32,6 +32,16 @@ export default function VictoireScreen() {
   const contentOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Enregistrement de l'historique
+    const parcoursId = extractParam(params.id);
+    if (parcoursId) {
+      import('@/src/services/history.service').then(({ HistoryService }) => {
+        HistoryService.recordCompletion(parcoursId, score, isGuest).catch(err => {
+          console.error("Erreur lors de l'enregistrement de l'historique", err);
+        });
+      });
+    }
+
     // Animation d'apparition du contenu et du badge
     Animated.sequence([
       Animated.timing(contentOpacity, {

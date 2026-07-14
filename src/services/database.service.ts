@@ -22,12 +22,26 @@ function getDb(): SQLite.SQLiteDatabase {
 
 // ─── Initialisation ───────────────────────────────────────────────────────────
 
+let _initPromise: Promise<void> | null = null;
+
+/**
+ * Attend que la base de données soit prête.
+ */
+export function awaitDatabaseReady(): Promise<void> {
+  if (_initPromise) return _initPromise;
+  _initPromise = initDatabase();
+  return _initPromise;
+}
+
 /**
  * Ouvre la base de données et crée toutes les tables si elles n'existent pas.
  * À appeler une seule fois au démarrage de l'application (dans _layout.tsx).
  */
-export async function initDatabase(): Promise<void> {
-  _db = await SQLite.openDatabaseAsync('lpo_balades_v2.db');
+export function initDatabase(): Promise<void> {
+  if (_initPromise) return _initPromise;
+
+  _initPromise = (async () => {
+    _db = await SQLite.openDatabaseAsync('lpo_balades_v2.db');
 
   await _db.execAsync(`
     PRAGMA journal_mode = WAL;
@@ -49,6 +63,9 @@ export async function initDatabase(): Promise<void> {
       isPMRFriendly           INTEGER NOT NULL DEFAULT 0,
       isChildFriendly         INTEGER NOT NULL DEFAULT 0,
       isMentalHandicapFriendly INTEGER NOT NULL DEFAULT 0,
+      isEscapeGame            INTEGER NOT NULL DEFAULT 0,
+      timeLimitMinutes        INTEGER,
+      updatedAt               TEXT,
       downloadedAt            INTEGER NOT NULL,
       isCompleted             INTEGER NOT NULL DEFAULT 0
     );
@@ -90,6 +107,37 @@ export async function initDatabase(): Promise<void> {
       attempts    INTEGER NOT NULL DEFAULT 0
     );
   `);
+
+
+  // Tentative de mise à jour du schéma pour les installations existantes (migration)
+  try {
+    await _db.execAsync(`ALTER TABLE parcours ADD COLUMN updatedAt TEXT;`);
+  } catch (e) {
+    // L'erreur est normale si la colonne existe déjà
+  }
+  
+  try {
+    await _db.execAsync(`ALTER TABLE parcours ADD COLUMN isEscapeGame INTEGER NOT NULL DEFAULT 0;`);
+    await _db.execAsync(`ALTER TABLE parcours ADD COLUMN timeLimitMinutes INTEGER;`);
+  } catch (e) {
+    // L'erreur est normale si les colonnes existent déjà
+  }
+  
+  try {
+    await _db.execAsync(`
+      CREATE TABLE IF NOT EXISTS user_history (
+        syncId      TEXT PRIMARY KEY,
+        parcoursId  TEXT NOT NULL,
+        score       INTEGER NOT NULL,
+        completedAt TEXT NOT NULL,
+        isSynced    INTEGER NOT NULL DEFAULT 0
+      );
+    `);
+  } catch (e) {
+    console.error("Migration error user_history:", e);
+  }
+  })();
+  return _initPromise;
 }
 
 // ─── Types internes SQLite ────────────────────────────────────────────────────
@@ -109,6 +157,9 @@ interface ParcoursSQLite {
   isPMRFriendly: number;
   isChildFriendly: number;
   isMentalHandicapFriendly: number;
+  isEscapeGame: number;
+  timeLimitMinutes: number | null;
+  updatedAt: string | null;
   downloadedAt: number;
   isCompleted: number;
 }
@@ -161,10 +212,12 @@ function rowToParcours(row: ParcoursSQLite): Parcours & { downloadedAt: number; 
     isPMRFriendly: row.isPMRFriendly === 1,
     isChildFriendly: row.isChildFriendly === 1,
     isMentalHandicapFriendly: row.isMentalHandicapFriendly === 1,
+    isEscapeGame: row.isEscapeGame === 1,
+    timeLimitMinutes: row.timeLimitMinutes ?? undefined,
     status: 'PUBLISHED',
     organismeId: '',
     createdAt: '',
-    updatedAt: '',
+    updatedAt: row.updatedAt ?? '',
     downloadedAt: row.downloadedAt,
     isCompleted: row.isCompleted === 1,
   };
@@ -220,9 +273,9 @@ export async function insertParcours(parcours: Parcours): Promise<void> {
     `INSERT OR REPLACE INTO parcours
       (id, title, description, difficulty, accessibility, distanceKm, durationMin,
        coverImage, pathGeoJSON,
-       isPMRFriendly, isChildFriendly, isMentalHandicapFriendly,
-       downloadedAt, isCompleted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+       isPMRFriendly, isChildFriendly, isMentalHandicapFriendly, isEscapeGame, timeLimitMinutes,
+       updatedAt, downloadedAt, isCompleted)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
     [
       parcours.id,
       parcours.title,
@@ -236,6 +289,9 @@ export async function insertParcours(parcours: Parcours): Promise<void> {
       parcours.isPMRFriendly ? 1 : 0,
       parcours.isChildFriendly ? 1 : 0,
       parcours.isMentalHandicapFriendly ? 1 : 0,
+      parcours.isEscapeGame ? 1 : 0,
+      parcours.timeLimitMinutes ?? null,
+      parcours.updatedAt,
       Date.now(),
     ]
   );
@@ -497,4 +553,43 @@ export async function getStorageStats(): Promise<{
     totalJeux: jeuxRow?.count ?? 0,
     pendingSync: queueRow?.count ?? 0,
   };
+}
+
+export async function clearOfflineQueue(): Promise<void> {
+  const db = getDb();
+  await db.execAsync('DELETE FROM offline_queue');
+}
+
+// ─── Historique Utilisateur ──────────────────────────────────────────────────
+
+export interface UserHistorySQLite {
+  syncId: string;
+  parcoursId: string;
+  score: number;
+  completedAt: string;
+  isSynced: number;
+}
+
+export async function saveParcoursHistoryLocal(history: Omit<UserHistorySQLite, 'isSynced'>): Promise<void> {
+  const db = getDb();
+  await db.runAsync(
+    `INSERT OR REPLACE INTO user_history (syncId, parcoursId, score, completedAt, isSynced)
+     VALUES (?, ?, ?, ?, ?)`,
+    [history.syncId, history.parcoursId, history.score, history.completedAt, 0]
+  );
+}
+
+export async function getLocalHistory(): Promise<UserHistorySQLite[]> {
+  const db = getDb();
+  return db.getAllAsync<UserHistorySQLite>('SELECT * FROM user_history ORDER BY completedAt DESC');
+}
+
+export async function getUnsyncedHistory(): Promise<UserHistorySQLite[]> {
+  const db = getDb();
+  return db.getAllAsync<UserHistorySQLite>('SELECT * FROM user_history WHERE isSynced = 0');
+}
+
+export async function markHistorySyncedLocal(syncId: string): Promise<void> {
+  const db = getDb();
+  await db.runAsync('UPDATE user_history SET isSynced = 1 WHERE syncId = ?', [syncId]);
 }
