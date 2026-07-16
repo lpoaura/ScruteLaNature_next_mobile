@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import type { Jeu, Etape } from '@/src/types/api.types';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { GameQuestion } from './GameQuestion';
 
 interface ValidationLieuViewProps {
   jeu: Jeu;
@@ -125,9 +126,7 @@ export function ValidationLieuView({ jeu, etape, onSuccess, onFail, forceReveal 
       )}
 
       <View style={styles.contentCard}>
-        <Text style={styles.questionText}>
-          {jeu.question || "Êtes-vous bien arrivé à destination ? Validez votre position GPS pour continuer."}
-        </Text>
+        <GameQuestion question={jeu.question || "Êtes-vous bien arrivé à destination ? Validez votre position GPS pour continuer."} />
         
         {errorMsg && (
           <Text style={styles.errorText}>{errorMsg}</Text>

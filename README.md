@@ -12,6 +12,7 @@ Application mobile du projet "Scrute La Nature" pour la LPO, conçue spécialeme
 ## 🧩 Fonctionnalités
 
 - **Téléchargement Hors-Ligne** : Possibilité de télécharger une balade intégrale avant de partir en forêt.
+- **Mode Escape Game** : Transformation d'un parcours en aventure chronométrée stricte avec écran de "Game Over" si le temps est écoulé.
 - **Micro-Jeux** : Modules interactifs empilables (QCM, Charades, Code Caesar, Lecteur sonore de chants d'oiseaux).
 - **Sciences Participatives** : Prise de photos via l'appareil du téléphone et envois différés (Synchronisation) dès le retour du réseau 4G/Wifi.
 - **Gamification** : Profil explorateur, suivi de CO2 économisé, Points d'XP et badges (L'Herbier virtuel).

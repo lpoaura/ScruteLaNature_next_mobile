@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import type { Jeu } from '@/src/types/api.types';
+import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 
 interface EcoGesteViewProps {
@@ -35,7 +36,7 @@ export function EcoGesteView({ jeu, onSuccess }: EcoGesteViewProps) {
       )}
 
       <View style={styles.contentCard}>
-        <Text style={styles.questionText}>{jeu.question}</Text>
+        <GameQuestion question={jeu.question} />
         {jeu.explication && (
           <Text style={styles.explicationText}>{jeu.explication}</Text>
         )}

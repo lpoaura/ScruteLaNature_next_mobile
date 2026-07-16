@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import type { Jeu, DonneesQCM } from '@/src/types/api.types';
+import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 
 interface QCMViewProps {
@@ -146,7 +147,7 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
         />
       )}
 
-      <Text style={styles.questionText}>{jeu.question}</Text>
+      <GameQuestion question={jeu.question} />
 
       <View style={[
         styles.optionsContainer,

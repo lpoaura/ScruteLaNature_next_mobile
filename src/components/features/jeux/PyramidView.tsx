@@ -11,6 +11,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { Jeu, DonneesCalcPyramidal } from '@/src/types/api.types';
+import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 
 interface PyramidViewProps {
@@ -136,7 +137,7 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
 
           <View style={styles.card}>
             {jeu.question ? (
-              <Text style={styles.questionText}>{jeu.question}</Text>
+              <GameQuestion question={jeu.question} />
             ) : null}
 
             <Text style={styles.instruction}>Remplissez les cases vides pour que chaque brique soit la somme des 2 briques en dessous d'elle.</Text>

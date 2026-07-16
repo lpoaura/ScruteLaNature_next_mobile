@@ -4,6 +4,7 @@ import Animated, { FadeIn, SlideInRight, useSharedValue, useAnimatedStyle, withS
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { Jeu } from '@/src/types/api.types';
+import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 
 interface PuzzleViewProps {
@@ -198,7 +199,7 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
         </View>
         
         {jeu.question ? (
-          <Text style={styles.questionText}>{jeu.question}</Text>
+          <GameQuestion question={jeu.question} />
         ) : (
           <Text style={styles.questionText}>Reconstituez l'image en faisant glisser les pièces.</Text>
         )}

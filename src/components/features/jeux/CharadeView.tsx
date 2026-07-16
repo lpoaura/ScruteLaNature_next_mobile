@@ -11,6 +11,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { Jeu } from '@/src/types/api.types';
+import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 
 interface CharadeViewProps {
@@ -94,7 +95,7 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
         )}
 
         <View style={styles.card}>
-          <Text style={styles.questionText}>{jeu.question}</Text>
+          <GameQuestion question={jeu.question} />
           
           <TextInput
             style={styles.input}
