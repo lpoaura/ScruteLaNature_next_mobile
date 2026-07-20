@@ -77,9 +77,9 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
     }
   };
   
-  // Cast sécurisé des données
   const donnees = jeu.donneesJeu as unknown as DonneesQCM | undefined;
   const options = donnees?.options || [];
+  const optionsCaptions = donnees?.optionsCaptions || [];
   const qcmType = donnees?.qcmType || 'text';
   
   const imageSource = jeu.imageLocalPath 
@@ -201,7 +201,7 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
                   style={{ flex: 1, paddingVertical: 10 }}
                 >
                   <Text style={[styles.optionText, { color: textColor }]} numberOfLines={1}>
-                    Extrait audio {index + 1}
+                    {optionsCaptions[index] ? optionsCaptions[index] : `Extrait audio ${index + 1}`}
                   </Text>
                 </Pressable>
 
@@ -228,6 +228,13 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
               {qcmType === 'image' ? (
                 <View style={{ flex: 1, position: 'relative' }}>
                   <Image source={{ uri: resolveMediaUrl(option) }} style={{ width: '100%', height: 140, borderRadius: 8 }} resizeMode="cover" />
+                  {optionsCaptions[index] ? (
+                    <View style={{ marginTop: 8, paddingHorizontal: 4 }}>
+                      <Text style={[styles.optionText, { color: textColor, fontSize: 13, textAlign: 'center' }]} numberOfLines={2}>
+                        {optionsCaptions[index]}
+                      </Text>
+                    </View>
+                  ) : null}
                   {isSelected && isCorrectAnswer && (
                     <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(16, 185, 129, 0.9)', borderRadius: 20 }}>
                       <Ionicons name="checkmark-circle" size={28} color="white" />

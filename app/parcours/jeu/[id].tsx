@@ -623,16 +623,42 @@ export default function JeuScreen() {
             </View>
           )}
 
-          {/* Bypass en MODE TEST */}
+          {/* Bouton pour forcer l'étape si le GPS galère */}
+          {!isTransitionActive && !isPlayingGame && (
+            <Pressable 
+              style={{ marginTop: 16, backgroundColor: '#F3F4F6', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', flexDirection: 'row', justifyContent: 'center', gap: 8 }} 
+              onPress={() => {
+                Alert.alert(
+                  "Forcer l'étape ?",
+                  "Êtes-vous sûr d'être au bon endroit ? Utilisez cette option uniquement si votre GPS ne parvient pas à vous localiser.",
+                  [
+                    { text: 'Annuler', style: 'cancel' },
+                    { 
+                      text: 'Oui, je suis sur place', 
+                      onPress: () => {
+                        setReachedEtape(currentEtape as unknown as Etape);
+                        setIsTransitionActive(true);
+                      }
+                    }
+                  ]
+                );
+              }}
+            >
+              <Ionicons name="location-outline" size={16} color="#4B5563" />
+              <Text style={{ color: '#4B5563', fontWeight: '600', fontSize: 13 }}>Je suis sur place (Forcer l'étape)</Text>
+            </Pressable>
+          )}
+
+          {/* Bypass en MODE TEST (Instantané, bouton rouge) */}
           {preview === 'true' && !isTransitionActive && !isPlayingGame && (
             <Pressable 
-              style={{ marginTop: 12, backgroundColor: '#EF4444', padding: 12, borderRadius: 8, alignItems: 'center' }} 
+              style={{ marginTop: 8, backgroundColor: '#EF4444', padding: 8, borderRadius: 8, alignItems: 'center' }} 
               onPress={() => {
                 setReachedEtape(currentEtape as unknown as Etape);
                 setIsTransitionActive(true);
               }}
             >
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>Passer à l'étape (Test)</Text>
+              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Passer à l'étape (Mode Test)</Text>
             </Pressable>
           )}
         </View>
