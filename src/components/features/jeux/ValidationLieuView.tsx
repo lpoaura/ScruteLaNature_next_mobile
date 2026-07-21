@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import type { Jeu, Etape } from '@/src/types/api.types';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 import { GameQuestion } from './GameQuestion';
 
 interface ValidationLieuViewProps {
@@ -117,12 +118,12 @@ export function ValidationLieuView({ jeu, etape, onSuccess, onFail, forceReveal 
       </View>
       
       {imageSource && (
-        <Animated.Image 
-          entering={FadeIn.delay(200)}
-          source={imageSource} 
-          style={styles.image} 
-          resizeMode="contain"
-        />
+        <Animated.View entering={FadeIn.delay(200)}>
+          <ZoomableImage 
+            source={imageSource} 
+            style={styles.image} 
+          />
+        </Animated.View>
       )}
 
       <View style={styles.contentCard}>

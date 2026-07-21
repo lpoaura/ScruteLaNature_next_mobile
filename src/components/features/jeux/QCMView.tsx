@@ -15,6 +15,7 @@ import { Audio } from 'expo-av';
 import type { Jeu, DonneesQCM } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 
 interface QCMViewProps {
   jeu: Jeu;
@@ -139,12 +140,12 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
         <Text style={styles.title}>{jeu.titre || 'Question Nature'}</Text>
       
       {imageSource && (
-        <Animated.Image 
-          entering={FadeIn.delay(200)}
-          source={imageSource} 
-          style={styles.image} 
-          resizeMode="contain"
-        />
+        <Animated.View entering={FadeIn.delay(200)}>
+          <ZoomableImage 
+            source={imageSource} 
+            style={styles.image} 
+          />
+        </Animated.View>
       )}
 
       <GameQuestion question={jeu.question} />
@@ -285,8 +286,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    justifyContent: 'center',
-    paddingBottom: 60,
+    paddingBottom: 120,
   },
   title: {
     fontSize: 28,

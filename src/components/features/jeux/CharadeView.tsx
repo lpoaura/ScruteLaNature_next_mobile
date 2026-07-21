@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ScrollView } from 'react-native';
 import Animated, { 
   FadeIn, 
@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import type { Jeu } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 
 interface CharadeViewProps {
   jeu: Jeu;
@@ -43,6 +44,8 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
   const shakeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeTranslateX.value }],
   }));
+
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const handleValidate = () => {
     Keyboard.dismiss();
@@ -78,20 +81,26 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView 
+            ref={scrollViewRef}
+            contentContainerStyle={styles.scrollContent} 
+            showsVerticalScrollIndicator={false} 
+            keyboardShouldPersistTaps="handled"
+          >
         <Text style={styles.title}>{jeu.titre || 'Charade'}</Text>
         
         {imageSource && (
-          <Animated.Image 
-            entering={FadeIn.delay(200)}
-            source={imageSource} 
-            style={styles.image} 
-            resizeMode="contain"
-          />
+          <Animated.View entering={FadeIn.delay(200)}>
+            <ZoomableImage 
+              source={imageSource} 
+              style={styles.image} 
+            />
+          </Animated.View>
         )}
 
         <View style={styles.card}>
@@ -108,6 +117,11 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
             autoCapitalize="none"
             autoCorrect={false}
             spellCheck={false}
+            onFocus={() => {
+              setTimeout(() => {
+                scrollViewRef.current?.scrollTo({ y: 250, animated: true });
+              }, 100);
+            }}
           />
 
           {!isRevealed ? (
@@ -154,8 +168,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
-    justifyContent: 'center',
     flexGrow: 1,
+    paddingBottom: 120,
   },
   title: {
     fontSize: 28,

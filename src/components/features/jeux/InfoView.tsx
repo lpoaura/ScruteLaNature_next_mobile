@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { Jeu } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 
 interface InfoViewProps {
   jeu: Jeu;
@@ -22,15 +23,15 @@ export function InfoView({ jeu, onSuccess }: InfoViewProps) {
   return (
     <Animated.View entering={SlideInRight.springify()} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{jeu.titre || 'Le saviez-vous ?'}</Text>
+        {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
         
         {imageSource && (
-          <Animated.Image 
-            entering={FadeIn.delay(200)}
-            source={imageSource} 
-            style={styles.image} 
-            resizeMode="contain"
-          />
+          <Animated.View entering={FadeIn.delay(200)}>
+            <ZoomableImage 
+              source={imageSource} 
+              style={styles.image} 
+            />
+          </Animated.View>
         )}
 
         <View style={styles.contentCard}>

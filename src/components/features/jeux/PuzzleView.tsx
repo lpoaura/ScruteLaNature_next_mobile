@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, useWindowDimensions, ScrollView } from 'react-native';
 import Animated, { FadeIn, SlideInRight, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,26 +14,72 @@ interface PuzzleViewProps {
   forceReveal?: boolean;
 }
 
-const GRID_SIZE = 3;
+/**
+ * Calcule les dimensions de la grille (cols × rows) à partir du nombre de pièces.
+ * Le total de cases = nbPieces + 1 (case vide).
+ * On cherche la grille rectangulaire la plus carrée possible.
+ */
+function getGridDimensions(nbPieces: number): { cols: number; rows: number; totalCells: number } {
+  // Mappings prédéfinis pour les valeurs du backoffice
+  // nbPieces = nombre de pièces visibles, totalCells inclut la/les cases vides
+  const presets: Record<number, { cols: number; rows: number }> = {
+    3:  { cols: 2, rows: 2 },  // 4 cases : 3 pièces + 1 vide
+    5:  { cols: 3, rows: 2 },  // 6 cases : 5 pièces + 1 vide
+    6:  { cols: 3, rows: 3 },  // 9 cases : 6 pièces + 3 vides (on réduit les mouvements, plus facile)
+    7:  { cols: 4, rows: 2 },  // 8 cases : 7 pièces + 1 vide
+    8:  { cols: 3, rows: 3 },  // 9 cases : 8 pièces + 1 vide (classique)
+    10: { cols: 4, rows: 3 },  // 12 cases : 10 pièces + 2 vides
+    15: { cols: 4, rows: 4 },  // 16 cases : 15 pièces + 1 vide
+  };
+
+  if (presets[nbPieces]) {
+    const { cols, rows } = presets[nbPieces];
+    return { cols, rows, totalCells: cols * rows };
+  }
+
+  // Fallback générique : trouver la grille rectangulaire la plus carrée
+  let total = nbPieces + 1;
+  
+  // Si pas de bonne décomposition, incrémenter total jusqu'à en trouver une
+  while (total <= nbPieces + 4) {
+    for (let c = Math.ceil(Math.sqrt(total)); c >= 2; c--) {
+      if (total % c === 0) {
+        let cols = c;
+        let rows = total / c;
+        if (rows > cols) [cols, rows] = [rows, cols];
+        return { cols, rows, totalCells: total };
+      }
+    }
+    total++;
+  }
+  
+  // Dernier recours : grille carrée
+  const side = Math.ceil(Math.sqrt(nbPieces + 1));
+  return { cols: side, rows: side, totalCells: side * side };
+}
 
 interface PuzzlePieceProps {
   pieceValue: number;
   currentIndex: number;
   isRevealed: boolean;
   imageSource: any;
-  pieceSize: number;
-  puzzleSize: number;
+  pieceSizeW: number;
+  pieceSizeH: number;
+  puzzleWidth: number;
+  puzzleHeight: number;
+  cols: number;
+  rows: number;
+  nbPieces: number;
   onPress: () => void;
 }
 
-function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, pieceSize, puzzleSize, onPress }: PuzzlePieceProps) {
-  const col = currentIndex % GRID_SIZE;
-  const row = Math.floor(currentIndex / GRID_SIZE);
+function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, pieceSizeW, pieceSizeH, puzzleWidth, puzzleHeight, cols, rows, nbPieces, onPress }: PuzzlePieceProps) {
+  const col = currentIndex % cols;
+  const row = Math.floor(currentIndex / cols);
   
-  const targetX = col * pieceSize;
-  const targetY = row * pieceSize;
+  const targetX = col * pieceSizeW;
+  const targetY = row * pieceSizeH;
 
-  // Initialisation immédiate sans animation à la première frame
   const translateX = useSharedValue(targetX);
   const translateY = useSharedValue(targetY);
 
@@ -51,20 +97,20 @@ function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, pieceS
     };
   });
 
-  if (pieceValue === 8 && !isRevealed) {
-    // Case vide
+  // Toutes les valeurs >= nbPieces sont des cases vides
+  if (pieceValue >= nbPieces && !isRevealed) {
     return (
-      <Animated.View style={[{ position: 'absolute', width: pieceSize, height: pieceSize }, animatedStyle]}>
+      <Animated.View style={[{ position: 'absolute', width: pieceSizeW, height: pieceSizeH }, animatedStyle]}>
         <View style={styles.emptyPiece} />
       </Animated.View>
     );
   }
 
-  const originalRow = Math.floor(pieceValue / GRID_SIZE);
-  const originalCol = pieceValue % GRID_SIZE;
+  const originalRow = Math.floor(pieceValue / cols);
+  const originalCol = pieceValue % cols;
 
   return (
-    <Animated.View style={[{ position: 'absolute', width: pieceSize, height: pieceSize }, animatedStyle]}>
+    <Animated.View style={[{ position: 'absolute', width: pieceSizeW, height: pieceSizeH }, animatedStyle]}>
       <Pressable style={styles.pieceBox} onPress={onPress}>
         <View style={styles.imageMask}>
           {imageSource && (
@@ -73,10 +119,10 @@ function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, pieceS
               style={[
                 styles.puzzleImage,
                 {
-                  width: puzzleSize,
-                  height: puzzleSize,
-                  left: -originalCol * pieceSize,
-                  top: -originalRow * pieceSize,
+                  width: puzzleWidth,
+                  height: puzzleHeight,
+                  left: -originalCol * pieceSizeW,
+                  top: -originalRow * pieceSizeH,
                 }
               ]} 
               resizeMode="cover"
@@ -94,15 +140,31 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
   const [pieces, setPieces] = useState<number[]>([]);
   const { width } = useWindowDimensions();
 
+  // Lire nbPieces depuis donneesJeu, fallback à 8 (3×3 classique)
+  const nbPieces = (jeu.donneesJeu as any)?.nbPieces ?? 8;
+  const { cols, rows, totalCells } = useMemo(() => getGridDimensions(nbPieces), [nbPieces]);
+  // La case vide "mobile" est toujours la dernière
+  const emptyValue = totalCells - 1;
+  // Les cases vides fixes sont les valeurs entre nbPieces et emptyValue-1
+  const fixedEmptyValues = useMemo(() => {
+    const fixed = new Set<number>();
+    for (let i = nbPieces; i < emptyValue; i++) {
+      fixed.add(i);
+    }
+    return fixed;
+  }, [nbPieces, emptyValue]);
+
   useEffect(() => {
     if (forceReveal) {
-      setPieces([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+      setPieces(Array.from({ length: totalCells }, (_, i) => i));
       setIsRevealed(true);
     }
-  }, [forceReveal]);
+  }, [forceReveal, totalCells]);
   
-  const puzzleSize = Math.min(width, 600) - 48; // Max 600px
-  const pieceSize = puzzleSize / GRID_SIZE;
+  const puzzleWidth = Math.min(width, 600) - 48;
+  const puzzleHeight = puzzleWidth * (rows / cols); // Adapter la hauteur au ratio
+  const pieceSizeW = puzzleWidth / cols;
+  const pieceSizeH = puzzleHeight / rows;
   
   const imageSource = jeu.imageLocalPath 
     ? { uri: jeu.imageLocalPath.startsWith('file://') ? jeu.imageLocalPath : `file://${jeu.imageLocalPath}` } 
@@ -118,26 +180,28 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
 
   // Initialisation du puzzle
   useEffect(() => {
-    let state = [0, 1, 2, 3, 4, 5, 6, 7, 8]; // 8 est la case vide
-    let emptyIdx = 8;
+    let state = Array.from({ length: totalCells }, (_, i) => i);
+    let emptyIdx = state.indexOf(emptyValue);
     let lastEmptyIdx = -1;
     
-    // Mélange par mouvements aléatoires depuis la fin pour garantir la solvabilité
-    // Utilisation d'un garde-fou pour ne pas annuler le coup précédent (lastEmptyIdx)
+    // Mélange par mouvements aléatoires — ne pas déplacer les cases vides fixes
     for (let i = 0; i < 150; i++) {
-      const neighbors = [];
-      const row = Math.floor(emptyIdx / GRID_SIZE);
-      const col = emptyIdx % GRID_SIZE;
+      const neighbors: number[] = [];
+      const row = Math.floor(emptyIdx / cols);
+      const col = emptyIdx % cols;
       
-      if (row > 0) neighbors.push(emptyIdx - GRID_SIZE); // Haut
-      if (row < GRID_SIZE - 1) neighbors.push(emptyIdx + GRID_SIZE); // Bas
-      if (col > 0) neighbors.push(emptyIdx - 1); // Gauche
-      if (col < GRID_SIZE - 1) neighbors.push(emptyIdx + 1); // Droite
+      if (row > 0) neighbors.push(emptyIdx - cols);
+      if (row < rows - 1) neighbors.push(emptyIdx + cols);
+      if (col > 0) neighbors.push(emptyIdx - 1);
+      if (col < cols - 1) neighbors.push(emptyIdx + 1);
       
-      const validNeighbors = neighbors.filter(n => n !== lastEmptyIdx);
-      const nextToMove = validNeighbors.length > 0 
-        ? validNeighbors[Math.floor(Math.random() * validNeighbors.length)] 
-        : neighbors[0];
+      // Exclure les voisins qui contiennent une case vide fixe
+      const validNeighbors = neighbors.filter(n => 
+        n !== lastEmptyIdx && !fixedEmptyValues.has(state[n])
+      );
+      if (validNeighbors.length === 0) continue;
+      
+      const nextToMove = validNeighbors[Math.floor(Math.random() * validNeighbors.length)];
         
       [state[emptyIdx], state[nextToMove]] = [state[nextToMove], state[emptyIdx]];
       lastEmptyIdx = emptyIdx;
@@ -145,19 +209,22 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
     }
     
     setPieces(state);
-  }, [jeu]);
+  }, [jeu, totalCells, cols, rows, emptyValue, fixedEmptyValues]);
 
   const handlePressPiece = (index: number) => {
     if (isRevealed) return;
 
-    const emptyIndex = pieces.indexOf(8);
-    const row = Math.floor(index / GRID_SIZE);
-    const col = index % GRID_SIZE;
-    const emptyRow = Math.floor(emptyIndex / GRID_SIZE);
-    const emptyCol = emptyIndex % GRID_SIZE;
+    const emptyIndex = pieces.indexOf(emptyValue);
+    const pieceRow = Math.floor(index / cols);
+    const pieceCol = index % cols;
+    const emptyRow = Math.floor(emptyIndex / cols);
+    const emptyCol = emptyIndex % cols;
 
-    const isAdjacent = (Math.abs(row - emptyRow) === 1 && col === emptyCol) || 
-                       (Math.abs(col - emptyCol) === 1 && row === emptyRow);
+    const isAdjacent = (Math.abs(pieceRow - emptyRow) === 1 && pieceCol === emptyCol) || 
+                       (Math.abs(pieceCol - emptyCol) === 1 && pieceRow === emptyRow);
+    
+    // Ne pas permettre de déplacer une case vide fixe
+    if (fixedEmptyValues.has(pieces[index])) return;
 
     if (isAdjacent) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -184,8 +251,7 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
   };
 
   const handleBypass = () => {
-    // Permettre de passer pour les tests (Bypass)
-    setPieces([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    setPieces(Array.from({ length: totalCells }, (_, i) => i));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsRevealed(true);
   };
@@ -205,7 +271,7 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
         )}
 
         {/* ZONE DU PUZZLE */}
-        <View style={[styles.puzzleBoard, { width: puzzleSize, height: puzzleSize }]}>
+        <View style={[styles.puzzleBoard, { width: puzzleWidth, height: puzzleHeight }]}>
           {pieces.map((pieceValue, index) => (
             <PuzzlePiece
               key={`piece-${pieceValue}`}
@@ -213,8 +279,13 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
               currentIndex={index}
               isRevealed={isRevealed}
               imageSource={imageSource}
-              pieceSize={pieceSize}
-              puzzleSize={puzzleSize}
+              pieceSizeW={pieceSizeW}
+              pieceSizeH={pieceSizeH}
+              puzzleWidth={puzzleWidth}
+              puzzleHeight={puzzleHeight}
+              cols={cols}
+              rows={rows}
+              nbPieces={nbPieces}
               onPress={() => handlePressPiece(index)}
             />
           ))}
@@ -256,9 +327,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
-    justifyContent: 'center',
     alignItems: 'center',
     flexGrow: 1,
+    paddingBottom: 120,
   },
   headerBadge: {
     flexDirection: 'row',
@@ -290,18 +361,17 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     marginBottom: 24,
     alignSelf: 'center',
-    position: 'relative', // Pour permettre le placement absolu des pièces
+    position: 'relative',
     overflow: 'hidden',
   },
   pieceBox: {
     width: '100%',
     height: '100%',
-    // Plus de padding, pour ne pas couper l'image en morceaux distants
   },
   emptyPiece: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#94A3B8', // Gris foncé pour le trou
+    backgroundColor: '#94A3B8',
   },
   imageMask: {
     flex: 1,

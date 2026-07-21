@@ -96,6 +96,8 @@ export default function SearchScreen() {
   const [parcours, setParcours] = useState<Parcours[]>([]);
   const [allMapParcours, setAllMapParcours] = useState<Parcours[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+  const lastMarkerPressRef = useRef<number>(0);
 
   // Lazy loading : on attend la fin des animations de navigation avant de monter
   // les composants lourds (MapView). Cela empêche le blocage du thread JS
@@ -359,6 +361,11 @@ export default function SearchScreen() {
         logoPosition={{ bottom: -100, right: -100 }}
         attributionPosition={{ bottom: -100, right: -100 }}
         mapStyle=""
+        onPress={() => {
+          if (Date.now() - lastMarkerPressRef.current > 300) {
+            setSelectedMarkerId(null);
+          }
+        }}
       >
         <Camera
           ref={cameraRef}
@@ -395,21 +402,38 @@ export default function SearchScreen() {
           const lat = firstEtape?.latitude;
           const lng = firstEtape?.longitude;
           if (!lat || !lng) return null;
+          
+          const isSelected = selectedMarkerId === p.id;
+          
           return (
             <Marker
               id={p.id}
               key={p.id}
               lngLat={[lng, lat]}
-              onPress={() => handleParcoursSelect(p.id)}
+              anchor="bottom"
+              style={{ zIndex: isSelected ? 10 : 1 }}
+              onPress={() => {
+                lastMarkerPressRef.current = Date.now();
+                if (isSelected) {
+                  handleParcoursSelect(p.id);
+                } else {
+                  setSelectedMarkerId(p.id);
+                }
+              }}
             >
-              <View
-                style={styles.markerContainer}
-              >
-                <View style={[styles.markerBubble, isDark && styles.darkCard]}>
-                  <Text style={[styles.markerText, isDark && styles.darkText]} numberOfLines={1}>{p.title}</Text>
-                  <Text style={[styles.markerMeta, isDark && styles.darkTextMuted]}>{p.difficulty} • {p.durationMin} min</Text>
-                </View>
-                <View style={styles.markerDot} />
+              <View style={[styles.markerContainer, { paddingHorizontal: 24, paddingTop: 32, paddingBottom: 2 }]}>
+                {isSelected && (
+                  <View style={[styles.markerBubble, isDark && styles.darkCard, { marginBottom: 4 }]}>
+                    <Text style={[styles.markerText, isDark && styles.darkText]} numberOfLines={1}>{p.title}</Text>
+                    <Text style={[styles.markerMeta, isDark && styles.darkTextMuted]}>{p.difficulty} • {p.durationMin} min</Text>
+                    <Text style={{ fontSize: 10, color: '#0087CC', marginTop: 4, fontWeight: '700' }}>Voir le parcours ➔</Text>
+                  </View>
+                )}
+                {isSelected ? (
+                  <Ionicons name="location" size={36} color="#0087CC" />
+                ) : (
+                  <Ionicons name="location" size={32} color="#007E84" />
+                )}
               </View>
             </Marker>
           );

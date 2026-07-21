@@ -62,6 +62,7 @@ export interface Badge {
   id: string;
   name: string;
   imageUrl: string;
+  parcours?: { id: string }[];
 }
 
 export interface Parcours {
@@ -125,6 +126,7 @@ export interface Jeu {
 // Données spécifiques par type de jeu
 export interface DonneesQCM {
   options: string[];
+  optionsCaptions?: string[];
   bonneReponseIndex?: number;
   qcmType?: 'text' | 'image' | 'audio';
 }
@@ -145,6 +147,7 @@ export interface Badge {
   description: string;
   imageUrl: string;
   category: string;
+  parcours?: { id: string }[];
 }
 
 export interface UserBadge {

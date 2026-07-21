@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import Animated, { 
   FadeIn, 
@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import type { Jeu, DonneesCalcPyramidal } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 
 interface PyramidViewProps {
   jeu: Jeu;
@@ -33,8 +34,12 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
 
   useEffect(() => {
     // Initialiser l'état local avec les valeurs existantes ou chaîne vide
-    const initialGrid = baseGrid.map(row => 
-      row.map(cell => cell !== null ? String(cell) : '')
+    // On masque le sommet de la pyramide (row 0) pour que le joueur le calcule
+    const initialGrid = baseGrid.map((row, rIndex) => 
+      row.map(cell => {
+        if (rIndex === 0) return ''; // Cacher le résultat au sommet
+        return cell !== null ? String(cell) : '';
+      })
     );
     setUserGrid(initialGrid);
   }, [jeu]);
@@ -57,6 +62,9 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
   const shakeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeTranslateX.value }],
   }));
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const cellYPositions = useRef<Record<string, number>>({});
 
   const handleChange = (rowIndex: number, colIndex: number, text: string) => {
     if (isRevealed) return;
@@ -116,9 +124,15 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 120 }} 
+        showsVerticalScrollIndicator={false} 
+        keyboardShouldPersistTaps="handled"
+      >
         <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
           
           <View style={styles.headerBadge}>
@@ -127,12 +141,12 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
           </View>
           
           {imageSource && (
-            <Animated.Image 
-              entering={FadeIn.delay(200)}
-              source={imageSource} 
-              style={styles.image} 
-              resizeMode="contain"
-            />
+            <Animated.View entering={FadeIn.delay(200)}>
+              <ZoomableImage 
+                source={imageSource} 
+                style={styles.image} 
+              />
+            </Animated.View>
           )}
 
           <View style={styles.card}>
@@ -146,9 +160,16 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
               {userGrid.map((row, rIndex) => (
                 <View key={`row-${rIndex}`} style={styles.pyramidRow}>
                   {row.map((cellValue, cIndex) => {
-                    const isReadOnly = baseGrid[rIndex]?.[cIndex] !== null;
+                    // Le sommet (row 0) est toujours éditable — le joueur doit le calculer
+                    const isReadOnly = rIndex > 0 && baseGrid[rIndex]?.[cIndex] !== null;
                     return (
-                      <View key={`cell-${rIndex}-${cIndex}`} style={styles.brickContainer}>
+                      <View 
+                        key={`cell-${rIndex}-${cIndex}`} 
+                        style={styles.brickContainer}
+                        onLayout={(e) => {
+                          cellYPositions.current[`${rIndex}-${cIndex}`] = e.nativeEvent.layout.y;
+                        }}
+                      >
                         <TextInput
                           style={[
                             styles.brickInput,
@@ -161,6 +182,15 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
                           editable={!isReadOnly && !isRevealed}
                           keyboardType="number-pad"
                           maxLength={4}
+                          onFocus={() => {
+                            // Scroll pour que la cellule soit visible au-dessus du clavier
+                            // On calcule la position Y approximative en se basant sur l'index de ligne
+                            setTimeout(() => {
+                              // Estimer la position : header + image + card padding + row height * rIndex
+                              const estimatedY = 200 + (rIndex * 58);
+                              scrollViewRef.current?.scrollTo({ y: Math.max(0, estimatedY - 100), animated: true });
+                            }, 100);
+                          }}
                         />
                       </View>
                     );
@@ -209,7 +239,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    justifyContent: 'center',
     backgroundColor: '#EEF2FF', // Indigo très léger
   },
   headerBadge: {

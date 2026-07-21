@@ -18,7 +18,8 @@ export type IconSymbolName =
   | 'star.fill'
   | 'wifi'
   | 'wifi.slash'
-  | 'leaf.fill';
+  | 'leaf.fill'
+  | 'download';
 
 const MAPPING: Record<IconSymbolName, keyof typeof Ionicons.glyphMap> = {
   'house.fill': 'home',
@@ -37,6 +38,7 @@ const MAPPING: Record<IconSymbolName, keyof typeof Ionicons.glyphMap> = {
   'wifi': 'wifi',
   'wifi.slash': 'wifi-outline', // Ionicons doesn't have a great wifi-slash, using outline or we can use another
   'leaf.fill': 'leaf',
+  'download': 'download',
 };
 
 export function IconSymbol({

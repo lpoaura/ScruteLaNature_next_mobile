@@ -178,15 +178,27 @@ export default function ProfileScreen() {
           ) : (
             allBadges.map((badge) => {
               const isUnlocked = user?.badges?.some((ub) => ub.badge.id === badge.id);
+              const parcoursId = badge.parcours?.[0]?.id;
+              
               return (
-                <View key={badge.id} style={styles.badgeItem}>
+                <Pressable 
+                  key={badge.id} 
+                  style={styles.badgeItem}
+                  onPress={() => {
+                    if (parcoursId) {
+                      router.push(`/parcours/${parcoursId}`);
+                    } else {
+                      Alert.alert('Indisponible', 'Ce parcours n\'est plus disponible pour le moment.');
+                    }
+                  }}
+                >
                   <View style={[styles.badgeImageContainer, !isUnlocked && styles.badgeLocked]}>
                     <Image source={{ uri: badge.imageUrl }} style={styles.badgeImage} />
                   </View>
                   <Text style={[styles.badgeName, !isUnlocked && styles.badgeNameLocked]}>
                     {badge.name}
                   </Text>
-                </View>
+                </Pressable>
               );
             })
           )}

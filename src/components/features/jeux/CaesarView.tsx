@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ScrollView } from 'react-native';
 import Animated, { 
   FadeIn, 
@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import type { Jeu, DonneesCaesar } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 
 interface CaesarViewProps {
   jeu: Jeu;
@@ -48,6 +49,8 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
     transform: [{ translateX: shakeTranslateX.value }],
   }));
 
+  const scrollViewRef = useRef<ScrollView>(null);
+
   const handleValidate = () => {
     Keyboard.dismiss();
     
@@ -81,11 +84,17 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView 
+            ref={scrollViewRef}
+            contentContainerStyle={styles.scrollContent} 
+            showsVerticalScrollIndicator={false} 
+            keyboardShouldPersistTaps="handled"
+          >
         
         <View style={styles.headerBadge}>
           <Ionicons name="key" size={20} color="#EB601A" />
@@ -93,12 +102,12 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
         </View>
         
         {imageSource && (
-          <Animated.Image 
-            entering={FadeIn.delay(200)}
-            source={imageSource} 
-            style={styles.image} 
-            resizeMode="contain"
-          />
+          <Animated.View entering={FadeIn.delay(200)}>
+            <ZoomableImage 
+              source={imageSource} 
+              style={styles.image} 
+            />
+          </Animated.View>
         )}
 
         <View style={styles.card}>
@@ -109,9 +118,6 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
           <View style={styles.cipherBox}>
             <Text style={styles.cipherLabel}>Message codé :</Text>
             <Text style={styles.cipherText}>{phraseChiffree}</Text>
-            <View style={styles.decalageBadge}>
-              <Text style={styles.decalageText}>Décalage : {decalage > 0 ? `+${decalage}` : decalage}</Text>
-            </View>
           </View>
           
           <TextInput
@@ -125,6 +131,11 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
             autoCapitalize="none"
             autoCorrect={false}
             spellCheck={false}
+            onFocus={() => {
+              setTimeout(() => {
+                scrollViewRef.current?.scrollTo({ y: 350, animated: true });
+              }, 100);
+            }}
           />
 
           {!isRevealed ? (
@@ -171,8 +182,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
-    justifyContent: 'center',
     flexGrow: 1,
+    paddingBottom: 120,
   },
   headerBadge: {
     flexDirection: 'row',
@@ -236,17 +247,6 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     textAlign: 'center',
     marginBottom: 12,
-  },
-  decalageBadge: {
-    backgroundColor: '#374151',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 100,
-  },
-  decalageText: {
-    color: '#D1D5DB',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   input: {
     backgroundColor: '#F3F4F6',

@@ -168,7 +168,7 @@ export default function DashboardScreen() {
                     <View className="flex-1 mr-3">
                       <Text className="text-white text-lg font-bold mb-1" numberOfLines={1}>{item.parcours.title}</Text>
                       <View className="flex-row items-center">
-                        <IconSymbol name="sdcard" size={14} color="#e0e7ff" />
+                        <IconSymbol name="download" size={14} color="#e0e7ff" />
                         <Text className="text-indigo-100 text-xs font-medium ml-1">
                           {item.sizeFormatted}
                         </Text>

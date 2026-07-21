@@ -33,7 +33,7 @@ import type { Parcours, Etape, Jeu } from '@/src/types/api.types';
 
 import { useGpsTrigger } from '@/src/hooks/use-gps-trigger';
 import { formatDistance, haversineDistance } from '@/src/utils/distance';
-import { CarnetTransitionView } from '@/src/components/features/transition/CarnetTransitionView';
+import { CarnetDeBordModal } from '@/src/components/features/jeux/CarnetDeBordModal';
 import { MiniJeuxManager } from '@/src/components/features/jeux/MiniJeuxManager';
 import { calculateBoundingBox } from '@/src/utils/map';
 
@@ -200,7 +200,7 @@ export default function JeuScreen() {
   const [centerCoord, setCenterCoord] = useState<[number, number] | null>(null);
 
   // ── Jeu ──
-  const [isTransitionActive, setIsTransitionActive] = useState(false);
+  const [isCarnetModalVisible, setIsCarnetModalVisible] = useState(false);
   const [reachedEtape, setReachedEtape] = useState<Etape | null>(null);
   const [isPlayingGame, setIsPlayingGame] = useState(false);
 
@@ -425,15 +425,12 @@ export default function JeuScreen() {
   const { distanceToNext } = useGpsTrigger({
     etapes: data?.etapes || [],
     currentEtapeOrder,
-    isActive: prepStep === 'ready' && data !== null && !isTransitionActive && !isPlayingGame,
+    isActive: prepStep === 'ready' && data !== null && !isPlayingGame,
     onStepReached: (etape) => {
       setReachedEtape(etape);
-      setIsTransitionActive(true);
+      setIsPlayingGame(true);
     },
   });
-
-  // ── Handlers ──
-  const handleContinueToGame = () => { setIsTransitionActive(false); setIsPlayingGame(true); };
 
   const handleGameCompleted = async () => {
     setIsPlayingGame(false);
@@ -483,7 +480,7 @@ export default function JeuScreen() {
       });
     } else {
       completeEtape(totalEtapes);
-      Alert.alert('Étape validée !', 'Bravo ! En route vers la prochaine étape.', [
+      Alert.alert('Étape terminée !', '', [
         { text: 'Continuer', style: 'default' },
       ]);
     }
@@ -587,9 +584,14 @@ export default function JeuScreen() {
 
       {/* ── HEADER ── */}
       <View style={[styles.headerOverlay, { top: insets.top + 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-        <Pressable style={styles.iconBtn} onPress={handleQuit}>
-          <Ionicons name="close" size={24} color="#1F2937" />
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <Pressable style={styles.iconBtn} onPress={handleQuit}>
+            <Ionicons name="close" size={24} color="#1F2937" />
+          </Pressable>
+          <Pressable style={styles.iconBtn} onPress={() => setIsCarnetModalVisible(true)}>
+            <Ionicons name="book" size={24} color="#007E84" />
+          </Pressable>
+        </View>
         {timeLeft !== null && (
           <View style={{ backgroundColor: timeLeft < 60 ? '#EF4444' : '#F59E0B', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 5 }}>
             <Ionicons name="timer-outline" size={18} color="white" />
@@ -607,16 +609,16 @@ export default function JeuScreen() {
       <View style={[styles.footerOverlay, { paddingBottom: insets.bottom + 20 }]}>
         <View style={styles.objectifCard}>
           <Text style={styles.objectifLabel}>
-            Prochaine étape ({currentEtapeOrder}/{data!.etapes.length})
+            Prochaine étape
           </Text>
           <Text style={styles.objectifTitle}>{currentEtape?.title || 'Balade terminée !'}</Text>
           <Text style={styles.objectifDesc}>
-            Suivez la carte pour vous rendre à cet emplacement. Un mini-jeu se déclenchera
-            automatiquement quand vous serez à moins de 15 mètres.
+            À l'aide des indications et de la carte, rends-toi à cet emplacement. Quand tu seras à moins de 15m, la suite du jeu s'activera automatiquement.
+Problème de GPS et vous êtes au bon endroit ? clique sur le bouton.
           </Text>
 
           {/* Distance en direct */}
-          {distanceToNext !== null && !isTransitionActive && !isPlayingGame && (
+          {distanceToNext !== null && !isPlayingGame && (
             <View style={styles.distancePill}>
               <Ionicons name="navigate-circle" size={20} color="#007E84" />
               <Text style={styles.distanceText}>À {formatDistance(distanceToNext)}</Text>
@@ -624,7 +626,7 @@ export default function JeuScreen() {
           )}
 
           {/* Bouton pour forcer l'étape si le GPS galère */}
-          {!isTransitionActive && !isPlayingGame && (
+          {!isPlayingGame && (
             <Pressable 
               style={{ marginTop: 16, backgroundColor: '#F3F4F6', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', flexDirection: 'row', justifyContent: 'center', gap: 8 }} 
               onPress={() => {
@@ -637,7 +639,7 @@ export default function JeuScreen() {
                       text: 'Oui, je suis sur place', 
                       onPress: () => {
                         setReachedEtape(currentEtape as unknown as Etape);
-                        setIsTransitionActive(true);
+                        setIsPlayingGame(true);
                       }
                     }
                   ]
@@ -650,12 +652,12 @@ export default function JeuScreen() {
           )}
 
           {/* Bypass en MODE TEST (Instantané, bouton rouge) */}
-          {preview === 'true' && !isTransitionActive && !isPlayingGame && (
+          {preview === 'true' && !isPlayingGame && (
             <Pressable 
               style={{ marginTop: 8, backgroundColor: '#EF4444', padding: 8, borderRadius: 8, alignItems: 'center' }} 
               onPress={() => {
                 setReachedEtape(currentEtape as unknown as Etape);
-                setIsTransitionActive(true);
+                setIsPlayingGame(true);
               }}
             >
               <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Passer à l'étape (Mode Test)</Text>
@@ -663,11 +665,12 @@ export default function JeuScreen() {
           )}
         </View>
       </View>
-
-      {/* Carnet de Bord (transition au point GPS) */}
-      {isTransitionActive && reachedEtape && (
-        <CarnetTransitionView etape={reachedEtape} onContinue={handleContinueToGame} />
-      )}
+      <CarnetDeBordModal 
+        visible={isCarnetModalVisible} 
+        onClose={() => setIsCarnetModalVisible(false)} 
+        currentEtapeOrder={currentEtapeOrder} 
+        totalEtapes={data?.etapes.length || 1} 
+      />
 
       {/* Mini-Jeux */}
       {isPlayingGame && reachedEtape && (

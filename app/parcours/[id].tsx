@@ -436,14 +436,23 @@ export default function ParcoursDetailScreen() {
               )}
               {parcours.distanceKm != null && <StatCard icon="navigate" value={`${parcours.distanceKm.toFixed(1)} km`} label="Distance" delay={60} isDark={isDark} />}
               {etapes.length > 0 && <StatCard icon="map" value={`${etapes.length}`} label="Étapes" delay={120} isDark={isDark} />}
-              {nbJeux > 0 && <StatCard icon="game-controller" value={`${nbJeux}`} label="Jeux" delay={180} isDark={isDark} />}
               {hasRatings && <StatCard icon="star" value={parcours.averageRating!.toFixed(1)} label="Note" delay={240} isDark={isDark} />}
             </View>
           </Animated.View>
 
+          {/* ── Section : À propos (Synopsis) ────────────────────────────── */}
+          {parcours.description && (
+            <Animated.View
+              entering={FadeInDown.delay(100).springify()}
+              style={[styles.aboutPanel, isDark && styles.darkActionPanel]}
+            >
+              <Markdown style={isDark ? darkMarkdownStyles : markdownStyles}>{parcours.description}</Markdown>
+            </Animated.View>
+          )}
+
           {/* ── Section : Télécharger / Jouer ──────────────────────────── */}
           <Animated.View
-            entering={FadeInDown.delay(100).springify()}
+            entering={FadeInDown.delay(150).springify()}
             style={[styles.actionPanel, isDark && styles.darkActionPanel]}
           >
             {id && (
@@ -475,23 +484,6 @@ export default function ParcoursDetailScreen() {
               </Text>
             </View>
           </Animated.View>
-
-
-          {/* ── Section : À propos ──────────────────────────────────────── */}
-          {parcours.description && (
-            <Animated.View
-              entering={FadeInDown.delay(150).springify()}
-              style={[styles.aboutPanel, isDark && styles.darkActionPanel]}
-            >
-              <View style={styles.sectionHeaderRow}>
-                <View style={styles.sectionIconBadge}>
-                  <Ionicons name="information" size={20} color={GREEN} />
-                </View>
-                <Text style={[styles.sectionTitlePremium, isDark && styles.darkText]}>À propos</Text>
-              </View>
-              <Markdown style={isDark ? darkMarkdownStyles : markdownStyles}>{parcours.description}</Markdown>
-            </Animated.View>
-          )}
 
           {/* ── Section : Accessibilité ─────────────────────────────────── */}
           {accessItems.length > 0 && (
