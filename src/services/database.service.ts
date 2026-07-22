@@ -593,3 +593,8 @@ export async function markHistorySyncedLocal(syncId: string): Promise<void> {
   const db = getDb();
   await db.runAsync('UPDATE user_history SET isSynced = 1 WHERE syncId = ?', [syncId]);
 }
+
+export async function deleteLocalHistory(syncId: string): Promise<void> {
+  const db = getDb();
+  await db.runAsync('DELETE FROM user_history WHERE syncId = ?', [syncId]);
+}

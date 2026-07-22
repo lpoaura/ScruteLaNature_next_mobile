@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image, Pressable } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Clock, Trophy, MapPin } from 'lucide-react-native';
+import { ArrowLeft, Clock, Trophy, MapPin, Trash2 } from 'lucide-react-native';
 import { HistoryService } from '@/src/services/history.service';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
@@ -33,6 +33,15 @@ export default function HistoryScreen() {
     loadHistory();
   }, [isGuest]);
 
+  const handleDelete = async (syncId: string, parcoursId: string) => {
+    try {
+      await HistoryService.deleteHistoryItem(syncId, isGuest);
+      setHistory(prev => prev.filter(item => item.syncId !== syncId));
+    } catch (e) {
+      console.error("Failed to delete history item", e);
+    }
+  };
+
   const renderItem = ({ item }: { item: any }) => {
     const isServerData = !!item.parcours;
     
@@ -50,7 +59,10 @@ export default function HistoryScreen() {
       : undefined; // TODO: handle local cover via getLocalCoverImage(item.parcoursId)
 
     return (
-      <View style={[styles.card, isDark && styles.darkCard]}>
+      <Pressable 
+        onPress={() => router.push(`/parcours/${item.parcoursId}`)}
+        style={[styles.card, isDark && styles.darkCard]}
+      >
         {coverUrl ? (
           <Image source={{ uri: coverUrl }} style={styles.cardImage} />
         ) : (
@@ -72,7 +84,14 @@ export default function HistoryScreen() {
             </View>
           </View>
         </View>
-      </View>
+
+        <Pressable 
+          onPress={() => handleDelete(item.syncId, item.parcoursId)}
+          style={styles.deleteButton}
+        >
+          <Trash2 size={20} color="#EF4444" />
+        </Pressable>
+      </Pressable>
     );
   };
 
@@ -232,5 +251,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#92400E',
+  },
+  deleteButton: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

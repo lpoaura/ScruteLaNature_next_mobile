@@ -42,7 +42,7 @@ const SLIDES = [
   {
     id: '2',
     emoji: '🎒',
-    image: require('@/src/assets/images/onboarding/onboarding_geai.png'),
+    image: require('@/src/assets/images/onboarding/onboarding_foret.png'),
     title: 'Télécharge pour jouer',
     subtitle: 'Emporte la balade dans ta poche. Téléchargée, elle fonctionnera entièrement hors-ligne, même en plein milieu de la nature !',
     bgLight: '#E0F2FE',
@@ -52,7 +52,7 @@ const SLIDES = [
   {
     id: '3',
     emoji: '🔍',
-    image: require('@/src/assets/images/onboarding/onboarding_foret.png'),
+    image: require('@/src/assets/images/onboarding/onboarding_geai.png'),
     title: "C'est parti !",
     subtitle: "Mène l'enquête, résous des énigmes et observe la nature qui t'entoure.",
     bgLight: '#FFF7ED',

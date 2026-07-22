@@ -1,5 +1,5 @@
 import { apiService } from './api.service';
-import { getLocalHistory, saveParcoursHistoryLocal, addToQueue } from './database.service';
+import { getLocalHistory, saveParcoursHistoryLocal, addToQueue, deleteLocalHistory } from './database.service';
 
 export interface HistoryRecord {
   syncId: string;
@@ -53,6 +53,23 @@ export const HistoryService = {
     } catch (e) {
       console.warn("Impossible de fetch l'historique serveur, fallback local", e);
       return await getLocalHistory();
+    }
+  },
+
+  /**
+   * Supprime un élément de l'historique
+   */
+  async deleteHistoryItem(syncId: string, isGuest: boolean): Promise<void> {
+    // 1. Supprime en local
+    await deleteLocalHistory(syncId);
+
+    // 2. Supprime sur le serveur si connecté
+    if (!isGuest) {
+      try {
+        await apiService.delete(`/users/me/history/${syncId}`);
+      } catch (e) {
+        console.warn("Impossible de supprimer l'historique sur le serveur", e);
+      }
     }
   }
 };

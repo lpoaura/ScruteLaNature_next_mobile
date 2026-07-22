@@ -72,6 +72,8 @@ export default function DashboardScreen() {
   // Indicateur dynamique basé sur la connexion réelle
   const isOnline = netInfo.isConnected && netInfo.isInternetReachable !== false;
 
+  const activeParcours = downloadedData.find(d => d.parcours.id === activeParcoursId)?.parcours;
+
   return (
     <ScrollView 
       className="flex-1 bg-slate-50 dark:bg-slate-900"
@@ -141,7 +143,9 @@ export default function DashboardScreen() {
             >
               <View className="flex-1 mr-4">
                 <Text className="text-emerald-100 font-medium mb-1">Balade en cours</Text>
-                <Text className="text-white text-2xl font-bold mb-2">Reprendre ma balade</Text>
+                <Text className="text-white text-2xl font-bold mb-2" numberOfLines={2}>
+                  {activeParcours ? activeParcours.title : 'Reprendre ma balade'}
+                </Text>
                 <Text className="text-emerald-50 text-sm font-medium">Étape {currentEtapeOrder}</Text>
               </View>
               <View className="bg-white/20 p-4 rounded-full">
