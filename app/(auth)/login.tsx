@@ -12,6 +12,7 @@ import {
   View,
   Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSettingsStore } from '@/src/store/settings.store';
 import { useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,6 +39,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Message de succès si l'utilisateur vient de vérifier son email
   useEffect(() => {
@@ -158,18 +160,31 @@ export default function LoginScreen() {
 
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, isDark && styles.darkTextMuted]}>Mot de passe</Text>
-            <TextInput
-              style={[styles.input, isDark && styles.darkInput]}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              placeholderTextColor="#aaa"
-              secureTextEntry
-              autoComplete="current-password"
-              returnKeyType="done"
-              onSubmitEditing={handleLogin}
-              editable={!isLoading}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={[styles.input, styles.passwordInput, isDark && styles.darkInput]}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                placeholderTextColor="#aaa"
+                secureTextEntry={!showPassword}
+                autoComplete="current-password"
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
+                editable={!isLoading}
+              />
+              <Pressable
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={22}
+                  color={isDark ? '#94A3B8' : '#777'}
+                />
+              </Pressable>
+            </View>
           </View>
 
           <Pressable
@@ -323,6 +338,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     color: '#111',
+  },
+  passwordContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  passwordInput: {
+    paddingRight: 50, // Space for the eye icon
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 16,
+    height: '100%',
+    justifyContent: 'center',
   },
   loginButton: {
     height: 54,

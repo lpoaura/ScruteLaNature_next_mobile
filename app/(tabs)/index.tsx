@@ -116,9 +116,18 @@ export default function DashboardScreen() {
         try {
           let { status } = await Location.requestForegroundPermissionsAsync();
           if (status === 'granted') {
-            const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            lat = location.coords.latitude;
-            lng = location.coords.longitude;
+            let location = await Location.getLastKnownPositionAsync();
+            if (!location) {
+              // Timeout after 2 seconds to avoid blocking the UI forever
+              location = await Promise.race([
+                Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest }),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000))
+              ]);
+            }
+            if (location) {
+              lat = location.coords.latitude;
+              lng = location.coords.longitude;
+            }
           }
         } catch (locationErr) {
           // Silencing the warning to avoid spamming the console when GPS is disabled

@@ -661,7 +661,7 @@ export async function clearAndSaveAnecdotesLocal(anecdotes: AnecdoteSQLite[]): P
   await db.execAsync('DELETE FROM anecdotes'); // Replace all
   for (const a of anecdotes) {
     await db.runAsync(
-      `INSERT INTO anecdotes (id, content, imageUrl, isActive, createdAt, updatedAt)
+      `INSERT OR REPLACE INTO anecdotes (id, content, imageUrl, isActive, createdAt, updatedAt)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [a.id, a.content, a.imageUrl, a.isActive, a.createdAt, a.updatedAt]
     );
