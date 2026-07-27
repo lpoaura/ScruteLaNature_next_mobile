@@ -8,7 +8,6 @@ import {
   Layer,
   GeoJSONSource,
 } from '@maplibre/maplibre-react-native';
-// MapLibreGL.setAccessToken(null);
 import * as Location from 'expo-location';
 import { areTilesAvailable, getLocalTileUrlTemplate } from '@/src/services/filesystem.service';
 import { calculateBoundingBox } from '@/src/utils/map';
@@ -99,7 +98,7 @@ export default function ParcoursMap({
             zoom: centerAndZoom?.zoom ?? 5,
           }}
         />
-        {hasLocationPermission && <UserLocation animated />}
+        {hasLocationPermission && <UserLocation animated heading />}
 
         <RasterSource id="osm" tiles={tileUrlTemplates} tileSize={256}>
           <Layer id="osm-layer" type="raster" source="osm" />

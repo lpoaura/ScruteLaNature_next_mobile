@@ -10,6 +10,12 @@ export const socialService = {
     apiService.post<void>('/social/reviews', payload),
 
   /**
+   * Récupérer le flux d'actualité de la communauté (10 derniers avis)
+   */
+  getCommunityFeed: (): Promise<import('@/src/types/api.types').CommunityReview[]> =>
+    apiService.get<import('@/src/types/api.types').CommunityReview[]>('/mobile/community/feed'),
+
+  /**
    * Rechercher des utilisateurs par pseudo
    * → GET /social/users/search?q=XYZ
    */

@@ -18,10 +18,15 @@ export default function ProfileScreen() {
   
   const isDark = useColorScheme() === 'dark';
   
+  const refreshProfile = useAuthStore((state: any) => state.refreshProfile);
+  
   const [allBadges, setAllBadges] = useState<Badge[]>([]);
   const [loadingBadges, setLoadingBadges] = useState(true);
 
   useEffect(() => {
+    // Rafraîchir les points et CO2 depuis le backend
+    refreshProfile();
+    
     async function loadBadges() {
       try {
         const data = await apiService.get<Badge[]>('/mobile/badges');
@@ -59,6 +64,15 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
+      {/* Bannière Invité */}
+      {isGuest && (
+        <View style={[styles.guestBanner, isDark && styles.darkGuestBanner]}>
+          <Text style={[styles.guestBannerText, isDark && styles.darkText]}>
+            ⚠️ Mode invité : Vos progrès (badges, xp) peuvent être perdus si vous désinstallez l'application. Créez un compte pour les sauvegarder.
+          </Text>
+        </View>
+      )}
+
       {/* En-tête / Jauge XP */}
       <View style={[styles.header, { marginTop: 12 }, isDark && styles.darkCard]}>
         <View style={[styles.avatarContainer, isDark && styles.darkCard]}>
@@ -83,26 +97,36 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* CO2 Économisé */}
-      <View style={styles.statsContainer}>
-        <View style={[styles.statBox, isDark && styles.darkCard]}>
-          <View style={styles.statIconContainer}>
-            <Leaf size={28} color="#007E84" />
+      {/* CO2 Économisé (Cliquable) */}
+      <View style={{ marginBottom: 20 }}>
+        <Pressable 
+          style={[styles.navCard, { width: '100%' }, isDark && styles.darkCard]}
+          onPress={() => Alert.alert(
+            'CO2 Économisé 🌍', 
+            "Le CO2 est un gaz responsable du réchauffement climatique. En choisissant de faire vos balades à pied plutôt qu'en voiture, vous avez évité de polluer l'air de cette quantité !"
+          )}
+        >
+          <View style={[styles.navIcon, { backgroundColor: '#DCFCE7' }]}>
+            <Leaf size={24} color="#16A34A" />
           </View>
-          <Text style={[styles.statValue, isDark && styles.darkText]}>{co2Saved.toFixed(1)} kg</Text>
-          <Text style={[styles.statLabel, isDark && styles.darkTextMuted]}>de CO2 économisé</Text>
-          
-          <Text style={[styles.statExplanation, isDark && styles.darkTextMuted]}>
-            Le CO2 est un gaz responsable du réchauffement climatique. En choisissant de faire vos balades à pied plutôt qu'en voiture, vous avez évité de polluer l'air de cette quantité ! 🌍
-          </Text>
-        </View>
+          <View style={styles.navTextContainer}>
+            <Text style={[styles.navTitle, isDark && styles.darkText]}>{co2Saved.toFixed(1)} kg de CO2 évité</Text>
+            <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Cliquez pour comprendre</Text>
+          </View>
+        </Pressable>
       </View>
 
       {/* Navigation Rapide (Réseau d'amis / Paramètres) */}
       <View style={styles.quickNavContainer}>
         <Pressable 
           style={[styles.navCard, isDark && styles.darkCard]}
-          onPress={() => router.push('/(tabs)/profile/friends')}
+          onPress={() => {
+            if (isGuest) {
+              Alert.alert('Mode Invité', 'Créez un compte pour vous faire des amis et lancer des défis !');
+            } else {
+              router.push('/(tabs)/profile/friends');
+            }
+          }}
         >
           <View style={[styles.navIcon, { backgroundColor: '#E0E7FF' }]}>
             <Users size={24} color="#0087CC" />
@@ -125,6 +149,33 @@ export default function ProfileScreen() {
             <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Son, permissions, etc.</Text>
           </View>
         </Pressable>
+
+        {/* Bouton Historique */}
+        <Pressable 
+          style={[styles.navCard, isDark && styles.darkCard]}
+          onPress={() => router.push('/(tabs)/profile/history')}
+        >
+          <View style={[styles.navIcon, { backgroundColor: '#F0FDF4' }]}>
+            <Leaf size={24} color="#16A34A" />
+          </View>
+          <View style={styles.navTextContainer}>
+            <Text style={[styles.navTitle, isDark && styles.darkText]}>Historique de mes balades</Text>
+            <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Retrouver mes parcours terminés</Text>
+          </View>
+        </Pressable>
+
+        <Pressable 
+          style={[styles.navCard, isDark && styles.darkCard]}
+          onPress={() => router.push('/(tabs)/profile/downloads')}
+        >
+          <View style={[styles.navIcon, { backgroundColor: '#E0F2FE' }]}>
+            <ShieldAlert size={24} color="#0284C7" />
+          </View>
+          <View style={styles.navTextContainer}>
+            <Text style={[styles.navTitle, isDark && styles.darkText]}>Gérer mes téléchargements</Text>
+            <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Libérer de l'espace ou mettre à jour</Text>
+          </View>
+        </Pressable>
       </View>
 
       {/* Herbier des Badges (Mock) */}
@@ -136,15 +187,27 @@ export default function ProfileScreen() {
           ) : (
             allBadges.map((badge) => {
               const isUnlocked = user?.badges?.some((ub) => ub.badge.id === badge.id);
+              const parcoursId = badge.parcours?.[0]?.id;
+              
               return (
-                <View key={badge.id} style={styles.badgeItem}>
+                <Pressable 
+                  key={badge.id} 
+                  style={styles.badgeItem}
+                  onPress={() => {
+                    if (parcoursId) {
+                      router.push(`/parcours/${parcoursId}`);
+                    } else {
+                      Alert.alert('Indisponible', 'Ce parcours n\'est plus disponible pour le moment.');
+                    }
+                  }}
+                >
                   <View style={[styles.badgeImageContainer, !isUnlocked && styles.badgeLocked]}>
                     <Image source={{ uri: badge.imageUrl }} style={styles.badgeImage} />
                   </View>
                   <Text style={[styles.badgeName, !isUnlocked && styles.badgeNameLocked]}>
                     {badge.name}
                   </Text>
-                </View>
+                </Pressable>
               );
             })
           )}
@@ -159,6 +222,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  guestBanner: {
+    backgroundColor: '#FEF3C7', // amber-100
+    marginHorizontal: 20,
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A', // amber-200
+  },
+  darkGuestBanner: {
+    backgroundColor: '#78350F', // amber-900
+    borderColor: '#92400E', // amber-800
+  },
+  guestBannerText: {
+    color: '#92400E', // amber-800
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   scrollContent: {
     paddingHorizontal: 20,

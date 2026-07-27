@@ -12,22 +12,46 @@ import type {
 let _db: SQLite.SQLiteDatabase | null = null;
 
 /**
- * Retourne l'instance SQLite (singleton).
- * Appeler `initDatabase()` avant tout usage.
+ * Retourne l'instance SQLite (singleton) de manière synchrone.
+ * Usage interne uniquement — les fonctions publiques doivent passer par getDbSafe().
  */
 function getDb(): SQLite.SQLiteDatabase {
   if (!_db) throw new Error('Base de données non initialisée. Appelez initDatabase() d\'abord.');
   return _db;
 }
 
+/**
+ * Retourne l'instance SQLite en s'assurant que la DB est initialisée.
+ * C'est la méthode sûre à utiliser partout dans ce fichier.
+ */
+async function getDbSafe(): Promise<SQLite.SQLiteDatabase> {
+  await awaitDatabaseReady();
+  return getDb();
+}
+
 // ─── Initialisation ───────────────────────────────────────────────────────────
+
+let _initPromise: Promise<void> | null = null;
+
+/**
+ * Attend que la base de données soit prête.
+ * Si initDatabase() n'a pas encore été appelé, le fait automatiquement.
+ */
+export function awaitDatabaseReady(): Promise<void> {
+  if (_initPromise) return _initPromise;
+  _initPromise = initDatabase();
+  return _initPromise;
+}
 
 /**
  * Ouvre la base de données et crée toutes les tables si elles n'existent pas.
  * À appeler une seule fois au démarrage de l'application (dans _layout.tsx).
  */
-export async function initDatabase(): Promise<void> {
-  _db = await SQLite.openDatabaseAsync('lpo_balades_v2.db');
+export function initDatabase(): Promise<void> {
+  if (_initPromise) return _initPromise;
+
+  _initPromise = (async () => {
+    _db = await SQLite.openDatabaseAsync('lpo_balades_v2.db');
 
   await _db.execAsync(`
     PRAGMA journal_mode = WAL;
@@ -49,6 +73,9 @@ export async function initDatabase(): Promise<void> {
       isPMRFriendly           INTEGER NOT NULL DEFAULT 0,
       isChildFriendly         INTEGER NOT NULL DEFAULT 0,
       isMentalHandicapFriendly INTEGER NOT NULL DEFAULT 0,
+      isEscapeGame            INTEGER NOT NULL DEFAULT 0,
+      timeLimitMinutes        INTEGER,
+      updatedAt               TEXT,
       downloadedAt            INTEGER NOT NULL,
       isCompleted             INTEGER NOT NULL DEFAULT 0
     );
@@ -89,7 +116,48 @@ export async function initDatabase(): Promise<void> {
       createdAt   INTEGER NOT NULL,
       attempts    INTEGER NOT NULL DEFAULT 0
     );
+
+    -- ─── Anecdotes (Le saviez-vous) ───────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS anecdotes (
+      id              TEXT PRIMARY KEY,
+      content         TEXT NOT NULL,
+      imageUrl        TEXT,
+      isActive        INTEGER NOT NULL DEFAULT 1,
+      createdAt       TEXT,
+      updatedAt       TEXT
+    );
   `);
+
+
+  // Tentative de mise à jour du schéma pour les installations existantes (migration)
+  try {
+    await _db.execAsync(`ALTER TABLE parcours ADD COLUMN updatedAt TEXT;`);
+  } catch (e) {
+    // L'erreur est normale si la colonne existe déjà
+  }
+  
+  try {
+    await _db.execAsync(`ALTER TABLE parcours ADD COLUMN isEscapeGame INTEGER NOT NULL DEFAULT 0;`);
+    await _db.execAsync(`ALTER TABLE parcours ADD COLUMN timeLimitMinutes INTEGER;`);
+  } catch (e) {
+    // L'erreur est normale si les colonnes existent déjà
+  }
+  
+  try {
+    await _db.execAsync(`
+      CREATE TABLE IF NOT EXISTS user_history (
+        syncId      TEXT PRIMARY KEY,
+        parcoursId  TEXT NOT NULL,
+        score       INTEGER NOT NULL,
+        completedAt TEXT NOT NULL,
+        isSynced    INTEGER NOT NULL DEFAULT 0
+      );
+    `);
+  } catch (e) {
+    console.error("Migration error user_history:", e);
+  }
+  })();
+  return _initPromise;
 }
 
 // ─── Types internes SQLite ────────────────────────────────────────────────────
@@ -109,6 +177,10 @@ interface ParcoursSQLite {
   isPMRFriendly: number;
   isChildFriendly: number;
   isMentalHandicapFriendly: number;
+  isEscapeGame: number;
+  isCoupDeCoeur: number | null;
+  timeLimitMinutes: number | null;
+  updatedAt: string | null;
   downloadedAt: number;
   isCompleted: number;
 }
@@ -161,10 +233,13 @@ function rowToParcours(row: ParcoursSQLite): Parcours & { downloadedAt: number; 
     isPMRFriendly: row.isPMRFriendly === 1,
     isChildFriendly: row.isChildFriendly === 1,
     isMentalHandicapFriendly: row.isMentalHandicapFriendly === 1,
+    isEscapeGame: row.isEscapeGame === 1,
+    isCoupDeCoeur: row.isCoupDeCoeur === 1,
+    timeLimitMinutes: row.timeLimitMinutes ?? undefined,
     status: 'PUBLISHED',
     organismeId: '',
     createdAt: '',
-    updatedAt: '',
+    updatedAt: row.updatedAt ?? '',
     downloadedAt: row.downloadedAt,
     isCompleted: row.isCompleted === 1,
   };
@@ -215,14 +290,14 @@ function rowToQueueItem(row: OfflineQueueSQLite): OfflineQueueItem {
  * En cas de conflit sur l'id, remplace l'entrée existante (re-téléchargement).
  */
 export async function insertParcours(parcours: Parcours): Promise<void> {
-  const db = getDb();
+  const db = await getDbSafe();
   await db.runAsync(
     `INSERT OR REPLACE INTO parcours
       (id, title, description, difficulty, accessibility, distanceKm, durationMin,
        coverImage, pathGeoJSON,
-       isPMRFriendly, isChildFriendly, isMentalHandicapFriendly,
-       downloadedAt, isCompleted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+       isPMRFriendly, isChildFriendly, isMentalHandicapFriendly, isEscapeGame, timeLimitMinutes,
+       updatedAt, downloadedAt, isCompleted)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
     [
       parcours.id,
       parcours.title,
@@ -236,6 +311,9 @@ export async function insertParcours(parcours: Parcours): Promise<void> {
       parcours.isPMRFriendly ? 1 : 0,
       parcours.isChildFriendly ? 1 : 0,
       parcours.isMentalHandicapFriendly ? 1 : 0,
+      parcours.isEscapeGame ? 1 : 0,
+      parcours.timeLimitMinutes ?? null,
+      parcours.updatedAt,
       Date.now(),
     ]
   );
@@ -245,7 +323,7 @@ export async function insertParcours(parcours: Parcours): Promise<void> {
  * Retourne tous les parcours téléchargés, du plus récent au plus ancien.
  */
 export async function getAllParcours(): Promise<(Parcours & { downloadedAt: number; isCompleted: boolean })[]> {
-  const db = getDb();
+  const db = await getDbSafe();
   const rows = await db.getAllAsync<ParcoursSQLite>(
     'SELECT * FROM parcours ORDER BY downloadedAt DESC'
   );
@@ -258,7 +336,7 @@ export async function getAllParcours(): Promise<(Parcours & { downloadedAt: numb
 export async function getParcours(
   id: string
 ): Promise<(Parcours & { downloadedAt: number; isCompleted: boolean }) | null> {
-  const db = getDb();
+  const db = await getDbSafe();
   const row = await db.getFirstAsync<ParcoursSQLite>(
     'SELECT * FROM parcours WHERE id = ?',
     [id]
@@ -278,7 +356,7 @@ export async function isParcoursDownloaded(id: string): Promise<boolean> {
  * Marque un parcours comme complété (après la synchronisation).
  */
 export async function markParcoursCompleted(id: string): Promise<void> {
-  const db = getDb();
+  const db = await getDbSafe();
   await db.runAsync(
     'UPDATE parcours SET isCompleted = 1 WHERE id = ?',
     [id]
@@ -289,7 +367,7 @@ export async function markParcoursCompleted(id: string): Promise<void> {
  * Supprime un parcours et toutes ses étapes/jeux (CASCADE).
  */
 export async function deleteParcours(id: string): Promise<void> {
-  const db = getDb();
+  const db = await getDbSafe();
   // Suppression explicite en cascade pour garantir le nettoyage même si PRAGMA foreign_keys est ignoré par l'OS
   await db.runAsync('DELETE FROM jeux WHERE etapeId IN (SELECT id FROM etapes WHERE parcoursId = ?)', [id]);
   await db.runAsync('DELETE FROM etapes WHERE parcoursId = ?', [id]);
@@ -302,7 +380,7 @@ export async function deleteParcours(id: string): Promise<void> {
  * Insère une étape dans SQLite.
  */
 export async function insertEtape(etape: Etape): Promise<void> {
-  const db = getDb();
+  const db = await getDbSafe();
   await db.runAsync(
     `INSERT OR REPLACE INTO etapes
       (id, parcoursId, orderNum, lat, lng, title)
@@ -322,7 +400,7 @@ export async function insertEtape(etape: Etape): Promise<void> {
  * Retourne toutes les étapes d'un parcours, dans l'ordre.
  */
 export async function getEtapesByParcours(parcoursId: string): Promise<Etape[]> {
-  const db = getDb();
+  const db = await getDbSafe();
   const rows = await db.getAllAsync<EtapeSQLite>(
     'SELECT * FROM etapes WHERE parcoursId = ? ORDER BY orderNum ASC',
     [parcoursId]
@@ -337,7 +415,7 @@ export async function getEtapesByParcours(parcoursId: string): Promise<Etape[]> 
  * `donneesJeu` est sérialisé en JSON string.
  */
 export async function insertJeu(jeu: Jeu): Promise<void> {
-  const db = getDb();
+  const db = await getDbSafe();
   await db.runAsync(
     `INSERT OR REPLACE INTO jeux
       (id, etapeId, orderNum, type, question, explication,
@@ -362,7 +440,7 @@ export async function insertJeu(jeu: Jeu): Promise<void> {
  * Retourne tous les jeux d'une étape, dans l'ordre.
  */
 export async function getJeuxByEtape(etapeId: string): Promise<Jeu[]> {
-  const db = getDb();
+  const db = await getDbSafe();
   const rows = await db.getAllAsync<JeuSQLite>(
     'SELECT * FROM jeux WHERE etapeId = ? ORDER BY orderNum ASC',
     [etapeId]
@@ -378,7 +456,7 @@ export async function updateJeuLocalPaths(
   audioLocalPath?: string,
   imageLocalPath?: string
 ): Promise<void> {
-  const db = getDb();
+  const db = await getDbSafe();
   await db.runAsync(
     `UPDATE jeux
      SET audioLocalPath = COALESCE(?, audioLocalPath),
@@ -418,7 +496,7 @@ export async function getParcoursComplet(parcoursId: string): Promise<{
  * Le `syncId` (UUID unique) garantit l'idempotence côté backend.
  */
 export async function addToQueue(item: Omit<OfflineQueueItem, 'id' | 'attempts'>): Promise<void> {
-  const db = getDb();
+  const db = await getDbSafe();
   await db.runAsync(
     `INSERT OR IGNORE INTO offline_queue (syncId, type, payload, createdAt, attempts)
      VALUES (?, ?, ?, ?, 0)`,
@@ -431,7 +509,7 @@ export async function addToQueue(item: Omit<OfflineQueueItem, 'id' | 'attempts'>
  * Filtre les items ayant dépassé le maximum de tentatives.
  */
 export async function getPendingQueue(maxAttempts = 3): Promise<OfflineQueueItem[]> {
-  const db = getDb();
+  const db = await getDbSafe();
   const rows = await db.getAllAsync<OfflineQueueSQLite>(
     'SELECT * FROM offline_queue WHERE attempts < ? ORDER BY createdAt ASC',
     [maxAttempts]
@@ -443,7 +521,7 @@ export async function getPendingQueue(maxAttempts = 3): Promise<OfflineQueueItem
  * Supprime un item de la file d'attente après synchronisation réussie.
  */
 export async function removeFromQueue(syncId: string): Promise<void> {
-  const db = getDb();
+  const db = await getDbSafe();
   await db.runAsync('DELETE FROM offline_queue WHERE syncId = ?', [syncId]);
 }
 
@@ -451,7 +529,7 @@ export async function removeFromQueue(syncId: string): Promise<void> {
  * Incrémente le compteur de tentatives d'un item (en cas d'échec réseau).
  */
 export async function incrementQueueAttempts(syncId: string): Promise<void> {
-  const db = getDb();
+  const db = await getDbSafe();
   await db.runAsync(
     'UPDATE offline_queue SET attempts = attempts + 1 WHERE syncId = ?',
     [syncId]
@@ -463,7 +541,7 @@ export async function incrementQueueAttempts(syncId: string): Promise<void> {
  * Utile pour afficher un badge de synchronisation.
  */
 export async function getQueueCount(): Promise<number> {
-  const db = getDb();
+  const db = await getDbSafe();
   const row = await db.getFirstAsync<{ count: number }>(
     'SELECT COUNT(*) as count FROM offline_queue WHERE attempts < 3'
   );
@@ -482,7 +560,7 @@ export async function getStorageStats(): Promise<{
   totalJeux: number;
   pendingSync: number;
 }> {
-  const db = getDb();
+  const db = await getDbSafe();
 
   const [parcoursRow, etapesRow, jeuxRow, queueRow] = await Promise.all([
     db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM parcours'),
@@ -497,4 +575,101 @@ export async function getStorageStats(): Promise<{
     totalJeux: jeuxRow?.count ?? 0,
     pendingSync: queueRow?.count ?? 0,
   };
+}
+
+export async function clearOfflineQueue(): Promise<void> {
+  const db = await getDbSafe();
+  await db.execAsync('DELETE FROM offline_queue');
+}
+
+// ─── Historique Utilisateur ──────────────────────────────────────────────────
+
+export interface UserHistorySQLite {
+  syncId: string;
+  parcoursId: string;
+  score: number;
+  completedAt: string;
+  isSynced: number;
+}
+
+export async function saveParcoursHistoryLocal(history: Omit<UserHistorySQLite, 'isSynced'>): Promise<void> {
+  const db = await getDbSafe();
+  await db.runAsync(
+    `INSERT OR REPLACE INTO user_history (syncId, parcoursId, score, completedAt, isSynced)
+     VALUES (?, ?, ?, ?, ?)`,
+    [history.syncId, history.parcoursId, history.score, history.completedAt, 0]
+  );
+}
+
+export async function getLocalHistory(): Promise<any[]> {
+  const db = await getDbSafe();
+  const rows = await db.getAllAsync<any>(`
+    SELECT 
+      uh.syncId, 
+      uh.parcoursId, 
+      uh.score, 
+      uh.completedAt, 
+      uh.isSynced,
+      p.title as parcoursTitle,
+      p.coverImage as parcoursCoverImage
+    FROM user_history uh
+    LEFT JOIN parcours p ON uh.parcoursId = p.id
+    ORDER BY uh.completedAt DESC
+  `);
+
+  return rows.map(row => ({
+    syncId: row.syncId,
+    parcoursId: row.parcoursId,
+    score: row.score,
+    completedAt: row.completedAt,
+    isSynced: row.isSynced,
+    parcours: row.parcoursTitle ? {
+      title: row.parcoursTitle,
+      coverImage: row.parcoursCoverImage,
+    } : undefined
+  }));
+}
+
+export async function getUnsyncedHistory(): Promise<UserHistorySQLite[]> {
+  const db = await getDbSafe();
+  return db.getAllAsync<UserHistorySQLite>('SELECT * FROM user_history WHERE isSynced = 0');
+}
+
+export async function markHistorySyncedLocal(syncId: string): Promise<void> {
+  const db = await getDbSafe();
+  await db.runAsync('UPDATE user_history SET isSynced = 1 WHERE syncId = ?', [syncId]);
+}
+
+export async function deleteLocalHistory(syncId: string): Promise<void> {
+  const db = await getDbSafe();
+  await db.runAsync('DELETE FROM user_history WHERE syncId = ?', [syncId]);
+}
+
+// ─── Anecdotes (Le saviez-vous) ───────────────────────────────────────────────
+
+export interface AnecdoteSQLite {
+  id: string;
+  content: string;
+  imageUrl: string | null;
+  isActive: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export async function clearAndSaveAnecdotesLocal(anecdotes: AnecdoteSQLite[]): Promise<void> {
+  const db = await getDbSafe();
+  await db.execAsync('DELETE FROM anecdotes'); // Replace all
+  for (const a of anecdotes) {
+    await db.runAsync(
+      `INSERT INTO anecdotes (id, content, imageUrl, isActive, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [a.id, a.content, a.imageUrl, a.isActive, a.createdAt, a.updatedAt]
+    );
+  }
+}
+
+export async function getRandomAnecdoteLocal(): Promise<AnecdoteSQLite | null> {
+  const db = await getDbSafe();
+  const result = await db.getFirstAsync<AnecdoteSQLite>('SELECT * FROM anecdotes WHERE isActive = 1 ORDER BY RANDOM() LIMIT 1');
+  return result || null;
 }

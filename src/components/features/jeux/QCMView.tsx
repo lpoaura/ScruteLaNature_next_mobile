@@ -13,7 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import type { Jeu, DonneesQCM } from '@/src/types/api.types';
+import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 
 interface QCMViewProps {
   jeu: Jeu;
@@ -76,9 +78,9 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
     }
   };
   
-  // Cast sécurisé des données
   const donnees = jeu.donneesJeu as unknown as DonneesQCM | undefined;
   const options = donnees?.options || [];
+  const optionsCaptions = donnees?.optionsCaptions || [];
   const qcmType = donnees?.qcmType || 'text';
   
   const imageSource = jeu.imageLocalPath 
@@ -134,19 +136,19 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{jeu.titre || 'Question Nature'}</Text>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
       
       {imageSource && (
-        <Animated.Image 
-          entering={FadeIn.delay(200)}
-          source={imageSource} 
-          style={styles.image} 
-          resizeMode="contain"
-        />
+        <Animated.View entering={FadeIn.delay(200)}>
+          <ZoomableImage 
+            source={imageSource} 
+            style={styles.image} 
+          />
+        </Animated.View>
       )}
 
-      <Text style={styles.questionText}>{jeu.question}</Text>
+      <GameQuestion question={jeu.question} />
 
       <View style={[
         styles.optionsContainer,
@@ -200,7 +202,7 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
                   style={{ flex: 1, paddingVertical: 10 }}
                 >
                   <Text style={[styles.optionText, { color: textColor }]} numberOfLines={1}>
-                    Extrait audio {index + 1}
+                    {optionsCaptions[index] ? optionsCaptions[index] : `Extrait audio ${index + 1}`}
                   </Text>
                 </Pressable>
 
@@ -227,6 +229,13 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
               {qcmType === 'image' ? (
                 <View style={{ flex: 1, position: 'relative' }}>
                   <Image source={{ uri: resolveMediaUrl(option) }} style={{ width: '100%', height: 140, borderRadius: 8 }} resizeMode="cover" />
+                  {optionsCaptions[index] ? (
+                    <View style={{ marginTop: 8, paddingHorizontal: 4 }}>
+                      <Text style={[styles.optionText, { color: textColor, fontSize: 13, textAlign: 'center' }]} numberOfLines={2}>
+                        {optionsCaptions[index]}
+                      </Text>
+                    </View>
+                  ) : null}
                   {isSelected && isCorrectAnswer && (
                     <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(16, 185, 129, 0.9)', borderRadius: 20 }}>
                       <Ionicons name="checkmark-circle" size={28} color="white" />
@@ -277,8 +286,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    justifyContent: 'center',
-    paddingBottom: 60,
+    paddingBottom: 120,
   },
   title: {
     fontSize: 28,

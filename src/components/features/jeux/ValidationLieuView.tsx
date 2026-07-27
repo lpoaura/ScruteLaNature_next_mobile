@@ -6,6 +6,8 @@ import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import type { Jeu, Etape } from '@/src/types/api.types';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
+import { GameQuestion } from './GameQuestion';
 
 interface ValidationLieuViewProps {
   jeu: Jeu;
@@ -109,25 +111,23 @@ export function ValidationLieuView({ jeu, etape, onSuccess, onFail, forceReveal 
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.headerBadge}>
         <Ionicons name="location" size={24} color="#E11D48" />
-        <Text style={styles.title}>{jeu.titre || 'Lieu Atteint ?'}</Text>
+        {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
       </View>
       
       {imageSource && (
-        <Animated.Image 
-          entering={FadeIn.delay(200)}
-          source={imageSource} 
-          style={styles.image} 
-          resizeMode="contain"
-        />
+        <Animated.View entering={FadeIn.delay(200)}>
+          <ZoomableImage 
+            source={imageSource} 
+            style={styles.image} 
+          />
+        </Animated.View>
       )}
 
       <View style={styles.contentCard}>
-        <Text style={styles.questionText}>
-          {jeu.question || "Êtes-vous bien arrivé à destination ? Validez votre position GPS pour continuer."}
-        </Text>
+        <GameQuestion question={jeu.question || "Êtes-vous bien arrivé à destination ? Validez votre position GPS pour continuer."} />
         
         {errorMsg && (
           <Text style={styles.errorText}>{errorMsg}</Text>

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { authService } from '@/src/services/auth.service';
-import { configureApiService } from '@/src/services/api.service';
+import { configureApiService, apiService } from '@/src/services/api.service';
 import { STORAGE_KEYS } from '@/src/constants/config';
 import {
   saveSecure,
@@ -33,6 +33,7 @@ interface AuthState {
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   updateUser: (user: User) => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
 }
@@ -109,7 +110,21 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
     },
 
-    // ─── Mise à jour du profil ────────────────────────────────────────────
+    // ─── Rafraîchir le profil depuis le serveur ───────────────────────────
+    refreshProfile: async () => {
+      const { isAuthenticated, isGuest } = get();
+      if (!isAuthenticated || isGuest) return;
+      try {
+        const user = await apiService.get<User>('/users/me');
+        if (user) {
+          get().updateUser(user);
+        }
+      } catch (e) {
+        console.warn("Impossible de rafraîchir le profil", e);
+      }
+    },
+
+    // ─── Mise à jour du profil (locale/serveur via submit) ────────────────
     updateProfile: async (payload: UpdateProfilePayload) => {
       set({ isLoading: true });
       try {

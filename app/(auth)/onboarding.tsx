@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
 } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
@@ -18,11 +17,14 @@ import Animated, {
   Extrapolation,
   interpolateColor,
 } from 'react-native-reanimated';
+import { Image } from 'expo-image';
 import { useSettingsStore } from '@/src/store/settings.store';
 import { useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { STORAGE_KEYS } from '@/src/constants/config';
 import { saveString } from '@/src/utils/storage';
+
+const AnimatedExpoImage = Animated.createAnimatedComponent(Image);
 
 const { width } = Dimensions.get('window');
 
@@ -32,9 +34,9 @@ const SLIDES = [
   {
     id: '1',
     emoji: '🗺️',
-    image: require('@/src/assets/images/onboarding/slide1.png'),
-    title: 'Choisis une balade',
-    subtitle: 'Découvrez des parcours nature créés par les équipes LPO dans votre région.',
+    image: require('@/src/assets/images/onboarding/onboarding_cigogne.png'),
+    title: 'Choisis un parcours',
+    subtitle: "Autour de chez toi ou en vacances, choisis un des jeux de piste pour découvrir la nature en s'amusant.",
     bgLight: '#D8E8C5',
     bgDark: '#082f49', // Dark Bleu LPO
     accent: '#007E84',
@@ -42,9 +44,9 @@ const SLIDES = [
   {
     id: '2',
     emoji: '🎒',
-    image: require('@/src/assets/images/onboarding/slide2.png'),
+    image: require('@/src/assets/images/onboarding/onboarding_foret.png'),
     title: 'Télécharge pour jouer',
-    subtitle: 'Emportez la balade dans votre poche. Elle fonctionne entièrement hors-ligne en forêt.',
+    subtitle: 'Emporte la balade dans ta poche. Téléchargée, elle fonctionnera entièrement hors-ligne, même en plein milieu de la nature !',
     bgLight: '#E0F2FE',
     bgDark: '#0C4A6E',
     accent: '#0EA5E9',
@@ -52,9 +54,9 @@ const SLIDES = [
   {
     id: '3',
     emoji: '🔍',
-    image: require('@/src/assets/images/onboarding/slide3.png'),
-    title: 'Résous les énigmes',
-    subtitle: 'Suivez votre animateur LPO, observez la faune et découvrez les secrets de la nature.',
+    image: require('@/src/assets/images/onboarding/onboarding_geai.png'),
+    title: "C'est parti !",
+    subtitle: "Mène l'enquête, résous des énigmes et observe la nature qui t'entoure.",
     bgLight: '#FFF7ED',
     bgDark: '#78350F',
     accent: '#EB601A',
@@ -131,10 +133,12 @@ function Slide({ item, index, scrollX, isDark }: SlideProps) {
       {/* Conteneur de l'image (Prêt pour la graphiste) */}
       <View style={styles.imageContainer}>
         {item.image ? (
-          <Animated.Image 
+          <AnimatedExpoImage 
             source={item.image} 
             style={[styles.fullImage, imageAnimatedStyle]} 
-            resizeMode="contain" 
+            contentFit="contain" 
+            cachePolicy="memory-disk"
+            transition={300}
           />
         ) : (
           <Animated.View style={[styles.emojiWrapper, imageAnimatedStyle, { backgroundColor: isDark ? item.bgDark : item.bgLight }]}>

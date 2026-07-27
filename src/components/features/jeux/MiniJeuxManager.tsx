@@ -29,12 +29,6 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
   const { completeJeu } = useGameStore();
 
   useEffect(() => {
-    setHintsRevealed(0);
-    setAttemptsUsed(0);
-    setHasFailedAll(false);
-  }, [currentIndex]);
-
-  useEffect(() => {
     // S'il n'y a pas de jeu, on complète direct après le montage
     if (!jeux || jeux.length === 0) {
       onAllCompleted();
@@ -60,6 +54,11 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
     completeJeu(currentJeu.id, points);
 
     if (currentIndex < jeux.length - 1) {
+      // On réinitialise les états de manière synchrone AVANT le changement d'index
+      // pour que le prochain jeu s'affiche sans "mémoire" de la réussite ou des échecs du précédent
+      setHintsRevealed(0);
+      setAttemptsUsed(0);
+      setHasFailedAll(false);
       setCurrentIndex((prev) => prev + 1);
     } else {
       onAllCompleted();
@@ -118,21 +117,21 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
 
     switch (currentJeu.type) {
       case 'INFO':
-        return <InfoView {...gameProps} />;
+        return <InfoView key={currentIndex} {...gameProps} />;
       case 'QCM':
-        return <QCMView {...gameProps} />;
+        return <QCMView key={currentIndex} {...gameProps} />;
       case 'CHARADE':
-        return <CharadeView {...gameProps} />;
+        return <CharadeView key={currentIndex} {...gameProps} />;
       case 'CODE_CAESAR':
-        return <CaesarView {...gameProps} />;
+        return <CaesarView key={currentIndex} {...gameProps} />;
       case 'CALCUL_PYRAMIDAL':
-        return <PyramidView {...gameProps} />;
+        return <PyramidView key={currentIndex} {...gameProps} />;
       case 'ECO_GESTE':
-        return <EcoGesteView {...gameProps} />;
+        return <EcoGesteView key={currentIndex} {...gameProps} />;
       case 'VALIDATION_LIEU':
-        return <ValidationLieuView {...gameProps} etape={etape} />;
+        return <ValidationLieuView key={currentIndex} {...gameProps} etape={etape} />;
       case 'PUZZLE':
-        return <PuzzleView {...gameProps} />;
+        return <PuzzleView key={currentIndex} {...gameProps} />;
       default:
         return (
           <View style={styles.fallbackContainer}>

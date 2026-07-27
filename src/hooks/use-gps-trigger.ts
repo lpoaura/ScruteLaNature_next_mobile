@@ -5,7 +5,7 @@ import { haversineDistance } from '../utils/distance';
 import type { Etape } from '../types/api.types';
 
 // Distance en mètres pour considérer qu'une étape est atteinte
-const TRIGGER_DISTANCE_METERS = 5;
+const TRIGGER_DISTANCE_METERS = 15;
 
 interface UseGpsTriggerProps {
   etapes: Etape[];

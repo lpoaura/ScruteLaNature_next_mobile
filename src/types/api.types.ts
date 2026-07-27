@@ -62,6 +62,7 @@ export interface Badge {
   id: string;
   name: string;
   imageUrl: string;
+  parcours?: { id: string }[];
 }
 
 export interface Parcours {
@@ -79,6 +80,9 @@ export interface Parcours {
   isPMRFriendly: boolean;
   isChildFriendly: boolean;
   isMentalHandicapFriendly: boolean;
+  isCoupDeCoeur: boolean;
+  isEscapeGame?: boolean;
+  timeLimitMinutes?: number;
   organismeId: string;
   zonageId?: string;
   zonage?: Zonage;
@@ -123,6 +127,7 @@ export interface Jeu {
 // Données spécifiques par type de jeu
 export interface DonneesQCM {
   options: string[];
+  optionsCaptions?: string[];
   bonneReponseIndex?: number;
   qcmType?: 'text' | 'image' | 'audio';
 }
@@ -143,6 +148,29 @@ export interface Badge {
   description: string;
   imageUrl: string;
   category: string;
+  parcours?: { id: string }[];
+}
+
+export interface Anecdote {
+  id: string;
+  content: string;
+  imageUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommunityReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  user: {
+    pseudo: string | null;
+  };
+  parcours: {
+    title: string;
+  };
 }
 
 export interface UserBadge {
@@ -302,4 +330,5 @@ export interface NearbyParcoursParams {
   lat: number;
   lng: number;
   radius?: number; // en mètres, défaut 10000
+  isCoupDeCoeur?: boolean;
 }

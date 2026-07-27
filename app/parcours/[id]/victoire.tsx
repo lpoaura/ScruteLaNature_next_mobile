@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Animated, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Animated, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Trophy, Clock, CheckCircle, Share2, Star } from 'lucide-react-native';
 import LottieView from 'lottie-react-native';
 import { ReviewModal } from '@/src/components/features/reviews/ReviewModal';
 import { useSettingsStore } from '@/src/store/settings.store';
+import { useAuthStore } from '@/src/store/auth.store';
 import { useColorScheme } from 'react-native';
 
 export default function VictoireScreen() {
@@ -13,6 +14,7 @@ export default function VictoireScreen() {
   const isDark = (settingsTheme === 'system' ? systemColorScheme : settingsTheme) === 'dark';
   const router = useRouter();
   const params = useLocalSearchParams();
+  const isGuest = useAuthStore((state: any) => state.isGuest);
   
   // Paramètres passés lors de la navigation
   const extractParam = (p: string | string[] | undefined): string => Array.isArray(p) ? p[0] : (p || '');
@@ -23,13 +25,37 @@ export default function VictoireScreen() {
   const badgeImageUrl = extractParam(params.badgeImageUrl);
   const badgeName = extractParam(params.badgeName);
 
+  const distanceKm = parseFloat(extractParam(params.distanceKm) || '0');
+  const co2Gained = parseFloat((distanceKm * 0.15).toFixed(2)); // 150g per km
+
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   const badgeScale = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
+  const updateUser = useAuthStore((state: any) => state.updateUser);
+  const user = useAuthStore((state: any) => state.user);
 
   useEffect(() => {
+    // Enregistrement de l'historique
+    const parcoursId = extractParam(params.id);
+    if (parcoursId) {
+      import('@/src/services/history.service').then(({ HistoryService }) => {
+        HistoryService.recordCompletion(parcoursId, score, isGuest).catch(err => {
+          console.error("Erreur lors de l'enregistrement de l'historique", err);
+        });
+      });
+      
+      // Mise à jour optimiste du joueur localement
+      if (!isGuest && user) {
+        updateUser({
+          ...user,
+          totalPoints: (user.totalPoints || 0) + score,
+          co2Saved: (user.co2Saved || 0) + co2Gained
+        });
+      }
+    }
+
     // Animation d'apparition du contenu et du badge
     Animated.sequence([
       Animated.timing(contentOpacity, {
@@ -98,7 +124,13 @@ export default function VictoireScreen() {
             {!reviewSubmitted ? (
               <Pressable
                 style={styles.reviewButton}
-                onPress={() => setReviewModalVisible(true)}
+                onPress={() => {
+                  if (isGuest) {
+                    Alert.alert('Mode Invité', 'Créez un compte pour laisser un avis sur ce parcours !');
+                  } else {
+                    setReviewModalVisible(true);
+                  }
+                }}
               >
                 <Star size={20} color="#fbbf24" fill="#fbbf24" />
                 <Text style={styles.reviewButtonText}>Laisser un avis</Text>

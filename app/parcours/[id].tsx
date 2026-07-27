@@ -35,6 +35,7 @@ import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import type { Parcours, Etape } from '@/src/types/api.types';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
 import InviteFriendModal from '@/src/components/social/InviteFriendModal';
+import Markdown from 'react-native-markdown-display';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -236,11 +237,26 @@ export default function ParcoursDetailScreen() {
   };
 
   const handlePlay = useCallback(() => {
-    if (!id) return;
-    startParcours(id);
-    // Navigation vers l'écran de jeu (Sprint 3)
-    router.push({ pathname: '/parcours/jeu/[id]', params: { id, preview } });
-  }, [id, preview, startParcours, router]);
+    if (!id || !parcours) return;
+    
+    const startGame = (mode: 'normal' | 'escape') => {
+      startParcours(id);
+      router.push({ pathname: '/parcours/jeu/[id]', params: { id, preview, mode } });
+    };
+
+    if ((parcours as any).isEscapeGame) {
+      Alert.alert(
+        "Mode de jeu",
+        "Voulez-vous jouer en mode Escape Game (chronométré) ou en mode Balade Normale (libre) ?",
+        [
+          { text: "Balade Normale", onPress: () => startGame('normal'), style: "cancel" },
+          { text: "Escape Game", onPress: () => startGame('escape') }
+        ]
+      );
+    } else {
+      startGame('normal');
+    }
+  }, [id, preview, startParcours, router, parcours]);
 
   const handleDownloaded = useCallback(() => {
     if (id) addDownloaded(id);
@@ -387,6 +403,14 @@ export default function ParcoursDetailScreen() {
                     </Text>
                   </View>
                 )}
+                {(parcours as any).isEscapeGame && (
+                  <View style={[styles.diffBadge, { backgroundColor: '#FFFBEB' }]}>
+                    <Ionicons name="lock-closed" size={14} color="#F59E0B" />
+                    <Text style={[styles.diffText, { color: '#F59E0B' }]}>
+                      Escape Game
+                    </Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.heroTitle}>{parcours.title}</Text>
               {parcours.zonage && (
@@ -405,17 +429,30 @@ export default function ParcoursDetailScreen() {
           {/* Stats (distance / durée / étapes / jeux) */}
           <Animated.View entering={FadeInDown.springify()} style={styles.statsScrollWrapper}>
             <View style={styles.statsScrollContent}>
-              {parcours.distanceKm != null && <StatCard icon="navigate" value={`${parcours.distanceKm.toFixed(1)} km`} label="Distance" delay={0} isDark={isDark} />}
-              {parcours.durationMin != null && <StatCard icon="time" value={`${parcours.durationMin} min`} label="Durée" delay={60} isDark={isDark} />}
+              {(parcours as any).isEscapeGame && (parcours as any).timeLimitMinutes != null ? (
+                <StatCard icon="timer-outline" value={`${(parcours as any).timeLimitMinutes} min`} label="Temps Limite" delay={0} isDark={isDark} />
+              ) : (
+                parcours.durationMin != null && <StatCard icon="time" value={`${parcours.durationMin} min`} label="Durée" delay={0} isDark={isDark} />
+              )}
+              {parcours.distanceKm != null && <StatCard icon="navigate" value={`${parcours.distanceKm.toFixed(1)} km`} label="Distance" delay={60} isDark={isDark} />}
               {etapes.length > 0 && <StatCard icon="map" value={`${etapes.length}`} label="Étapes" delay={120} isDark={isDark} />}
-              {nbJeux > 0 && <StatCard icon="game-controller" value={`${nbJeux}`} label="Jeux" delay={180} isDark={isDark} />}
               {hasRatings && <StatCard icon="star" value={parcours.averageRating!.toFixed(1)} label="Note" delay={240} isDark={isDark} />}
             </View>
           </Animated.View>
 
+          {/* ── Section : À propos (Synopsis) ────────────────────────────── */}
+          {parcours.description && (
+            <Animated.View
+              entering={FadeInDown.delay(100).springify()}
+              style={[styles.aboutPanel, isDark && styles.darkActionPanel]}
+            >
+              <Markdown style={isDark ? darkMarkdownStyles : markdownStyles}>{parcours.description}</Markdown>
+            </Animated.View>
+          )}
+
           {/* ── Section : Télécharger / Jouer ──────────────────────────── */}
           <Animated.View
-            entering={FadeInDown.delay(100).springify()}
+            entering={FadeInDown.delay(150).springify()}
             style={[styles.actionPanel, isDark && styles.darkActionPanel]}
           >
             {id && (
@@ -447,23 +484,6 @@ export default function ParcoursDetailScreen() {
               </Text>
             </View>
           </Animated.View>
-
-
-          {/* ── Section : À propos ──────────────────────────────────────── */}
-          {parcours.description && (
-            <Animated.View
-              entering={FadeInDown.delay(150).springify()}
-              style={[styles.aboutPanel, isDark && styles.darkActionPanel]}
-            >
-              <View style={styles.sectionHeaderRow}>
-                <View style={styles.sectionIconBadge}>
-                  <Ionicons name="information" size={20} color={GREEN} />
-                </View>
-                <Text style={[styles.sectionTitlePremium, isDark && styles.darkText]}>À propos</Text>
-              </View>
-              <Text style={[styles.descriptionPremium, isDark && styles.darkTextMuted]}>{parcours.description}</Text>
-            </Animated.View>
-          )}
 
           {/* ── Section : Accessibilité ─────────────────────────────────── */}
           {accessItems.length > 0 && (
@@ -1089,4 +1109,34 @@ const styles = StyleSheet.create({
   darkTextMuted: { color: '#94A3B8' },
   darkEtapeContent: { borderBottomColor: '#334155' },
   darkHiddenEtapesBanner: { backgroundColor: '#1E293B', borderColor: '#334155' },
+});
+
+const markdownStyles = StyleSheet.create({
+  body: {
+    fontSize: 16,
+    color: '#4A4A4A',
+    lineHeight: 24,
+  },
+  strong: {
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+  },
+  em: {
+    fontStyle: 'italic',
+  },
+});
+
+const darkMarkdownStyles = StyleSheet.create({
+  body: {
+    fontSize: 16,
+    color: '#94A3B8',
+    lineHeight: 24,
+  },
+  strong: {
+    fontWeight: 'bold',
+    color: '#F8FAFC',
+  },
+  em: {
+    fontStyle: 'italic',
+  },
 });

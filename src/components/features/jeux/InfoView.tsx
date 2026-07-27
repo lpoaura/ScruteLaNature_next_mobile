@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, Pressable, Image, ScrollView } from 'react-nati
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import type { Jeu } from '@/src/types/api.types';
+import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 
 interface InfoViewProps {
   jeu: Jeu;
@@ -20,24 +22,26 @@ export function InfoView({ jeu, onSuccess }: InfoViewProps) {
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{jeu.titre || 'Le saviez-vous ?'}</Text>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
         
         {imageSource && (
-          <Animated.Image 
-            entering={FadeIn.delay(200)}
-            source={imageSource} 
-            style={styles.image} 
-            resizeMode="contain"
-          />
+          <Animated.View entering={FadeIn.delay(200)}>
+            <ZoomableImage 
+              source={imageSource} 
+              style={styles.image} 
+            />
+          </Animated.View>
         )}
 
-        <View style={styles.contentCard}>
-          <Text style={styles.questionText}>{jeu.question}</Text>
-          {jeu.explication && (
-            <Text style={styles.explicationText}>{jeu.explication}</Text>
-          )}
-        </View>
+        {(jeu.question || jeu.explication) && (
+          <View style={styles.contentCard}>
+            <GameQuestion question={jeu.question} />
+            {jeu.explication && (
+              <Text style={styles.explicationText}>{jeu.explication}</Text>
+            )}
+          </View>
+        )}
 
         <Pressable style={styles.button} onPress={onSuccess}>
           <Text style={styles.buttonText}>Continuer</Text>

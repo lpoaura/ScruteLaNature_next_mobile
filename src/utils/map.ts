@@ -16,7 +16,11 @@ export interface BoundingBox {
  * Calcule la Bounding Box à partir d'un fichier GeoJSON (LineString).
  * @param padding Padding optionnel en degrés (ex: 0.005 pour ~500m) pour élargir la zone
  */
-export function calculateBoundingBox(geojsonString: string, padding: number = 0): BoundingBox | null {
+export function calculateBoundingBox(
+  geojsonString: string, 
+  padding: number = 0,
+  extraCoords: { lat: number, lng: number }[] = []
+): BoundingBox | null {
   try {
     const geojson = JSON.parse(geojsonString);
     let coordinates: [number, number][] = [];
@@ -36,6 +40,11 @@ export function calculateBoundingBox(geojsonString: string, padding: number = 0)
     } else if (geojson.type === 'Feature' && geojson.geometry?.type === 'LineString') {
       coordinates = geojson.geometry.coordinates;
     }
+
+    // Include extra coordinates (like etapes)
+    extraCoords.forEach(c => {
+      coordinates.push([c.lng, c.lat]);
+    });
 
     if (coordinates.length === 0) return null;
 

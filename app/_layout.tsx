@@ -43,11 +43,11 @@ function AuthGuard() {
 
       if (isAuthenticated && inAuthGroup) {
         // Connecté (vrai compte ou invité) mais sur une page auth
-        if (isGuest && segments[1] === 'register') {
-          // L'invité a le droit d'aller sur la page de création de compte
+        if (isGuest) {
+          // L'invité a le droit d'aller sur toutes les pages d'auth (login, register) pour se convertir
           return;
         }
-        // Sinon, on redirige vers les tabs (ex: un user normal sur login, ou un invité sur login)
+        // Sinon, on redirige vers les tabs (un user normal n'a rien à faire sur login/register)
         router.replace('/(tabs)');
       } else if (!isAuthenticated && !inAuthGroup) {
         // Non connecté et pas sur une page auth → aller sur login
@@ -82,8 +82,26 @@ export default function RootLayout() {
         const { initSyncListener } = await import('@/src/services/sync.service');
         await initDatabase();
         initSyncListener();
+
+        try {
+          const { LogManager } = await import('@maplibre/maplibre-react-native');
+          // Suppress MapLibre network errors when offline
+          LogManager.onLog(log => {
+            const { message } = log;
+            if (
+              message.includes('Unable to resolve host') || 
+              message.includes('Failed to load tile') ||
+              message.includes('The Internet connection appears to be offline')
+            ) {
+              return true; // true = handled (do not print to console)
+            }
+            return false;
+          });
+        } catch (mapErr) {
+          console.warn('MapLibre LogManager non supporté ou introuvable', mapErr);
+        }
       } catch (err) {
-        console.error('Erreur lors de l\'initialisation de la DB:', err);
+        console.error('Erreur lors de l\'initialisation:', err);
       }
       await loadStoredAuth();
       setAuthReady(true);

@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   InteractionManager,
+  Image,
 } from 'react-native';
 import {
   Camera,
@@ -38,6 +39,7 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useIsFocused } from '@react-navigation/native';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
+import { resolveMediaUrl } from '@/src/services/filesystem.service';
 
 // ============================================================================
 // Types & Données
@@ -96,6 +98,8 @@ export default function SearchScreen() {
   const [parcours, setParcours] = useState<Parcours[]>([]);
   const [allMapParcours, setAllMapParcours] = useState<Parcours[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+  const lastMarkerPressRef = useRef<number>(0);
 
   // Lazy loading : on attend la fin des animations de navigation avant de monter
   // les composants lourds (MapView). Cela empêche le blocage du thread JS
@@ -237,7 +241,7 @@ export default function SearchScreen() {
         }
       } catch (err) {
         if (isMounted) {
-          console.warn("Erreur de localisation", err);
+          // Silenced localization warning to avoid console spam when GPS is off
           setUserLocation(null);
         }
       }
@@ -327,13 +331,15 @@ export default function SearchScreen() {
   const filteredMapParcours = allMapParcours.filter(p => 
     !searchQuery || 
     p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))
   );
   
   const filteredListParcours = parcours.filter(p => 
     !searchQuery || 
     p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Phase de chargement — afficher un placeholder léger au lieu de bloquer le menu
@@ -357,6 +363,11 @@ export default function SearchScreen() {
         logoPosition={{ bottom: -100, right: -100 }}
         attributionPosition={{ bottom: -100, right: -100 }}
         mapStyle=""
+        onPress={() => {
+          if (Date.now() - lastMarkerPressRef.current > 300) {
+            setSelectedMarkerId(null);
+          }
+        }}
       >
         <Camera
           ref={cameraRef}
@@ -377,15 +388,8 @@ export default function SearchScreen() {
           <Layer id="osm-layer" type="raster" source="osm-source" />
         </RasterSource>
 
-        {/* Position GPS de l'utilisateur - Placé après les tuiles */}
+        {/* Position GPS de l'utilisateur - Gérée uniquement par le composant natif pour éviter les sauts de puce */}
         {hasLocationPermission && <UserLocation animated />}
-
-        {/* Fallback Marker si UserLocation natif ne fonctionne pas */}
-        {userLocation && (
-          <Marker id="user-location-fallback" lngLat={[userLocation.lng, userLocation.lat]}>
-            <View style={styles.userLocationDot} />
-          </Marker>
-        )}
 
         {/* Marqueurs des parcours */}
         {filteredMapParcours.map((p) => {
@@ -393,22 +397,39 @@ export default function SearchScreen() {
           const lat = firstEtape?.latitude;
           const lng = firstEtape?.longitude;
           if (!lat || !lng) return null;
+          
+          const isSelected = selectedMarkerId === p.id;
+          
           return (
             <Marker
               id={p.id}
               key={p.id}
               lngLat={[lng, lat]}
+              anchor="bottom"
+              style={{ zIndex: isSelected ? 10 : 1 }}
+              onPress={() => {
+                lastMarkerPressRef.current = Date.now();
+                if (isSelected) {
+                  handleParcoursSelect(p.id);
+                } else {
+                  setSelectedMarkerId(p.id);
+                }
+              }}
             >
-              <Pressable
-                onPress={() => handleParcoursSelect(p.id)}
-                style={styles.markerContainer}
-              >
-                <View style={[styles.markerBubble, isDark && styles.darkCard]}>
-                  <Text style={[styles.markerText, isDark && styles.darkText]} numberOfLines={1}>{p.title}</Text>
-                  <Text style={[styles.markerMeta, isDark && styles.darkTextMuted]}>{p.difficulty} • {p.durationMin} min</Text>
-                </View>
-                <View style={styles.markerDot} />
-              </Pressable>
+              <View style={[styles.markerContainer, { paddingHorizontal: 24, paddingTop: 32, paddingBottom: 2 }]}>
+                {isSelected && (
+                  <View style={[styles.markerBubble, isDark && styles.darkCard, { marginBottom: 4 }]}>
+                    <Text style={[styles.markerText, isDark && styles.darkText]} numberOfLines={1}>{p.title}</Text>
+                    <Text style={[styles.markerMeta, isDark && styles.darkTextMuted]}>{p.difficulty} • {p.durationMin} min</Text>
+                    <Text style={{ fontSize: 10, color: '#0087CC', marginTop: 4, fontWeight: '700' }}>Voir le parcours ➔</Text>
+                  </View>
+                )}
+                {isSelected ? (
+                  <Ionicons name="location" size={36} color="#0087CC" />
+                ) : (
+                  <Ionicons name="location" size={32} color="#007E84" />
+                )}
+              </View>
             </Marker>
           );
         })}
@@ -571,7 +592,11 @@ export default function SearchScreen() {
                   onPress={() => handleParcoursSelect(p.id)}
                 >
                   <View style={styles.parcoursCardIcon}>
-                    <Ionicons name="trail-sign-outline" size={24} color="#0087CC" />
+                    {p.coverImage ? (
+                      <Image source={{ uri: resolveMediaUrl(p.coverImage) }} style={styles.parcoursImage} />
+                    ) : (
+                      <Ionicons name="trail-sign-outline" size={24} color="#0087CC" />
+                    )}
                   </View>
                   <View style={styles.parcoursCardInfo}>
                     <Text style={[styles.parcoursCardTitle, isDark && styles.darkText]} numberOfLines={1}>
@@ -842,13 +867,19 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   parcoursCardIcon: {
-    width: 44,
-    height: 44,
+    width: 60,
+    height: 60,
     borderRadius: 12,
     backgroundColor: '#D8E8C5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    overflow: 'hidden',
+  },
+  parcoursImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   parcoursCardInfo: {
     flex: 1,
@@ -907,19 +938,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#6B7280',
-  },
-  userLocationDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#3B82F6',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 3,
-    elevation: 4,
   },
   markerDot: {
     width: 8,
