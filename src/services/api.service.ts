@@ -79,10 +79,12 @@ async function request<T>(
   };
 
   // Injection du token JWT si disponible
+  let didSendAuthToken = false;
   if (!skipAuth) {
     const token = _getAccessToken?.();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+      didSendAuthToken = true;
     }
   }
 
@@ -91,6 +93,19 @@ async function request<T>(
 
   // Gestion du 401 → refresh automatique + retry
   if (response.status === 401 && !skipAuth && endpoint !== '/auth/logout') {
+    // Si on n'a jamais envoyé de token (auth pas encore chargée depuis le stockage),
+    // un 401 est NORMAL → on ne tente PAS de refresh et on ne déconnecte PERSONNE.
+    if (!didSendAuthToken) {
+      throw new Error('Authentification requise.');
+    }
+
+    // On a envoyé un token mais il a été rejeté → tentative de refresh
+    const refreshToken = _getRefreshToken?.();
+    if (!refreshToken) {
+      _onAuthExpired?.();
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
+    }
+
     if (_isRefreshing) {
       // Mettre en file d'attente si un refresh est déjà en cours
       const newToken = await new Promise<string>((resolve, reject) => {
@@ -106,11 +121,24 @@ async function request<T>(
         _refreshQueue = [];
         headers['Authorization'] = `Bearer ${newToken}`;
         response = await fetch(url, { ...fetchOptions, headers });
-      } catch (error) {
+      } catch (error: any) {
         _refreshQueue.forEach(({ reject }) => reject(error));
         _refreshQueue = [];
-        _onAuthExpired?.();
-        throw new Error('Session expirée. Veuillez vous reconnecter.');
+        
+        // On déconnecte UNIQUEMENT si le serveur a rejeté le refresh (réponse 4xx).
+        // Pas de déconnexion sur erreur réseau (TypeError: Network request failed) 
+        // ni sur 500, pour ne pas éjecter l'utilisateur en mode hors-ligne.
+        const msg = error instanceof Error ? error.message : '';
+        const isNetworkError = error instanceof TypeError || msg.includes('Network request failed');
+        
+        if (isNetworkError) {
+          // Erreur réseau → on ne déconnecte pas, on propage simplement l'erreur
+          throw new Error('Réseau indisponible. Réessayez plus tard.');
+        } else {
+          // Le serveur a explicitement rejeté → déconnexion
+          _onAuthExpired?.();
+          throw new Error('Session expirée. Veuillez vous reconnecter.');
+        }
       } finally {
         _isRefreshing = false;
       }

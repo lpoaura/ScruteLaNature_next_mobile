@@ -22,7 +22,7 @@ export function InfoView({ jeu, onSuccess }: InfoViewProps) {
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
         
         {imageSource && (
@@ -34,12 +34,14 @@ export function InfoView({ jeu, onSuccess }: InfoViewProps) {
           </Animated.View>
         )}
 
-        <View style={styles.contentCard}>
-          <GameQuestion question={jeu.question} />
-          {jeu.explication && (
-            <Text style={styles.explicationText}>{jeu.explication}</Text>
-          )}
-        </View>
+        {(jeu.question || jeu.explication) && (
+          <View style={styles.contentCard}>
+            <GameQuestion question={jeu.question} />
+            {jeu.explication && (
+              <Text style={styles.explicationText}>{jeu.explication}</Text>
+            )}
+          </View>
+        )}
 
         <Pressable style={styles.button} onPress={onSuccess}>
           <Text style={styles.buttonText}>Continuer</Text>

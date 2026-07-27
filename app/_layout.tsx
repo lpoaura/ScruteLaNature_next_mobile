@@ -82,8 +82,26 @@ export default function RootLayout() {
         const { initSyncListener } = await import('@/src/services/sync.service');
         await initDatabase();
         initSyncListener();
+
+        try {
+          const { LogManager } = await import('@maplibre/maplibre-react-native');
+          // Suppress MapLibre network errors when offline
+          LogManager.onLog(log => {
+            const { message } = log;
+            if (
+              message.includes('Unable to resolve host') || 
+              message.includes('Failed to load tile') ||
+              message.includes('The Internet connection appears to be offline')
+            ) {
+              return true; // true = handled (do not print to console)
+            }
+            return false;
+          });
+        } catch (mapErr) {
+          console.warn('MapLibre LogManager non supporté ou introuvable', mapErr);
+        }
       } catch (err) {
-        console.error('Erreur lors de l\'initialisation de la DB:', err);
+        console.error('Erreur lors de l\'initialisation:', err);
       }
       await loadStoredAuth();
       setAuthReady(true);

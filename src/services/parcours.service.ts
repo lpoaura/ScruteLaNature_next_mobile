@@ -62,6 +62,9 @@ export const parcoursService = {
       const radiusKm = params.radius / 1000;
       query.set('radiusKm', radiusKm.toString());
     }
+    if (params.isCoupDeCoeur) {
+      query.set('isCoupDeCoeur', 'true');
+    }
 
     return apiService.get<Parcours[]>(`/mobile/parcours/nearby?${query.toString()}`);
   },
@@ -96,6 +99,9 @@ export const parcoursService = {
     await deleteParcours(id);
     await insertParcours(data);
 
+    // On prépare les coordonnées des étapes pour le téléchargement de la carte (pour inclure les étapes lointaines)
+    const extraCoords = data.etapes.map(e => ({ lat: e.latitude, lng: e.longitude }));
+
     // ── Étape 3 : Insérer les étapes et jeux ─────────────────────────────
     // Construire la liste de tous les jeux pour le téléchargement médias
     type MediaItem = { jeuId: string; url: string; type: 'image' | 'audio' };
@@ -121,7 +127,7 @@ export const parcoursService = {
       // S'il n'y a pas de médias, on passe directement aux tuiles
       try {
         if (data.pathGeoJSON) {
-          await downloadMapTiles(data.pathGeoJSON, id, 12, 17, (p) => onProgress?.(0.25 + p * 0.75));
+          await downloadMapTiles(data.pathGeoJSON, id, 12, 16, extraCoords, (p) => onProgress?.(0.25 + p * 0.75));
         }
       } catch (err) {
         console.warn(`[Download] Échec tuiles:`, err);
@@ -161,7 +167,8 @@ export const parcoursService = {
           data.pathGeoJSON,
           id,
           12,
-          17,
+          16,
+          extraCoords,
           (p) => onProgress?.(0.90 + p * 0.10)
         );
       }

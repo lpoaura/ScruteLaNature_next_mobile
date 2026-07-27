@@ -111,10 +111,10 @@ export function ValidationLieuView({ jeu, etape, onSuccess, onFail, forceReveal 
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.headerBadge}>
         <Ionicons name="location" size={24} color="#E11D48" />
-        <Text style={styles.title}>{jeu.titre || 'Lieu Atteint ?'}</Text>
+        {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
       </View>
       
       {imageSource && (

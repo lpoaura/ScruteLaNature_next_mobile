@@ -23,10 +23,10 @@ export function EcoGesteView({ jeu, onSuccess }: EcoGesteViewProps) {
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.headerBadge}>
         <Ionicons name="leaf" size={24} color="#007E84" />
-        <Text style={styles.title}>{jeu.titre || 'Éco-Geste'}</Text>
+        {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
       </View>
       
       {imageSource && (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, ScrollView, Keyboard } from 'react-native';
 import Animated, { 
   FadeIn, 
   SlideInRight, 
@@ -77,12 +77,18 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
   };
 
   const handleValidate = () => {
+    Keyboard.dismiss();
     if (isRevealed) return;
 
     // Vérifier si toutes les cases sont remplies
     const isComplete = userGrid.every(row => row.every(cell => cell.trim() !== ''));
     if (!isComplete) {
-      // Ne rien faire si pas fini
+      import('react-native').then(({ Alert }) => {
+        Alert.alert(
+          "Pyramide incomplète", 
+          "Il semblerait que certaines cases soient considérées comme vides par l'application.\n\nContenu interne :\n" + JSON.stringify(userGrid)
+        );
+      });
       return;
     }
 
@@ -106,6 +112,12 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setIsRevealed(true);
     } else {
+      import('react-native').then(({ Alert }) => {
+        Alert.alert(
+          "Erreur de calcul", 
+          "La pyramide n'est pas correcte. N'oubliez pas : chaque brique doit être la somme des deux briques juste en dessous d'elle !"
+        );
+      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       onFail?.();
       shakeTranslateX.value = withSequence(
@@ -127,17 +139,19 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <ScrollView 
-        ref={scrollViewRef}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 120 }} 
-        showsVerticalScrollIndicator={false} 
-        keyboardShouldPersistTaps="handled"
-      >
-        <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
+      <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
+        <ScrollView 
+          ref={scrollViewRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent} 
+          showsVerticalScrollIndicator={false} 
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           
           <View style={styles.headerBadge}>
             <Ionicons name="calculator" size={20} color="#6366F1" />
-            <Text style={styles.title}>{jeu.titre || 'Calcul Pyramidal'}</Text>
+            {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
           </View>
           
           {imageSource && (
@@ -201,9 +215,8 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
 
             {!isRevealed ? (
               <Pressable 
-                style={[styles.validateBtn, !isComplete && styles.validateBtnDisabled]} 
+                style={styles.validateBtn} 
                 onPress={handleValidate}
-                disabled={!isComplete}
               >
                 <Text style={styles.validateBtnText}>Vérifier la pyramide</Text>
                 <Ionicons name="checkmark" size={20} color="white" />
@@ -229,8 +242,8 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
               </Pressable>
             </Animated.View>
           )}
-        </Animated.View>
-      </ScrollView>
+        </ScrollView>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
@@ -238,8 +251,12 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
     backgroundColor: '#EEF2FF', // Indigo très léger
+  },
+  scrollContent: {
+    padding: 24,
+    flexGrow: 1,
+    paddingBottom: 120,
   },
   headerBadge: {
     flexDirection: 'row',

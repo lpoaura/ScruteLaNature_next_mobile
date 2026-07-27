@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, ScrollView } from 'react-native';
 import Animated, { 
   FadeIn, 
   SlideInRight, 
@@ -87,18 +87,19 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-          <ScrollView 
-            ref={scrollViewRef}
-            contentContainerStyle={styles.scrollContent} 
-            showsVerticalScrollIndicator={false} 
-            keyboardShouldPersistTaps="handled"
-          >
+      <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
+        <ScrollView 
+          ref={scrollViewRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent} 
+          showsVerticalScrollIndicator={false} 
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
         
         <View style={styles.headerBadge}>
           <Ionicons name="key" size={20} color="#EB601A" />
-          <Text style={styles.title}>{jeu.titre || 'Code César'}</Text>
+          {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
         </View>
         
         {imageSource && (
@@ -169,8 +170,7 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
             </Animated.View>
           )}
           </ScrollView>
-        </Animated.View>
-      </TouchableWithoutFeedback>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }

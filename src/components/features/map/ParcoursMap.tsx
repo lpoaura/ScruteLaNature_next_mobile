@@ -7,25 +7,10 @@ import {
   RasterSource,
   Layer,
   GeoJSONSource,
-  Logger,
 } from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
 import { areTilesAvailable, getLocalTileUrlTemplate } from '@/src/services/filesystem.service';
 import { calculateBoundingBox } from '@/src/utils/map';
-
-// Suppress MapLibre network errors (like missing tiles or no internet) from showing a Redbox in dev
-Logger.setLogCallback((log) => {
-  const { message } = log;
-  if (
-    message.includes('Unable to resolve host') ||
-    message.includes('Failed to load tile') ||
-    message.includes('Request failed') ||
-    message.includes('hostname')
-  ) {
-    return true; // Return true to suppress the log
-  }
-  return false;
-});
 
 interface ParcoursMapProps {
   parcoursId: string;

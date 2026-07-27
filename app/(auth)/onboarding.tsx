@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
 } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
@@ -18,11 +17,14 @@ import Animated, {
   Extrapolation,
   interpolateColor,
 } from 'react-native-reanimated';
+import { Image } from 'expo-image';
 import { useSettingsStore } from '@/src/store/settings.store';
 import { useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { STORAGE_KEYS } from '@/src/constants/config';
 import { saveString } from '@/src/utils/storage';
+
+const AnimatedExpoImage = Animated.createAnimatedComponent(Image);
 
 const { width } = Dimensions.get('window');
 
@@ -131,10 +133,12 @@ function Slide({ item, index, scrollX, isDark }: SlideProps) {
       {/* Conteneur de l'image (Prêt pour la graphiste) */}
       <View style={styles.imageContainer}>
         {item.image ? (
-          <Animated.Image 
+          <AnimatedExpoImage 
             source={item.image} 
             style={[styles.fullImage, imageAnimatedStyle]} 
-            resizeMode="contain" 
+            contentFit="contain" 
+            cachePolicy="memory-disk"
+            transition={300}
           />
         ) : (
           <Animated.View style={[styles.emojiWrapper, imageAnimatedStyle, { backgroundColor: isDark ? item.bgDark : item.bgLight }]}>

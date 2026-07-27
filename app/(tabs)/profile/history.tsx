@@ -43,20 +43,19 @@ export default function HistoryScreen() {
   };
 
   const renderItem = ({ item }: { item: any }) => {
-    const isServerData = !!item.parcours;
+    const hasParcoursData = !!item.parcours;
     
-    // Si c'est une donnée locale, on a que l'ID du parcours. Idéalement on ferait un join.
-    // Pour l'instant on affiche un truc basique si la donnée locale est orpheline.
-    const title = isServerData ? item.parcours.title : `Parcours ${item.parcoursId.substring(0, 8)}`;
+    // On affiche le titre du parcours s'il est dispo (backend ou jointure locale SQLite)
+    const title = hasParcoursData ? item.parcours.title : `Parcours ${item.parcoursId.substring(0, 8)}`;
     const score = item.score;
     const date = new Date(item.completedAt).toLocaleDateString('fr-FR', {
       day: 'numeric', month: 'long', year: 'numeric'
     });
     
-    // Détermination de l'image (serveur vs local)
-    const coverUrl = isServerData && item.parcours.coverImage
+    // Détermination de l'image (marche pour les URLs web et les URIs locales file://)
+    const coverUrl = hasParcoursData && item.parcours.coverImage
       ? resolveMediaUrl(item.parcours.coverImage)
-      : undefined; // TODO: handle local cover via getLocalCoverImage(item.parcoursId)
+      : undefined;
 
     return (
       <Pressable 

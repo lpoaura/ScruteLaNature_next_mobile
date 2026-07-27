@@ -148,7 +148,38 @@ function PrepScreen({
 
 // ─── Écran principal ──────────────────────────────────────────────────────────
 
-export default function JeuScreen() {
+// DistanceTrigger isolé pour éviter le re-render complet de l'écran (et donc de la carte) à chaque tic GPS
+function DistanceTrigger({ 
+  etapes, 
+  currentEtapeOrder, 
+  isActive, 
+  onStepReached, 
+  isPlayingGame 
+}: { 
+  etapes: any[]; 
+  currentEtapeOrder: number; 
+  isActive: boolean; 
+  onStepReached: (etape: any) => void; 
+  isPlayingGame: boolean; 
+}) {
+  const { distanceToNext } = useGpsTrigger({
+    etapes,
+    currentEtapeOrder,
+    isActive,
+    onStepReached,
+  });
+
+  if (distanceToNext === null || isPlayingGame) return null;
+
+  return (
+    <View style={styles.distancePill}>
+      <Ionicons name="navigate-circle" size={20} color="#007E84" />
+      <Text style={styles.distanceText}>À {formatDistance(distanceToNext)}</Text>
+    </View>
+  );
+}
+
+export default function JeuParcoursScreen() {
   useEffect(() => {
     let isMounted = true;
     const enableKeepAwake = async () => {
@@ -321,8 +352,9 @@ export default function JeuScreen() {
           result.parcours.pathGeoJSON,
           id,
           12,
-          17,
-          (p) => setTileProgress(p)
+          16,
+          result.etapes.map((e: any) => ({ lat: e.latitude, lng: e.longitude })),
+          (p: number) => setTileProgress(p)
         );
         setTileStats(stats);
 
@@ -421,16 +453,11 @@ export default function JeuScreen() {
     }
   }, [prepStep, data, currentEtapeOrder]);
 
-  // ── Déclencheur GPS ──
-  const { distanceToNext } = useGpsTrigger({
-    etapes: data?.etapes || [],
-    currentEtapeOrder,
-    isActive: prepStep === 'ready' && data !== null && !isPlayingGame,
-    onStepReached: (etape) => {
-      setReachedEtape(etape);
-      setIsPlayingGame(true);
-    },
-  });
+  // Le déclencheur GPS a été isolé dans <DistanceTrigger> pour éviter de re-render la carte
+  const handleStepReached = (etape: any) => {
+    setReachedEtape(etape);
+    setIsPlayingGame(true);
+  };
 
   const handleGameCompleted = async () => {
     setIsPlayingGame(false);
@@ -474,6 +501,7 @@ export default function JeuScreen() {
           score: finalScore.toString(),
           maxScore: maxScore.toString(),
           durationMin: finalDurationMin.toString(),
+          distanceKm: data?.parcours?.distanceKm?.toString() || '0',
           badgeImageUrl: data?.parcours?.badge?.imageUrl || '',
           badgeName: data?.parcours?.badge?.name || ''
         } 
@@ -617,13 +645,14 @@ export default function JeuScreen() {
 Problème de GPS et vous êtes au bon endroit ? clique sur le bouton.
           </Text>
 
-          {/* Distance en direct */}
-          {distanceToNext !== null && !isPlayingGame && (
-            <View style={styles.distancePill}>
-              <Ionicons name="navigate-circle" size={20} color="#007E84" />
-              <Text style={styles.distanceText}>À {formatDistance(distanceToNext)}</Text>
-            </View>
-          )}
+          {/* Distance en direct via le trigger isolé */}
+          <DistanceTrigger
+            etapes={data?.etapes || []}
+            currentEtapeOrder={currentEtapeOrder}
+            isActive={prepStep === 'ready' && data !== null && !isPlayingGame}
+            onStepReached={handleStepReached}
+            isPlayingGame={isPlayingGame}
+          />
 
           {/* Bouton pour forcer l'étape si le GPS galère */}
           {!isPlayingGame && (

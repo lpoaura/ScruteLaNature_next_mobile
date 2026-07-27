@@ -258,10 +258,10 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
 
   return (
     <Animated.View style={[styles.container, shakeStyle]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerBadge}>
           <Ionicons name="extension-puzzle" size={24} color="#0EA5E9" />
-          <Text style={styles.title}>{jeu.titre || 'Taquin'}</Text>
+          {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
         </View>
         
         {jeu.question ? (

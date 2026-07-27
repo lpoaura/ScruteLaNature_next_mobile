@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   InteractionManager,
+  Image,
 } from 'react-native';
 import {
   Camera,
@@ -38,6 +39,7 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useIsFocused } from '@react-navigation/native';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
+import { resolveMediaUrl } from '@/src/services/filesystem.service';
 
 // ============================================================================
 // Types & Données
@@ -239,7 +241,7 @@ export default function SearchScreen() {
         }
       } catch (err) {
         if (isMounted) {
-          console.warn("Erreur de localisation", err);
+          // Silenced localization warning to avoid console spam when GPS is off
           setUserLocation(null);
         }
       }
@@ -386,15 +388,8 @@ export default function SearchScreen() {
           <Layer id="osm-layer" type="raster" source="osm-source" />
         </RasterSource>
 
-        {/* Position GPS de l'utilisateur - Placé après les tuiles */}
+        {/* Position GPS de l'utilisateur - Gérée uniquement par le composant natif pour éviter les sauts de puce */}
         {hasLocationPermission && <UserLocation animated />}
-
-        {/* Fallback Marker si UserLocation natif ne fonctionne pas */}
-        {userLocation && (
-          <Marker id="user-location-fallback" lngLat={[userLocation.lng, userLocation.lat]}>
-            <View style={styles.userLocationDot} />
-          </Marker>
-        )}
 
         {/* Marqueurs des parcours */}
         {filteredMapParcours.map((p) => {
@@ -597,7 +592,11 @@ export default function SearchScreen() {
                   onPress={() => handleParcoursSelect(p.id)}
                 >
                   <View style={styles.parcoursCardIcon}>
-                    <Ionicons name="trail-sign-outline" size={24} color="#0087CC" />
+                    {p.coverImage ? (
+                      <Image source={{ uri: resolveMediaUrl(p.coverImage) }} style={styles.parcoursImage} />
+                    ) : (
+                      <Ionicons name="trail-sign-outline" size={24} color="#0087CC" />
+                    )}
                   </View>
                   <View style={styles.parcoursCardInfo}>
                     <Text style={[styles.parcoursCardTitle, isDark && styles.darkText]} numberOfLines={1}>
@@ -868,13 +867,19 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   parcoursCardIcon: {
-    width: 44,
-    height: 44,
+    width: 60,
+    height: 60,
     borderRadius: 12,
     backgroundColor: '#D8E8C5',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    overflow: 'hidden',
+  },
+  parcoursImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   parcoursCardInfo: {
     flex: 1,
@@ -933,19 +938,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#6B7280',
-  },
-  userLocationDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#3B82F6',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 3,
-    elevation: 4,
   },
   markerDot: {
     width: 8,

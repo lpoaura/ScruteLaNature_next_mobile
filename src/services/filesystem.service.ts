@@ -260,12 +260,13 @@ export async function downloadMapTiles(
   parcoursId: string,
   minZoom = 12,
   maxZoom = 17,
+  extraCoords: { lat: number, lng: number }[] = [],
   onProgress?: (progress: number) => void
 ): Promise<TileDownloadResult> {
   const result: TileDownloadResult = { total: 0, downloaded: 0, cached: 0, failed: 0 };
   if (!geojsonString) return result;
 
-  const bbox = calculateBoundingBox(geojsonString, 0.005);
+  const bbox = calculateBoundingBox(geojsonString, 0.005, extraCoords);
   if (!bbox) return result;
 
   const tilesDir = getParcoursTilesDir(parcoursId);

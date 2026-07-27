@@ -25,11 +25,16 @@ export default function VictoireScreen() {
   const badgeImageUrl = extractParam(params.badgeImageUrl);
   const badgeName = extractParam(params.badgeName);
 
+  const distanceKm = parseFloat(extractParam(params.distanceKm) || '0');
+  const co2Gained = parseFloat((distanceKm * 0.15).toFixed(2)); // 150g per km
+
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   const badgeScale = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
+  const updateUser = useAuthStore((state: any) => state.updateUser);
+  const user = useAuthStore((state: any) => state.user);
 
   useEffect(() => {
     // Enregistrement de l'historique
@@ -40,6 +45,15 @@ export default function VictoireScreen() {
           console.error("Erreur lors de l'enregistrement de l'historique", err);
         });
       });
+      
+      // Mise à jour optimiste du joueur localement
+      if (!isGuest && user) {
+        updateUser({
+          ...user,
+          totalPoints: (user.totalPoints || 0) + score,
+          co2Saved: (user.co2Saved || 0) + co2Gained
+        });
+      }
     }
 
     // Animation d'apparition du contenu et du badge

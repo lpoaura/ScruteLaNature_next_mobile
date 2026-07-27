@@ -36,24 +36,39 @@ export const HistoryService = {
 
   /**
    * Récupère l'historique complet (local + serveur si connecté)
+   * Déduplique par parcoursId et garde uniquement le meilleur score
    */
   async getHistory(isGuest: boolean): Promise<any[]> {
-    // Si invité, on renvoie juste le local (les parcours locaux n'ont pas forcément les titres complets 
-    // s'ils n'ont pas été téléchargés, mais dans le cadre du local on suppose qu'ils y sont).
-    // Idéalement on ferait un JOIN local, mais pour l'instant on retourne les raw records.
+    let rawHistory: any[] = [];
+
     if (isGuest) {
-      const local = await getLocalHistory();
-      return local;
+      rawHistory = await getLocalHistory();
+    } else {
+      try {
+        // Pour les connectés, on fetch du backend
+        rawHistory = await apiService.get<any[]>('/users/me/history');
+      } catch (e) {
+        console.warn("Impossible de fetch l'historique serveur, fallback local", e);
+        rawHistory = await getLocalHistory();
+      }
     }
 
-    try {
-      // Pour les connectés, on fetch du backend
-      const serverHistory = await apiService.get<any[]>('/users/me/history');
-      return serverHistory;
-    } catch (e) {
-      console.warn("Impossible de fetch l'historique serveur, fallback local", e);
-      return await getLocalHistory();
+    // Grouper par parcoursId et conserver le meilleur score
+    const bestScoresMap = new Map<string, any>();
+    
+    for (const item of rawHistory) {
+      const existing = bestScoresMap.get(item.parcoursId);
+      if (!existing || item.score > existing.score) {
+        bestScoresMap.set(item.parcoursId, item);
+      } else if (item.score === existing.score) {
+        // En cas d'égalité, on garde le plus récent
+        if (new Date(item.completedAt).getTime() > new Date(existing.completedAt).getTime()) {
+          bestScoresMap.set(item.parcoursId, item);
+        }
+      }
     }
+
+    return Array.from(bestScoresMap.values());
   },
 
   /**

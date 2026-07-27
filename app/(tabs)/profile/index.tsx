@@ -18,10 +18,15 @@ export default function ProfileScreen() {
   
   const isDark = useColorScheme() === 'dark';
   
+  const refreshProfile = useAuthStore((state: any) => state.refreshProfile);
+  
   const [allBadges, setAllBadges] = useState<Badge[]>([]);
   const [loadingBadges, setLoadingBadges] = useState(true);
 
   useEffect(() => {
+    // Rafraîchir les points et CO2 depuis le backend
+    refreshProfile();
+    
     async function loadBadges() {
       try {
         const data = await apiService.get<Badge[]>('/mobile/badges');
@@ -92,19 +97,23 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* CO2 Économisé */}
-      <View style={styles.statsContainer}>
-        <View style={[styles.statBox, isDark && styles.darkCard]}>
-          <View style={styles.statIconContainer}>
-            <Leaf size={28} color="#007E84" />
+      {/* CO2 Économisé (Cliquable) */}
+      <View style={{ marginBottom: 20 }}>
+        <Pressable 
+          style={[styles.navCard, { width: '100%' }, isDark && styles.darkCard]}
+          onPress={() => Alert.alert(
+            'CO2 Économisé 🌍', 
+            "Le CO2 est un gaz responsable du réchauffement climatique. En choisissant de faire vos balades à pied plutôt qu'en voiture, vous avez évité de polluer l'air de cette quantité !"
+          )}
+        >
+          <View style={[styles.navIcon, { backgroundColor: '#DCFCE7' }]}>
+            <Leaf size={24} color="#16A34A" />
           </View>
-          <Text style={[styles.statValue, isDark && styles.darkText]}>{co2Saved.toFixed(1)} kg</Text>
-          <Text style={[styles.statLabel, isDark && styles.darkTextMuted]}>de CO2 économisé</Text>
-          
-          <Text style={[styles.statExplanation, isDark && styles.darkTextMuted]}>
-            Le CO2 est un gaz responsable du réchauffement climatique. En choisissant de faire vos balades à pied plutôt qu'en voiture, vous avez évité de polluer l'air de cette quantité ! 🌍
-          </Text>
-        </View>
+          <View style={styles.navTextContainer}>
+            <Text style={[styles.navTitle, isDark && styles.darkText]}>{co2Saved.toFixed(1)} kg de CO2 évité</Text>
+            <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Cliquez pour comprendre</Text>
+          </View>
+        </Pressable>
       </View>
 
       {/* Navigation Rapide (Réseau d'amis / Paramètres) */}

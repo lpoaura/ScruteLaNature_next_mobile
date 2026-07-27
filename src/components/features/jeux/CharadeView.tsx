@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, ScrollView } from 'react-native';
 import Animated, { 
   FadeIn, 
   SlideInRight, 
@@ -84,79 +84,79 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-          <ScrollView 
-            ref={scrollViewRef}
-            contentContainerStyle={styles.scrollContent} 
-            showsVerticalScrollIndicator={false} 
-            keyboardShouldPersistTaps="handled"
-          >
-        <Text style={styles.title}>{jeu.titre || 'Charade'}</Text>
-        
-        {imageSource && (
-          <Animated.View entering={FadeIn.delay(200)}>
-            <ZoomableImage 
-              source={imageSource} 
-              style={styles.image} 
-            />
-          </Animated.View>
-        )}
-
-        <View style={styles.card}>
-          <GameQuestion question={jeu.question} />
+      <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
+        <ScrollView 
+          ref={scrollViewRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent} 
+          showsVerticalScrollIndicator={false} 
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
           
-          <TextInput
-            style={styles.input}
-            placeholder="Votre réponse..."
-            value={answer}
-            onChangeText={setAnswer}
-            editable={!isRevealed}
-            onSubmitEditing={handleValidate}
-            returnKeyType="done"
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            onFocus={() => {
-              setTimeout(() => {
-                scrollViewRef.current?.scrollTo({ y: 250, animated: true });
-              }, 100);
-            }}
-          />
-
-          {!isRevealed ? (
-            <Pressable 
-              style={[styles.validateBtn, !answer.trim() && styles.validateBtnDisabled]} 
-              onPress={handleValidate}
-              disabled={!answer.trim()}
-            >
-              <Text style={styles.validateBtnText}>Valider</Text>
-              <Ionicons name="checkmark" size={20} color="white" />
-            </Pressable>
-          ) : (
-            <Animated.View entering={FadeIn}>
-              <View style={styles.successBadge}>
-                <Ionicons name="checkmark-circle" size={24} color="#007E84" />
-                <Text style={styles.successText}>Bonne réponse !</Text>
-              </View>
+          {imageSource && (
+            <Animated.View entering={FadeIn.delay(200)}>
+              <ZoomableImage 
+                source={imageSource} 
+                style={styles.image} 
+              />
             </Animated.View>
           )}
-        </View>
 
-        {isRevealed && (
-          <Animated.View entering={SlideInRight.springify()} style={styles.explicationContainer}>
-            {jeu.explication && (
-              <Text style={styles.explicationText}>{jeu.explication}</Text>
+          <View style={styles.card}>
+            <GameQuestion question={jeu.question} />
+            
+            <TextInput
+              style={styles.input}
+              placeholder="Votre réponse..."
+              value={answer}
+              onChangeText={setAnswer}
+              editable={!isRevealed}
+              onSubmitEditing={handleValidate}
+              returnKeyType="done"
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollTo({ y: 250, animated: true });
+                }, 100);
+              }}
+            />
+
+            {!isRevealed ? (
+              <Pressable 
+                style={[styles.validateBtn, !answer.trim() && styles.validateBtnDisabled]} 
+                onPress={handleValidate}
+                disabled={!answer.trim()}
+              >
+                <Text style={styles.validateBtnText}>Valider</Text>
+                <Ionicons name="checkmark" size={20} color="white" />
+              </Pressable>
+            ) : (
+              <Animated.View entering={FadeIn}>
+                <View style={styles.successBadge}>
+                  <Ionicons name="checkmark-circle" size={24} color="#007E84" />
+                  <Text style={styles.successText}>Bonne réponse !</Text>
+                </View>
+              </Animated.View>
             )}
-            <Pressable style={styles.continueButton} onPress={onSuccess}>
-              <Text style={styles.continueButtonText}>Continuer</Text>
-              <Ionicons name="arrow-forward" size={20} color="white" />
-            </Pressable>
-          </Animated.View>
-        )}
+          </View>
+
+          {isRevealed && (
+            <Animated.View entering={SlideInRight.springify()} style={styles.explicationContainer}>
+              {jeu.explication && (
+                <Text style={styles.explicationText}>{jeu.explication}</Text>
+              )}
+              <Pressable style={styles.continueButton} onPress={onSuccess}>
+                <Text style={styles.continueButtonText}>Continuer</Text>
+                <Ionicons name="arrow-forward" size={20} color="white" />
+              </Pressable>
+            </Animated.View>
+          )}
         </ScrollView>
-        </Animated.View>
-      </TouchableWithoutFeedback>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
