@@ -324,7 +324,7 @@ export default function FriendsScreen() {
         ) : activeTab === 'amis' ? (
           <FlatList
             data={friends}
-            keyExtractor={(item, index) => item.friendshipId || item.id || index.toString()}
+            keyExtractor={(item: any, index) => item.friendshipId || item.id || index.toString()}
             renderItem={renderFriend}
             contentContainerStyle={styles.flatListContent}
             ListEmptyComponent={
@@ -338,7 +338,7 @@ export default function FriendsScreen() {
         ) : activeTab === 'demandes' ? (
           <FlatList
             data={requests}
-            keyExtractor={(item, index) => item.friendshipId || item.id || index.toString()}
+            keyExtractor={(item: any, index) => item.friendshipId || item.id || index.toString()}
             renderItem={renderRequest}
             contentContainerStyle={styles.flatListContent}
             ListEmptyComponent={

@@ -8,7 +8,7 @@ import {
   Alert,
   Animated,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import {
   Camera,
   CameraRef,
@@ -206,7 +206,30 @@ export default function JeuParcoursScreen() {
 
   const { id, preview, mode } = useLocalSearchParams<{ id: string, preview?: string, mode?: 'normal' | 'escape' }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      // Allow if it's not a back action (like replace for victory)
+      if (e.data.action.type !== 'GO_BACK' && e.data.action.type !== 'POP') {
+        return;
+      }
+      
+      e.preventDefault();
+      
+      Alert.alert(
+        'Quitter la balade', 
+        'Êtes-vous sûr de vouloir quitter ? Votre progression est sauvegardée.', 
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Quitter', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+        ]
+      );
+    });
+
+    return unsubscribe;
+  }, [navigation]);
   const startParcours = useGameStore((state) => state.startParcours);
   const currentEtapeOrder = useGameStore((state) => state.currentEtapeOrder);
   const activeParcoursId = useGameStore((state) => state.activeParcoursId);
@@ -553,13 +576,14 @@ export default function JeuParcoursScreen() {
     <View style={styles.container}>
 
       {/* ── CARTE OPENSTREETMAP (MapLibre) ── */}
-      <Map
-        ref={mapRef}
-        style={StyleSheet.absoluteFillObject}
-        logoPosition={{ bottom: -100, right: -100 }}
-        attributionPosition={{ bottom: -100, right: -100 }}
-        mapStyle=""
-      >
+      <View style={StyleSheet.absoluteFillObject} pointerEvents={isPlayingGame ? 'none' : 'auto'}>
+        <Map
+          ref={mapRef}
+          style={StyleSheet.absoluteFillObject}
+          logoPosition={{ bottom: -100, right: -100 }}
+          attributionPosition={{ bottom: -100, right: -100 }}
+          mapStyle=""
+        >
         <Camera
           ref={cameraRef}
           initialViewState={{
@@ -609,6 +633,7 @@ export default function JeuParcoursScreen() {
           );
         })}
       </Map>
+      </View>
 
       {/* ── HEADER ── */}
       <View style={[styles.headerOverlay, { top: insets.top + 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
@@ -642,7 +667,8 @@ export default function JeuParcoursScreen() {
           <Text style={styles.objectifTitle}>{currentEtape?.title || 'Balade terminée !'}</Text>
           <Text style={styles.objectifDesc}>
             À l'aide des indications et de la carte, rends-toi à cet emplacement. Quand tu seras à moins de 15m, la suite du jeu s'activera automatiquement.
-Problème de GPS et vous êtes au bon endroit ? clique sur le bouton.
+            {'\n\n'}
+            Problème de GPS et vous êtes au bon endroit ? Cliquez sur le bouton ci-dessous.
           </Text>
 
           {/* Distance en direct via le trigger isolé */}
@@ -660,7 +686,7 @@ Problème de GPS et vous êtes au bon endroit ? clique sur le bouton.
               style={{ marginTop: 16, backgroundColor: '#F3F4F6', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', flexDirection: 'row', justifyContent: 'center', gap: 8 }} 
               onPress={() => {
                 Alert.alert(
-                  "Forcer l'étape ?",
+                  "Validation manuelle",
                   "Êtes-vous sûr d'être au bon endroit ? Utilisez cette option uniquement si votre GPS ne parvient pas à vous localiser.",
                   [
                     { text: 'Annuler', style: 'cancel' },
@@ -676,7 +702,7 @@ Problème de GPS et vous êtes au bon endroit ? clique sur le bouton.
               }}
             >
               <Ionicons name="location-outline" size={16} color="#4B5563" />
-              <Text style={{ color: '#4B5563', fontWeight: '600', fontSize: 13 }}>Je suis sur place (Forcer l'étape)</Text>
+              <Text style={{ color: '#4B5563', fontWeight: '600', fontSize: 13 }}>Je suis sur place</Text>
             </Pressable>
           )}
 

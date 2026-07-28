@@ -12,6 +12,8 @@ import { useAuthStore } from '@/src/store/auth.store';
 import { useSettingsStore } from '@/src/store/settings.store';
 import { useEffect, useState } from 'react';
 import { AppSplashScreen } from '@/src/components/features/splash/AppSplashScreen';
+import { usePushNotifications } from '@/src/hooks/usePushNotifications';
+import { authService } from '@/src/services/auth.service';
 
 import '@/global.css';
 
@@ -73,6 +75,17 @@ export default function RootLayout() {
   // Contrôle de l'écran de démarrage custom
   const [showSplash, setShowSplash] = useState(true);
   const [authReady, setAuthReady] = useState(false);
+
+  const { expoPushToken } = usePushNotifications();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  // Synchronisation du Push Token avec le backend
+  useEffect(() => {
+    if (isAuthenticated && expoPushToken) {
+      authService.updateProfile({ pushToken: expoPushToken })
+        .catch(err => console.log('Impossible de synchroniser le pushToken:', err));
+    }
+  }, [isAuthenticated, expoPushToken]);
 
   // Charger l'auth persistée et la base de données au démarrage
   useEffect(() => {

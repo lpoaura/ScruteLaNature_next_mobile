@@ -25,6 +25,7 @@ interface CaesarViewProps {
 export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewProps) {
   const [answer, setAnswer] = useState('');
   const [isRevealed, setIsRevealed] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   React.useEffect(() => {
     if (forceReveal) {
@@ -32,6 +33,14 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
       setIsRevealed(true);
     }
   }, [forceReveal]);
+
+  React.useEffect(() => {
+    if (isRevealed) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 400); // Wait for keyboard dismiss and layout animation
+    }
+  }, [isRevealed]);
 
   const donnees = jeu.donneesJeu as unknown as DonneesCaesar | undefined;
   const phraseChiffree = donnees?.phraseChiffree || '...';
@@ -48,8 +57,6 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
   const shakeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeTranslateX.value }],
   }));
-
-  const scrollViewRef = useRef<ScrollView>(null);
 
   const handleValidate = () => {
     Keyboard.dismiss();
@@ -134,8 +141,8 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
             spellCheck={false}
             onFocus={() => {
               setTimeout(() => {
-                scrollViewRef.current?.scrollTo({ y: 350, animated: true });
-              }, 100);
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+              }, 200);
             }}
           />
 

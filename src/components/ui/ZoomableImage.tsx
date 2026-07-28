@@ -1,11 +1,13 @@
-import React from 'react';
-import { StyleSheet, View, ImageStyle, StyleProp } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, ImageStyle, StyleProp, Modal, Pressable } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  runOnJS
 } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 
 interface ZoomableImageProps {
   source: any;
@@ -13,6 +15,7 @@ interface ZoomableImageProps {
 }
 
 export function ZoomableImage({ source, style }: ZoomableImageProps) {
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
 
@@ -21,18 +24,23 @@ export function ZoomableImage({ source, style }: ZoomableImageProps) {
   const savedPanX = useSharedValue(0);
   const savedPanY = useSharedValue(0);
 
+  const resetZoom = () => {
+    'worklet';
+    scale.value = withSpring(1);
+    savedScale.value = 1;
+    panX.value = withSpring(0);
+    panY.value = withSpring(0);
+    savedPanX.value = 0;
+    savedPanY.value = 0;
+  };
+
   const pinch = Gesture.Pinch()
     .onUpdate((e) => {
       scale.value = Math.max(0.5, Math.min(savedScale.value * e.scale, 5));
     })
     .onEnd(() => {
       if (scale.value < 1) {
-        scale.value = withSpring(1);
-        savedScale.value = 1;
-        panX.value = withSpring(0);
-        panY.value = withSpring(0);
-        savedPanX.value = 0;
-        savedPanY.value = 0;
+        resetZoom();
       } else {
         savedScale.value = scale.value;
       }
@@ -48,10 +56,7 @@ export function ZoomableImage({ source, style }: ZoomableImageProps) {
     })
     .onEnd(() => {
       if (scale.value === 1) {
-        panX.value = withSpring(0);
-        panY.value = withSpring(0);
-        savedPanX.value = 0;
-        savedPanY.value = 0;
+        resetZoom();
       } else {
         savedPanX.value = panX.value;
         savedPanY.value = panY.value;
@@ -62,13 +67,12 @@ export function ZoomableImage({ source, style }: ZoomableImageProps) {
     .numberOfTaps(2)
     .onStart(() => {
       const isZoomed = scale.value > 1;
-      scale.value = withSpring(isZoomed ? 1 : 2);
-      savedScale.value = isZoomed ? 1 : 2;
-      
-      panX.value = withSpring(0);
-      panY.value = withSpring(0);
-      savedPanX.value = 0;
-      savedPanY.value = 0;
+      if (isZoomed) {
+        resetZoom();
+      } else {
+        scale.value = withSpring(2);
+        savedScale.value = 2;
+      }
     });
 
   const composed = Gesture.Simultaneous(pinch, pan, doubleTap);
@@ -81,24 +85,79 @@ export function ZoomableImage({ source, style }: ZoomableImageProps) {
     ],
   }));
 
+  const handleClose = () => {
+    setIsModalVisible(false);
+    setTimeout(() => {
+      // Re-reset on JS thread after closing
+      scale.value = 1;
+      savedScale.value = 1;
+      panX.value = 0;
+      panY.value = 0;
+      savedPanX.value = 0;
+      savedPanY.value = 0;
+    }, 300);
+  };
+
   return (
-    <View style={styles.container}>
-      <GestureDetector gesture={composed}>
+    <>
+      <Pressable onPress={() => setIsModalVisible(true)} style={styles.thumbnailContainer}>
         <Animated.Image 
           source={source} 
-          style={[style, animatedStyle]} 
-          resizeMode="contain" 
+          style={style} 
+          resizeMode="cover" 
         />
-      </GestureDetector>
-    </View>
+        <View style={styles.expandIconContainer}>
+          <Ionicons name="expand" size={20} color="white" />
+        </View>
+      </Pressable>
+
+      <Modal visible={isModalVisible} transparent={true} animationType="fade" onRequestClose={handleClose}>
+        <View style={styles.modalContainer}>
+          <Pressable style={styles.closeButton} onPress={handleClose}>
+            <Ionicons name="close-circle" size={36} color="white" />
+          </Pressable>
+
+          <GestureDetector gesture={composed}>
+            <Animated.Image 
+              source={source} 
+              style={[styles.fullscreenImage, animatedStyle]} 
+              resizeMode="contain" 
+            />
+          </GestureDetector>
+        </View>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  thumbnailContainer: {
+    position: 'relative',
     overflow: 'hidden',
-    width: '100%',
-    alignItems: 'center',
+  },
+  expandIconContainer: {
+    position: 'absolute',
+    bottom: 32, // Adjusted assuming there's some margin in `style` usually
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 20,
+    padding: 6,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  fullscreenImage: {
+    width: '100%',
+    height: '100%',
   },
 });

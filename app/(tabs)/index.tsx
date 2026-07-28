@@ -358,7 +358,9 @@ export default function DashboardScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="font-bold text-slate-800 dark:text-slate-100">{item.user.pseudo || 'Anonyme'}</Text>
-                    <Text className="text-xs text-slate-500 dark:text-slate-400">{getTimeAgo(item.createdAt)} • {item.parcours.title}</Text>
+                    <Text className="text-xs text-slate-500 dark:text-slate-400" numberOfLines={1}>
+                      {getTimeAgo(item.createdAt)} • {item.parcours.zonage?.nom ? `${item.parcours.zonage.nom} — ` : ''}{item.parcours.title}
+                    </Text>
                   </View>
                   <View className="bg-amber-100 dark:bg-amber-900/50 px-2 py-1 rounded-lg flex-row items-center">
                     <IconSymbol name="star.fill" size={12} color="#D97706" />

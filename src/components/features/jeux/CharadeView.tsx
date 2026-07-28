@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Audio } from 'expo-av';
 import type { Jeu } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
@@ -25,6 +26,17 @@ interface CharadeViewProps {
 export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeViewProps) {
   const [answer, setAnswer] = useState('');
   const [isRevealed, setIsRevealed] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+    };
+  }, []);
 
   React.useEffect(() => {
     if (forceReveal) {
@@ -33,19 +45,61 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
     }
   }, [forceReveal]);
 
+  React.useEffect(() => {
+    if (isRevealed) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 400); // Wait for keyboard dismiss and layout animation
+    }
+  }, [isRevealed]);
+
   const imageSource = jeu.imageLocalPath 
     ? { uri: jeu.imageLocalPath.startsWith('file://') ? jeu.imageLocalPath : `file://${jeu.imageLocalPath}` } 
     : jeu.imageUrl 
       ? { uri: resolveMediaUrl(jeu.imageUrl) } 
       : null;
 
+  const audioSource = jeu.audioLocalPath
+    ? { uri: jeu.audioLocalPath.startsWith('file://') ? jeu.audioLocalPath : `file://${jeu.audioLocalPath}` }
+    : jeu.audioUrl
+      ? { uri: resolveMediaUrl(jeu.audioUrl) }
+      : null;
+
+  const toggleMainAudio = async () => {
+    if (!audioSource) return;
+    try {
+      if (isPlayingAudio) {
+        if (soundRef.current) {
+          await soundRef.current.pauseAsync();
+          setIsPlayingAudio(false);
+        }
+      } else {
+        if (!soundRef.current) {
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: audioSource.uri },
+            { shouldPlay: true },
+            (status) => {
+              if (status.isLoaded && status.didJustFinish) {
+                setIsPlayingAudio(false);
+              }
+            }
+          );
+          soundRef.current = sound;
+        } else {
+          await soundRef.current.playAsync();
+        }
+        setIsPlayingAudio(true);
+      }
+    } catch (error) {
+      console.error("Error playing audio:", error);
+    }
+  };
+
   // Animation de tremblement (erreur)
   const shakeTranslateX = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeTranslateX.value }],
   }));
-
-  const scrollViewRef = useRef<ScrollView>(null);
 
   const handleValidate = () => {
     Keyboard.dismiss();
@@ -107,6 +161,15 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
           <View style={styles.card}>
             <GameQuestion question={jeu.question} />
             
+            {audioSource && (
+              <Pressable style={styles.audioButton} onPress={toggleMainAudio}>
+                <Ionicons name={isPlayingAudio ? "pause" : "volume-medium"} size={24} color="white" />
+                <Text style={styles.audioButtonText}>
+                  {isPlayingAudio ? "Mettre en pause" : "Écouter l'indice"}
+                </Text>
+              </Pressable>
+            )}
+
             <TextInput
               style={styles.input}
               placeholder="Votre réponse..."
@@ -120,8 +183,8 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
               spellCheck={false}
               onFocus={() => {
                 setTimeout(() => {
-                  scrollViewRef.current?.scrollTo({ y: 250, animated: true });
-                }, 100);
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 200);
               }}
             />
 
@@ -213,6 +276,23 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 16,
     textAlign: 'center',
+  },
+  audioButton: {
+    backgroundColor: '#F59E0B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 16,
+    alignSelf: 'center',
+  },
+  audioButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   validateBtn: {
     backgroundColor: '#3B82F6',
