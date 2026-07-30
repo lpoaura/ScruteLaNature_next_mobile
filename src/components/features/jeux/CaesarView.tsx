@@ -14,6 +14,7 @@ import type { Jeu, DonneesCaesar } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface CaesarViewProps {
   jeu: Jeu;
@@ -23,8 +24,10 @@ interface CaesarViewProps {
 }
 
 export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewProps) {
+  const insets = useSafeAreaInsets();
   const [answer, setAnswer] = useState('');
   const [isRevealed, setIsRevealed] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   React.useEffect(() => {
     if (forceReveal) {
@@ -32,6 +35,14 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
       setIsRevealed(true);
     }
   }, [forceReveal]);
+
+  React.useEffect(() => {
+    if (isRevealed) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 400); // Wait for keyboard dismiss and layout animation
+    }
+  }, [isRevealed]);
 
   const donnees = jeu.donneesJeu as unknown as DonneesCaesar | undefined;
   const phraseChiffree = donnees?.phraseChiffree || '...';
@@ -48,8 +59,6 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
   const shakeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeTranslateX.value }],
   }));
-
-  const scrollViewRef = useRef<ScrollView>(null);
 
   const handleValidate = () => {
     Keyboard.dismiss();
@@ -84,14 +93,14 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
         <ScrollView 
           ref={scrollViewRef}
           style={{ flex: 1 }}
-          contentContainerStyle={styles.scrollContent} 
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max((insets?.bottom || 0) + 40, 120) }]} 
           showsVerticalScrollIndicator={false} 
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -134,8 +143,8 @@ export function CaesarView({ jeu, onSuccess, onFail, forceReveal }: CaesarViewPr
             spellCheck={false}
             onFocus={() => {
               setTimeout(() => {
-                scrollViewRef.current?.scrollTo({ y: 350, animated: true });
-              }, 100);
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+              }, 200);
             }}
           />
 

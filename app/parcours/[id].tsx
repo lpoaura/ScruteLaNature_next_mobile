@@ -226,7 +226,7 @@ export default function ParcoursDetailScreen() {
       setError(null);
       const url = preview === 'true' 
         ? `/mobile/parcours/${parcoursId}/preview` 
-        : `/mobile/parcours/${parcoursId}/download`;
+        : `/mobile/parcours/${parcoursId}`;
       const data = await apiService.get<ParcoursWithEtapes>(url);
       setParcours(data);
     } catch {

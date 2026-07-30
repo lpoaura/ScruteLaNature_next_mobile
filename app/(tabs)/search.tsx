@@ -61,9 +61,8 @@ const CATEGORIES: Category[] = [
   { id: 'DIFFICILE', label: 'Difficile', icon: 'fitness', color: '#F87171' },
   { id: 'PMR', label: 'PMR', icon: 'body', color: '#60A5FA' },
   { id: 'CHILD', label: 'Enfants', icon: 'happy', color: '#A78BFA' },
-  { id: 'MENTAL', label: 'Inclusif', icon: 'heart', color: '#F472B6' },
-  { id: 'FOREST', label: 'Forêt', icon: 'leaf-outline', color: '#22C55E', isMock: true },
-  { id: 'WATER', label: 'Lac/Eau', icon: 'water', color: '#38BDF8', isMock: true },
+  { id: 'MENTAL', label: 'Handicap mental', icon: 'heart', color: '#F472B6' },
+  { id: 'ESCAPE', label: 'Escape Game', icon: 'lock-closed', color: '#F59E0B' },
 ];
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -99,6 +98,7 @@ export default function SearchScreen() {
   const [allMapParcours, setAllMapParcours] = useState<Parcours[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const lastMarkerPressRef = useRef<number>(0);
 
   // Lazy loading : on attend la fin des animations de navigation avant de monter
@@ -328,18 +328,34 @@ export default function SearchScreen() {
   // Rendu
   // ============================================================================
 
+  const applyCategoryFilter = (p: Parcours) => {
+    if (!selectedCategory) return true;
+    switch (selectedCategory) {
+      case 'FACILE': return p.difficulty === 'FACILE';
+      case 'MOYEN': return p.difficulty === 'MOYEN';
+      case 'DIFFICILE': return p.difficulty === 'DIFFICILE';
+      case 'PMR': return p.isPMRFriendly === true;
+      case 'CHILD': return p.isChildFriendly === true;
+      case 'MENTAL': return p.isMentalHandicapFriendly === true;
+      case 'ESCAPE': return (p as any).isEscapeGame === true;
+      default: return true;
+    }
+  };
+
   const filteredMapParcours = allMapParcours.filter(p => 
-    !searchQuery || 
+    (!searchQuery || 
     p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))
+    (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))) &&
+    applyCategoryFilter(p)
   );
   
   const filteredListParcours = parcours.filter(p => 
-    !searchQuery || 
+    (!searchQuery || 
     p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))
+    (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))) &&
+    applyCategoryFilter(p)
   );
 
   // Phase de chargement — afficher un placeholder léger au lieu de bloquer le menu
@@ -548,42 +564,30 @@ export default function SearchScreen() {
                     key={cat.id}
                     style={styles.categoryItem}
                     onPress={() => {
-                      /* Appliquer le filtre */
+                      setSelectedCategory(prev => prev === cat.id ? null : cat.id);
                     }}
                   >
                     <View
                       style={[
                         styles.categoryIcon,
-                        { backgroundColor: `${cat.color}20` },
+                        { backgroundColor: selectedCategory === cat.id ? cat.color : `${cat.color}20` },
                       ]}
                     >
-                      <Ionicons name={cat.icon as any} size={24} color={cat.color} />
+                      <Ionicons name={cat.icon as any} size={24} color={selectedCategory === cat.id ? '#FFF' : cat.color} />
                     </View>
-                    <Text style={[styles.categoryLabel, isDark && styles.darkTextMuted]}>{cat.label}</Text>
+                    <Text style={[styles.categoryLabel, isDark && styles.darkTextMuted, selectedCategory === cat.id && { fontWeight: '700', color: isDark ? '#FFF' : '#111827' }]}>{cat.label}</Text>
                   </Pressable>
                 ))}
               </View>
 
-              {/* Action Card */}
-              <View style={[styles.actionCard, isDark && styles.darkCard]}>
-                <View style={styles.actionCardContent}>
-                  <Text style={[styles.actionCardTitle, isDark && styles.darkText]}>Contribuer à la carte</Text>
-                  <Text style={[styles.actionCardSubtitle, isDark && styles.darkTextMuted]}>
-                    Vous connaissez un lieu intéressant ? Partagez-le avec la communauté.
-                  </Text>
-                </View>
-                <Pressable style={styles.actionCardButton}>
-                  <Text style={styles.actionCardButtonText}>+ Ajouter</Text>
-                </Pressable>
-              </View>
             </>
           )}
 
           {/* Liste des parcours (mode nearby ou recherche active) */}
-          {(mode === 'nearby' || searchQuery.length > 0) && filteredListParcours.length > 0 && (
+          {(mode === 'nearby' || searchQuery.length > 0 || selectedCategory) && filteredListParcours.length > 0 && (
             <View style={styles.parcoursListSection}>
               <Text style={[styles.sectionTitle, isDark && styles.darkText]}>
-                {searchQuery.length > 0 ? 'Résultats de recherche' : 'Parcours à proximité'}
+                {(searchQuery.length > 0 || selectedCategory) ? 'Résultats de recherche' : 'Parcours à proximité'}
               </Text>
               {filteredListParcours.map((p) => (
                 <Pressable
@@ -612,12 +616,27 @@ export default function SearchScreen() {
             </View>
           )}
 
+          {/* Action Card */}
+          {searchQuery.length === 0 && (
+            <View style={[styles.actionCard, isDark && styles.darkCard]}>
+              <View style={styles.actionCardContent}>
+                <Text style={[styles.actionCardTitle, isDark && styles.darkText]}>Contribuer à la carte</Text>
+                <Text style={[styles.actionCardSubtitle, isDark && styles.darkTextMuted]}>
+                  Vous connaissez un lieu intéressant ? Partagez-le avec la communauté.
+                </Text>
+              </View>
+              <Pressable style={styles.actionCardButton}>
+                <Text style={styles.actionCardButtonText}>+ Ajouter</Text>
+              </Pressable>
+            </View>
+          )}
+
           {/* Aucun résultat de recherche */}
-          {searchQuery.length > 0 && filteredListParcours.length === 0 && (
+          {(searchQuery.length > 0 || selectedCategory) && filteredListParcours.length === 0 && (
             <View style={styles.resultInfo}>
               <Ionicons name="search-outline" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
               <Text style={[styles.resultInfoText, { color: '#6B7280' }]}>
-                Aucun parcours ne correspond à votre recherche.
+                Aucun parcours ne correspond à vos critères.
               </Text>
             </View>
           )}

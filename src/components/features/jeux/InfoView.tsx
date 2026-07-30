@@ -6,6 +6,7 @@ import type { Jeu } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface InfoViewProps {
   jeu: Jeu;
@@ -13,6 +14,7 @@ interface InfoViewProps {
 }
 
 export function InfoView({ jeu, onSuccess }: InfoViewProps) {
+  const insets = useSafeAreaInsets();
   // En mode hors-ligne, on privilégie l'image téléchargée localement, sinon l'URL réseau
   const imageSource = jeu.imageLocalPath 
     ? { uri: jeu.imageLocalPath.startsWith('file://') ? jeu.imageLocalPath : `file://${jeu.imageLocalPath}` } 
@@ -22,7 +24,7 @@ export function InfoView({ jeu, onSuccess }: InfoViewProps) {
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={styles.container}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max((insets?.bottom || 0) + 40, 120) }]} showsVerticalScrollIndicator={false}>
         {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
         
         {imageSource && (

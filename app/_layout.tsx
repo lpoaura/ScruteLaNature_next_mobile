@@ -12,6 +12,8 @@ import { useAuthStore } from '@/src/store/auth.store';
 import { useSettingsStore } from '@/src/store/settings.store';
 import { useEffect, useState } from 'react';
 import { AppSplashScreen } from '@/src/components/features/splash/AppSplashScreen';
+import { usePushNotifications } from '@/src/hooks/usePushNotifications';
+import { authService } from '@/src/services/auth.service';
 
 import '@/global.css';
 
@@ -74,6 +76,17 @@ export default function RootLayout() {
   const [showSplash, setShowSplash] = useState(true);
   const [authReady, setAuthReady] = useState(false);
 
+  const { expoPushToken } = usePushNotifications();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  // Synchronisation du Push Token avec le backend
+  useEffect(() => {
+    if (isAuthenticated && expoPushToken) {
+      authService.updateProfile({ pushToken: expoPushToken })
+        .catch(err => console.log('Impossible de synchroniser le pushToken:', err));
+    }
+  }, [isAuthenticated, expoPushToken]);
+
   // Charger l'auth persistée et la base de données au démarrage
   useEffect(() => {
     async function initApp() {
@@ -111,9 +124,11 @@ export default function RootLayout() {
     initApp();
   }, []);
 
-  // Gérer les deep links (email-verified, reset-password)
+  // Gérer les deep links avec le hook officiel d'Expo (évite les conflits avec Expo Router)
+  const url = Linking.useURL();
+  
   useEffect(() => {
-    const handleUrl = ({ url }: { url: string }) => {
+    if (url) {
       if (url.includes('email-verified')) {
         router.replace('/(auth)/login?verified=true');
       } else if (url.includes('reset-password')) {
@@ -122,19 +137,8 @@ export default function RootLayout() {
           router.replace(`/(auth)/reset-password?token=${token}`);
         }
       }
-    };
-
-    // URL initiale (app fermée → ouverte via deep link)
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        handleUrl({ url });
-      }
-    });
-
-    // URL pendant que l'app est ouverte
-    const subscription = Linking.addEventListener('url', handleUrl);
-    return () => subscription.remove();
-  }, []);
+    }
+  }, [url]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

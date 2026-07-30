@@ -1,7 +1,7 @@
 import { apiService } from './api.service';
 import { clearAndSaveAnecdotesLocal, getRandomAnecdoteLocal, type AnecdoteSQLite } from './database.service';
 import NetInfo from '@react-native-community/netinfo';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import type { Anecdote } from '../types/api.types';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_API_IMAGES || 'https://api.scrutelanature.lpo-aura.org/';

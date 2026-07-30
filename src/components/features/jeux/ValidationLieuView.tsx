@@ -8,6 +8,7 @@ import type { Jeu, Etape } from '@/src/types/api.types';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 import { GameQuestion } from './GameQuestion';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ValidationLieuViewProps {
   jeu: Jeu;
@@ -18,6 +19,7 @@ interface ValidationLieuViewProps {
 }
 
 export function ValidationLieuView({ jeu, etape, onSuccess, onFail, forceReveal }: ValidationLieuViewProps) {
+  const insets = useSafeAreaInsets();
   const [isChecking, setIsChecking] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -111,7 +113,7 @@ export function ValidationLieuView({ jeu, etape, onSuccess, onFail, forceReveal 
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max((insets?.bottom || 0) + 40, 120) }]} showsVerticalScrollIndicator={false}>
       <View style={styles.headerBadge}>
         <Ionicons name="location" size={24} color="#E11D48" />
         {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}

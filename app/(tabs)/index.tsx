@@ -116,9 +116,18 @@ export default function DashboardScreen() {
         try {
           let { status } = await Location.requestForegroundPermissionsAsync();
           if (status === 'granted') {
-            const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            lat = location.coords.latitude;
-            lng = location.coords.longitude;
+            let location = await Location.getLastKnownPositionAsync();
+            if (!location) {
+              // Timeout after 2 seconds to avoid blocking the UI forever
+              location = await Promise.race([
+                Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest }),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000))
+              ]);
+            }
+            if (location) {
+              lat = location.coords.latitude;
+              lng = location.coords.longitude;
+            }
           }
         } catch (locationErr) {
           // Silencing the warning to avoid spamming the console when GPS is disabled
@@ -349,7 +358,9 @@ export default function DashboardScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="font-bold text-slate-800 dark:text-slate-100">{item.user.pseudo || 'Anonyme'}</Text>
-                    <Text className="text-xs text-slate-500 dark:text-slate-400">{getTimeAgo(item.createdAt)} • {item.parcours.title}</Text>
+                    <Text className="text-xs text-slate-500 dark:text-slate-400" numberOfLines={1}>
+                      {getTimeAgo(item.createdAt)} • {item.parcours.zonage?.nom ? `${item.parcours.zonage.nom} — ` : ''}{item.parcours.title}
+                    </Text>
                   </View>
                   <View className="bg-amber-100 dark:bg-amber-900/50 px-2 py-1 rounded-lg flex-row items-center">
                     <IconSymbol name="star.fill" size={12} color="#D97706" />

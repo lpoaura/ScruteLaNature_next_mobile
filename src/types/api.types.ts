@@ -170,6 +170,9 @@ export interface CommunityReview {
   };
   parcours: {
     title: string;
+    zonage?: {
+      nom: string;
+    };
   };
 }
 

@@ -73,6 +73,8 @@ export default function RegisterScreen() {
   const [rgpdAccepted, setRgpdAccepted] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleRegister = async () => {
     setError('');
@@ -206,32 +208,58 @@ export default function RegisterScreen() {
 
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, isDark && styles.darkTextMuted]}>Mot de passe</Text>
-            <TextInput
-              style={[styles.input, isDark && styles.darkInput]}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="8 caractères minimum"
-              placeholderTextColor="#aaa"
-              secureTextEntry
-              autoComplete="new-password"
-              returnKeyType="next"
-              editable={!isLoading}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={[styles.input, styles.passwordInput, isDark && styles.darkInput]}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="8 caractères minimum"
+                placeholderTextColor="#aaa"
+                secureTextEntry={!showPassword}
+                autoComplete="new-password"
+                returnKeyType="next"
+                editable={!isLoading}
+              />
+              <Pressable
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={22}
+                  color={isDark ? '#94A3B8' : '#777'}
+                />
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, isDark && styles.darkTextMuted]}>Confirmer le mot de passe</Text>
-            <TextInput
-              style={[styles.input, isDark && styles.darkInput]}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="Répétez votre mot de passe"
-              placeholderTextColor="#aaa"
-              secureTextEntry
-              returnKeyType="done"
-              onSubmitEditing={handleRegister}
-              editable={!isLoading}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={[styles.input, styles.passwordInput, isDark && styles.darkInput]}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Répétez votre mot de passe"
+                placeholderTextColor="#aaa"
+                secureTextEntry={!showConfirmPassword}
+                returnKeyType="done"
+                onSubmitEditing={handleRegister}
+                editable={!isLoading}
+              />
+              <Pressable
+                style={styles.eyeIcon}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons
+                  name={showConfirmPassword ? 'eye-off' : 'eye'}
+                  size={22}
+                  color={isDark ? '#94A3B8' : '#777'}
+                />
+              </Pressable>
+            </View>
           </View>
 
           {/* ── Consentement RGPD ── */}
@@ -320,6 +348,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     color: '#111',
+  },
+  passwordContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  passwordInput: {
+    paddingRight: 50,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 16,
+    height: '100%',
+    justifyContent: 'center',
   },
 
   // RGPD
