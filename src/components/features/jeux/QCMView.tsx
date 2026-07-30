@@ -16,6 +16,7 @@ import type { Jeu, DonneesQCM } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface QCMViewProps {
   jeu: Jeu;
@@ -25,6 +26,7 @@ interface QCMViewProps {
 }
 
 export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
+  const insets = useSafeAreaInsets();
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
   const [playingAudioIndex, setPlayingAudioIndex] = useState<number | null>(null);
@@ -136,7 +138,7 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max((insets?.bottom || 0) + 40, 120) }]} showsVerticalScrollIndicator={false}>
         {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
       
       {imageSource && (

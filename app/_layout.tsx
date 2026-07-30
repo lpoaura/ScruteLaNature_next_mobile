@@ -124,9 +124,11 @@ export default function RootLayout() {
     initApp();
   }, []);
 
-  // Gérer les deep links (email-verified, reset-password)
+  // Gérer les deep links avec le hook officiel d'Expo (évite les conflits avec Expo Router)
+  const url = Linking.useURL();
+  
   useEffect(() => {
-    const handleUrl = ({ url }: { url: string }) => {
+    if (url) {
       if (url.includes('email-verified')) {
         router.replace('/(auth)/login?verified=true');
       } else if (url.includes('reset-password')) {
@@ -135,19 +137,8 @@ export default function RootLayout() {
           router.replace(`/(auth)/reset-password?token=${token}`);
         }
       }
-    };
-
-    // URL initiale (app fermée → ouverte via deep link)
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        handleUrl({ url });
-      }
-    });
-
-    // URL pendant que l'app est ouverte
-    const subscription = Linking.addEventListener('url', handleUrl);
-    return () => subscription.remove();
-  }, []);
+    }
+  }, [url]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

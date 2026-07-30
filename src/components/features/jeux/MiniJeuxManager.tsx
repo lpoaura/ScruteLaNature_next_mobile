@@ -13,6 +13,7 @@ import { PuzzleView } from './PuzzleView';
 
 import { useGameStore } from '@/src/store/game.store';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface MiniJeuxManagerProps {
   jeux: Jeu[];
@@ -22,6 +23,7 @@ interface MiniJeuxManagerProps {
 }
 
 export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeuxManagerProps) {
+  const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hintsRevealed, setHintsRevealed] = useState(0);
   const [attemptsUsed, setAttemptsUsed] = useState(0);
@@ -148,7 +150,7 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
   return (
     <View style={styles.container}>
       {/* Header avec progression et bouton quitter */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 20) }]}>
         <Pressable onPress={onQuit} style={styles.iconBtn}>
           <Ionicons name="close" size={24} color="#1F2937" />
         </Pressable>
@@ -178,7 +180,7 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
           {hasFailedAll && (
             <View style={styles.failureOverlay}>
               <ScrollView 
-                contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', padding: 20, paddingBottom: 40 }} 
+                contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', padding: 20, paddingBottom: insets.bottom + 40 }} 
                 showsVerticalScrollIndicator={false}
               >
                 <View style={styles.failureCard}>
@@ -230,7 +232,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60, // Safe area (mocked)
     paddingHorizontal: 20,
     paddingBottom: 20,
     backgroundColor: '#F5F7F5',

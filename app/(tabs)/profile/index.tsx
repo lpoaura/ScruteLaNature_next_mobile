@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, View, Text, Pressable, Alert, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/store/auth.store';
-import { Leaf, LogOut, Trash2, ShieldAlert, Users, Settings } from 'lucide-react-native';
+import { Leaf, LogOut, Trash2, ShieldAlert, Users, Settings, Heart } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiService } from '@/src/services/api.service';
 import { Badge } from '@/src/types/api.types';
@@ -174,6 +174,20 @@ export default function ProfileScreen() {
           <View style={styles.navTextContainer}>
             <Text style={[styles.navTitle, isDark && styles.darkText]}>Gérer mes téléchargements</Text>
             <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Libérer de l'espace ou mettre à jour</Text>
+          </View>
+        </Pressable>
+
+        {/* Bouton Partenaires & Crédits */}
+        <Pressable 
+          style={[styles.navCard, isDark && styles.darkCard]}
+          onPress={() => router.push('/(tabs)/profile/credits')}
+        >
+          <View style={[styles.navIcon, { backgroundColor: '#FFE4E6' }]}>
+            <Heart size={24} color="#E11D48" />
+          </View>
+          <View style={styles.navTextContainer}>
+            <Text style={[styles.navTitle, isDark && styles.darkText]}>Partenaires & Crédits</Text>
+            <Text style={[styles.navSubtitle, isDark && styles.darkTextMuted]}>Les créateurs et soutiens du projet</Text>
           </View>
         </Pressable>
       </View>

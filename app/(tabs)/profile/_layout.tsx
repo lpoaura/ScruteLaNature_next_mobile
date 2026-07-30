@@ -10,6 +10,7 @@ export default function ProfileLayout() {
                 <Stack.Screen name="downloads" options={{ headerShown: false }} />
                 <Stack.Screen name="history" options={{ headerShown: false }} />
                 <Stack.Screen name="friends" options={{ headerShown: false }} />
+                <Stack.Screen name="credits" options={{ headerShown: false }} />
             </Stack>
             <StatusBar style="auto" />
         </>

@@ -6,6 +6,8 @@ import * as Haptics from 'expo-haptics';
 import type { Jeu } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface PuzzleViewProps {
   jeu: Jeu;
@@ -136,6 +138,7 @@ function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, pieceS
 }
 
 export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewProps) {
+  const insets = useSafeAreaInsets();
   const [isRevealed, setIsRevealed] = useState(false);
   const [pieces, setPieces] = useState<number[]>([]);
   const { width } = useWindowDimensions();
@@ -257,8 +260,8 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
   };
 
   return (
-    <Animated.View style={[styles.container, shakeStyle]}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <Animated.View entering={SlideInRight.springify()} style={styles.container}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max((insets?.bottom || 0) + 40, 120) }]} showsVerticalScrollIndicator={false}>
         <View style={styles.headerBadge}>
           <Ionicons name="extension-puzzle" size={24} color="#0EA5E9" />
           {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}

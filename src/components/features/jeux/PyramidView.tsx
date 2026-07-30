@@ -14,6 +14,7 @@ import type { Jeu, DonneesCalcPyramidal } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface PyramidViewProps {
   jeu: Jeu;
@@ -23,6 +24,7 @@ interface PyramidViewProps {
 }
 
 export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidViewProps) {
+  const insets = useSafeAreaInsets();
   const [isRevealed, setIsRevealed] = useState(false);
   const donnees = jeu.donneesJeu as unknown as DonneesCalcPyramidal | undefined;
   
@@ -136,15 +138,15 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
         <ScrollView 
           ref={scrollViewRef}
           style={{ flex: 1 }}
-          contentContainerStyle={styles.scrollContent} 
-          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max((insets?.bottom || 0) + 40, 120) }]} 
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >

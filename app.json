@@ -52,7 +52,8 @@
           "locationAlwaysPermission": "L'application a besoin d'accéder à votre position pour vous centrer sur la carte et trouver des parcours autour de vous.",
           "locationWhenInUsePermission": "L'application a besoin d'accéder à votre position pour vous centrer sur la carte et trouver des parcours autour de vous."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,

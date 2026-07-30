@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Linking } from 'react-native';
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import type { Jeu } from '@/src/types/api.types';
 import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 
 interface EcoGesteViewProps {
@@ -13,6 +14,8 @@ interface EcoGesteViewProps {
 }
 
 export function EcoGesteView({ jeu, onSuccess }: EcoGesteViewProps) {
+  const insets = useSafeAreaInsets();
+  
   const imageSource = jeu.imageLocalPath 
     ? { uri: jeu.imageLocalPath.startsWith('file://') ? jeu.imageLocalPath : `file://${jeu.imageLocalPath}` } 
     : jeu.imageUrl 
@@ -22,8 +25,8 @@ export function EcoGesteView({ jeu, onSuccess }: EcoGesteViewProps) {
   const hasLink = !!jeu.donneesJeu?.linkUrl;
 
   return (
-    <Animated.View entering={SlideInRight.springify()} style={styles.container}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <Animated.View entering={SlideInRight.springify()} style={[styles.container, { paddingTop: insets.top }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max((insets?.bottom || 0) + 40, 120) }]} showsVerticalScrollIndicator={false}>
       <View style={styles.headerBadge}>
         <Ionicons name="leaf" size={24} color="#007E84" />
         {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
