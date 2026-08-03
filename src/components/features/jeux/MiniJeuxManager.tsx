@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Pressable, Alert, ScrollView } from 'react-native';
+import { View, StyleSheet, Text, Pressable, Alert, } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import type { Jeu, Etape } from '@/src/types/api.types';
 import { InfoView } from './InfoView';

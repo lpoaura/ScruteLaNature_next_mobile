@@ -583,6 +583,10 @@ export default function JeuParcoursScreen() {
           logoPosition={{ bottom: -100, right: -100 }}
           attributionPosition={{ bottom: -100, right: -100 }}
           mapStyle=""
+          scrollEnabled={!isPlayingGame}
+          zoomEnabled={!isPlayingGame}
+          pitchEnabled={!isPlayingGame}
+          rotateEnabled={!isPlayingGame}
         >
         <Camera
           ref={cameraRef}

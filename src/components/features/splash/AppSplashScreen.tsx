@@ -73,7 +73,7 @@ export function AppSplashScreen({ onFinished }: AppSplashScreenProps) {
     >
       {/* Logo uniquement */}
       <Animated.Image 
-        source={require('@/assets/images/icon.png')} 
+        source={require('@/assets/images/Logo_bleu_SLN-ecritures.png')} 
         style={[styles.logoImage, logoStyle]} 
         resizeMode="contain"
       />

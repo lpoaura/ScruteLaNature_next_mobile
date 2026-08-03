@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import Animated, { FadeIn, SlideInRight, useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
