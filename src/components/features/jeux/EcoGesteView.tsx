@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Linking } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import type { Jeu } from '@/src/types/api.types';

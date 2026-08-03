@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform, Keyboard, } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import Animated, { 
   FadeIn, 
   SlideInRight, 

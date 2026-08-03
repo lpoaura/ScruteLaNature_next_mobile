@@ -1,9 +1,9 @@
 import React from 'react';
-import { StyleSheet, ScrollView, View, Text, Image, Pressable } from 'react-native';
+import { StyleSheet, ScrollView, View, Text, Image, Pressable, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
+import { ArrowLeft, Heart, Code, Landmark } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
-import { ArrowLeft } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export default function CreditsScreen() {
@@ -11,64 +11,102 @@ export default function CreditsScreen() {
   const insets = useSafeAreaInsets();
   const isDark = useColorScheme() === 'dark';
 
-  // Importation des logos
-  const logoLPOAura = require('@/assets/images/logo_LPO_credits.png');
-  const logoSEM = require('@/assets/images/logo_SEM_Engagee.png');
-  const logoTSE = require('@/assets/images/logo_Telecom_St_Etienne.png');
-  const logoOel = require('@/assets/images/logo_Oelie_Sainte.jpg');
-  const logoLPOFr = require('@/assets/images/logo_LPO.png');
-  const logoFrN = require('@/assets/images/logo_France_Nature.png');
-  const logoFrK = require('@/assets/images/logo_France_Kit.png');
-  const logoOFB = require('@/assets/images/logo_OFB_actualite.jpg');
-
   return (
-    <View style={[styles.container, isDark && styles.darkContainer]}>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }, isDark && styles.darkHeader]}>
+    <View style={[styles.container, isDark && styles.darkContainer, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <View style={[styles.header, isDark && styles.darkHeader]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color={isDark ? '#F8FAFC' : '#1E293B'} />
         </Pressable>
-        <Text style={[styles.title, isDark && styles.darkText]}>Partenaires & Crédits</Text>
-        <View style={{ width: 24 }} />
+        <Text style={[styles.headerTitle, isDark && styles.darkText]}>Partenaires & Crédits</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView 
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <Animated.View entering={FadeInDown.delay(100).springify()} style={[styles.card, isDark && styles.darkCard]}>
-          <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Un jeu conçu et édité par</Text>
-          <Text style={[styles.description, isDark && styles.darkTextMuted]}>
-            La LPO AuRA en partenariat avec l'école d'ingénieurs Télécom Saint-Étienne
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
+        
+        {/* Intro */}
+        <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.introSection}>
+          <Image source={require('@/assets/images/Logo_bleu_SLN.png')} style={styles.mainLogo} resizeMode="contain" />
+          <Text style={[styles.introText, isDark && styles.darkTextMuted]}>
+            L'application Scrute la Nature vous est proposée grâce au soutien et à la participation de nombreux acteurs engagés pour la biodiversité.
           </Text>
-          <View style={styles.logoGrid}>
-            <Image source={logoLPOAura} style={styles.logo} resizeMode="contain" />
-            <Image source={logoTSE} style={styles.logo} resizeMode="contain" />
+        </Animated.View>
+
+        {/* Porteurs du projet */}
+        <Animated.View entering={FadeInDown.delay(200).springify()} style={[styles.section, isDark && styles.darkSection]}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.iconBox, { backgroundColor: '#DCFCE7' }]}>
+              <Heart size={20} color="#16A34A" />
+            </View>
+            <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Porteurs du projet</Text>
+          </View>
+          <View style={styles.logosGrid}>
+            <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/logo_LPO_credits.png')} style={styles.logoImage} resizeMode="contain" />
+              <Text style={[styles.logoText, isDark && styles.darkText]}>LPO Auvergne-Rhône-Alpes</Text>
+            </View>
+            <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/logo_Oelie_Sainte.jpg')} style={styles.logoImage} resizeMode="contain" />
+              <Text style={[styles.logoText, isDark && styles.darkText]}>Oélié</Text>
+            </View>
+            <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/logo_LPO.png')} style={styles.logoImage} resizeMode="contain" />
+              <Text style={[styles.logoText, isDark && styles.darkText]}>LPO France</Text>
+            </View>
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(200).springify()} style={[styles.card, isDark && styles.darkCard]}>
-          <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Réalisation</Text>
-          <Text style={[styles.description, isDark && styles.darkTextMuted]}>
-            Graphiques: C.Rousse - LPO France - L'OISEAU MAG Junior
+        {/* Soutiens financiers */}
+        <Animated.View entering={FadeInDown.delay(300).springify()} style={[styles.section, isDark && styles.darkSection]}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.iconBox, { backgroundColor: '#FEF9C3' }]}>
+              <Landmark size={20} color="#CA8A04" />
+            </View>
+            <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Soutiens Financiers</Text>
+          </View>
+          <Text style={[styles.sectionDescription, isDark && styles.darkTextMuted]}>
+            Ce projet a été rendu possible grâce aux financements de nos partenaires institutionnels.
           </Text>
-          <Text style={[styles.description, isDark && styles.darkTextMuted]}>
-            Application réalisée dans le cadre de l’Atlas de la biodiversité Intercommunal (ABI) de Saint-Etienne Métropôle, projet en partenariat avec FNE et la LPO
-          </Text>
-          <View style={styles.logoGridCentered}>
-            <Image source={logoFrN} style={styles.logoSmall} resizeMode="contain" />
-            <Image source={logoLPOFr} style={styles.logoSmall} resizeMode="contain" />
+          <View style={styles.logosGrid}>
+            <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/Logo_France_Relance_vert.png')} style={styles.logoImage} resizeMode="contain" />
+            </View>
+            <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/logo_OFB.png')} style={styles.logoImage} resizeMode="contain" />
+            </View>
+            <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/logo_St_Metropole_gd.png')} style={styles.logoImage} resizeMode="contain" />
+            </View>
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(300).springify()} style={[styles.card, isDark && styles.darkCard]}>
-          <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Jeu soutenu par</Text>
-          <View style={styles.logoGrid}>
-            <Image source={logoFrK} style={styles.logo} resizeMode="contain" />
-            <Image source={logoOFB} style={styles.logo} resizeMode="contain" />
-            <Image source={logoSEM} style={styles.logo} resizeMode="contain" />
-            <Image source={logoOel} style={styles.logo} resizeMode="contain" />
+        {/* Réalisation Technique */}
+        <Animated.View entering={FadeInDown.delay(400).springify()} style={[styles.section, isDark && styles.darkSection]}>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.iconBox, { backgroundColor: '#E0E7FF' }]}>
+              <Code size={20} color="#4F46E5" />
+            </View>
+            <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Réalisation Technique</Text>
+          </View>
+          <Text style={[styles.sectionDescription, isDark && styles.darkTextMuted]}>
+            L'application a été développée en collaboration avec les étudiants et les professionnels de :
+          </Text>
+          <View style={styles.logosGrid}>
+            <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/logo_Telecom_St_Etienne.png')} style={styles.logoImage} resizeMode="contain" />
+              <Text style={[styles.logoText, isDark && styles.darkText]}>Télécom Saint-Étienne</Text>
+            </View>
+            <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/logo_SEM_Engagee.png')} style={styles.logoImage} resizeMode="contain" />
+              <Text style={[styles.logoText, isDark && styles.darkText]}>Saint-Étienne Métropole</Text>
+            </View>
           </View>
         </Animated.View>
+
+        <Text style={[styles.footerText, isDark && styles.darkTextMuted]}>
+          © {new Date().getFullYear()} LPO Auvergne-Rhône-Alpes. Tous droits réservés.
+        </Text>
+
       </ScrollView>
     </View>
   );
@@ -86,11 +124,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#E2E8F0',
   },
   darkHeader: {
     backgroundColor: '#1E293B',
@@ -98,68 +136,99 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    marginLeft: -8,
+    borderRadius: 20,
   },
-  title: {
+  headerTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#1E293B',
   },
   scrollContent: {
     padding: 20,
-    gap: 20,
   },
-  card: {
+  introSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+    marginTop: 10,
+  },
+  mainLogo: {
+    width: 200,
+    height: 100,
+    marginBottom: 16,
+  },
+  introText: {
+    fontSize: 15,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  section: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
-  darkCard: {
+  darkSection: {
     backgroundColor: '#1E293B',
     shadowColor: '#000',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0087CC',
-    marginBottom: 12,
-    textAlign: 'center',
+    color: '#1E293B',
   },
-  description: {
+  sectionDescription: {
     fontSize: 14,
-    color: '#4B5563',
-    lineHeight: 22,
-    textAlign: 'center',
-    marginBottom: 16,
+    color: '#64748B',
+    marginBottom: 20,
+    lineHeight: 20,
   },
-  logoGrid: {
+  logosGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    alignItems: 'center',
     gap: 20,
-    marginTop: 8,
   },
-  logoGridCentered: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  logoItem: {
     alignItems: 'center',
-    gap: 30,
-    marginTop: 8,
+    width: '45%',
+    marginBottom: 16,
   },
-  logo: {
-    width: 120,
-    height: 80,
-    borderRadius: 8,
+  logoImage: {
+    width: '100%',
+    height: 70,
+    marginBottom: 12,
   },
-  logoSmall: {
-    width: 80,
-    height: 60,
+  logoText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#334155',
+    textAlign: 'center',
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 20,
   },
   darkText: {
     color: '#F8FAFC',

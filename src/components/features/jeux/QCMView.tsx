@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import Animated, { 
   FadeIn, 
   SlideInRight, 
