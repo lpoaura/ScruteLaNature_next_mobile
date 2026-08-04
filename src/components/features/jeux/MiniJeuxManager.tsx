@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Pressable, Alert, } from 'react-native';
+import { View, StyleSheet, Text, Pressable } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import type { Jeu, Etape } from '@/src/types/api.types';
@@ -11,6 +11,8 @@ import { PyramidView } from './PyramidView';
 import { EcoGesteView } from './EcoGesteView';
 import { ValidationLieuView } from './ValidationLieuView';
 import { PuzzleView } from './PuzzleView';
+import { WrongAnswerModal } from './WrongAnswerModal';
+import { HintModal } from './HintModal';
 
 import { useGameStore } from '@/src/store/game.store';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
@@ -29,6 +31,18 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
   const [hintsRevealed, setHintsRevealed] = useState(0);
   const [attemptsUsed, setAttemptsUsed] = useState(0);
   const [hasFailedAll, setHasFailedAll] = useState(false);
+  const [wrongAnswerState, setWrongAnswerState] = useState<{
+    visible: boolean;
+    remaining: number;
+    max: number;
+    tip?: string;
+  }>({ visible: false, remaining: 0, max: 2 });
+  const [hintModalState, setHintModalState] = useState<{
+    visible: boolean;
+    title: string;
+    hints: string[];
+    buttonText?: string;
+  }>({ visible: false, title: '', hints: [] });
   const { completeJeu } = useGameStore();
 
   useEffect(() => {
@@ -62,13 +76,15 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
       setHintsRevealed(0);
       setAttemptsUsed(0);
       setHasFailedAll(false);
+      setWrongAnswerState(prev => ({ ...prev, visible: false }));
+      setHintModalState(prev => ({ ...prev, visible: false }));
       setCurrentIndex((prev) => prev + 1);
     } else {
       onAllCompleted();
     }
   };
 
-  const handleFail = () => {
+  const handleFail = (customTip?: string) => {
     const max = currentJeu.maxAttempts || 2;
     const newAttempts = attemptsUsed + 1;
     setAttemptsUsed(newAttempts);
@@ -76,11 +92,12 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
     if (newAttempts >= max) {
       setHasFailedAll(true);
     } else {
-      Alert.alert(
-        "Oups !",
-        `Mauvaise réponse. Il vous reste ${max - newAttempts} essai${max - newAttempts > 1 ? 's' : ''}.`,
-        [{ text: "Réessayer" }]
-      );
+      setWrongAnswerState({
+        visible: true,
+        remaining: max - newAttempts,
+        max,
+        tip: typeof customTip === 'string' ? customTip : undefined,
+      });
     }
   };
 
@@ -90,23 +107,21 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
     if (indices.length === 0) return;
 
     if (hintsRevealed < indices.length) {
-      Alert.alert(
-        `Indice ${hintsRevealed + 1} / ${indices.length}`,
-        indices[hintsRevealed],
-        [
-          {
-            text: "Merci !",
-            onPress: () => setHintsRevealed(prev => prev + 1)
-          }
-        ]
-      );
+      setHintModalState({
+        visible: true,
+        title: `Indice ${hintsRevealed + 1} / ${indices.length}`,
+        hints: [indices[hintsRevealed]],
+        buttonText: "Merci !",
+      });
+      setHintsRevealed(prev => prev + 1);
     } else {
       // Tous les indices ont été révélés, on les réaffiche tous
-      Alert.alert(
-        "Tous vos indices",
-        indices.map((ind, i) => `${i + 1}. ${ind}`).join('\n\n'),
-        [{ text: "Fermer" }]
-      );
+      setHintModalState({
+        visible: true,
+        title: "Tous vos indices",
+        hints: indices,
+        buttonText: "Fermer",
+      });
     }
   };
 
@@ -219,6 +234,23 @@ export function MiniJeuxManager({ jeux, etape, onAllCompleted, onQuit }: MiniJeu
           )}
         </TabletWrapper>
       </View>
+
+      {/* Modales personnalisées et élégantes de retour utilisateur */}
+      <WrongAnswerModal
+        visible={wrongAnswerState.visible}
+        remainingAttempts={wrongAnswerState.remaining}
+        maxAttempts={wrongAnswerState.max}
+        customTip={wrongAnswerState.tip}
+        onRetry={() => setWrongAnswerState(prev => ({ ...prev, visible: false }))}
+      />
+
+      <HintModal
+        visible={hintModalState.visible}
+        title={hintModalState.title}
+        hints={hintModalState.hints}
+        buttonText={hintModalState.buttonText}
+        onClose={() => setHintModalState(prev => ({ ...prev, visible: false }))}
+      />
     </View>
   );
 }

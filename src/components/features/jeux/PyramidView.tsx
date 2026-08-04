@@ -16,17 +16,19 @@ import { GameQuestion } from "./GameQuestion";
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { WrongAnswerModal } from './WrongAnswerModal';
 
 interface PyramidViewProps {
   jeu: Jeu;
   onSuccess: () => void;
-  onFail?: () => void;
+  onFail?: (tip?: string) => void;
   forceReveal?: boolean;
 }
 
 export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidViewProps) {
   const insets = useSafeAreaInsets();
   const [isRevealed, setIsRevealed] = useState(false);
+  const [showIncompleteModal, setShowIncompleteModal] = useState(false);
   const donnees = jeu.donneesJeu as unknown as DonneesCalcPyramidal | undefined;
   
   // Grille d'origine du backend
@@ -86,12 +88,7 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
     // Vérifier si toutes les cases sont remplies
     const isComplete = userGrid.every(row => row.every(cell => cell.trim() !== ''));
     if (!isComplete) {
-      import('react-native').then(({ Alert }) => {
-        Alert.alert(
-          "Pyramide incomplète", 
-          "Il semblerait que certaines cases soient considérées comme vides par l'application.\n\nContenu interne :\n" + JSON.stringify(userGrid)
-        );
-      });
+      setShowIncompleteModal(true);
       return;
     }
 
@@ -115,14 +112,8 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setIsRevealed(true);
     } else {
-      import('react-native').then(({ Alert }) => {
-        Alert.alert(
-          "Erreur de calcul", 
-          "La pyramide n'est pas correcte. N'oubliez pas : chaque brique doit être la somme des deux briques juste en dessous d'elle !"
-        );
-      });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      onFail?.();
+      onFail?.("N'oubliez pas : chaque brique doit être la somme des deux briques juste en dessous d'elle !");
       shakeTranslateX.value = withSequence(
         withTiming(-10, { duration: 50 }),
         withTiming(10, { duration: 50 }),
@@ -247,6 +238,14 @@ export function PyramidView({ jeu, onSuccess, onFail, forceReveal }: PyramidView
           )}
         </ScrollView>
       </Animated.View>
+
+      <WrongAnswerModal
+        visible={showIncompleteModal}
+        customTitle="Pyramide incomplète"
+        customMessage="Veuillez remplir toutes les cases de la pyramide avant de valider votre calcul."
+        customButtonText="J'ai compris"
+        onRetry={() => setShowIncompleteModal(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
