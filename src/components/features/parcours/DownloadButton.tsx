@@ -6,7 +6,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { parcoursService } from '@/src/services/parcours.service';
-import { deleteParcours, isParcoursDownloaded } from '@/src/services/database.service';
+import { deleteParcours, isParcoursDownloaded, getParcours } from '@/src/services/database.service';
 import { deleteParcoursFiles } from '@/src/services/filesystem.service';
 
 const GREEN = '#0087CC';
@@ -18,6 +18,8 @@ interface DownloadButtonProps {
   onDownloaded?: () => void;
   onPlay?: () => void;
   isPreview?: boolean;
+  onlineUpdatedAt?: string;
+  refreshTrigger?: number;
 }
 
 /**
@@ -30,23 +32,38 @@ interface DownloadButtonProps {
  * - downloaded → "Jouer" (plein) + "Supprimer" (outline)
  * - error      → message d'erreur + "Réessayer"
  */
-export function DownloadButton({ parcoursId, onDownloaded, onPlay, isPreview = false }: DownloadButtonProps) {
+export function DownloadButton({ parcoursId, onDownloaded, onPlay, isPreview = false, onlineUpdatedAt, refreshTrigger }: DownloadButtonProps) {
   const [state, setState] = useState<DownloadState>('checking');
   const [errorMsg, setErrorMsg] = useState('');
   const [pct, setPct] = useState(0);
+  const [isOutdated, setIsOutdated] = useState(false);
   const progress = useSharedValue(0);
   const cancelRef = useRef(false);
 
   useEffect(() => {
     checkDownloadStatus();
     return () => { cancelRef.current = true; };
-  }, [parcoursId]);
+  }, [parcoursId, onlineUpdatedAt, refreshTrigger]);
 
   const checkDownloadStatus = async () => {
     setState('checking');
-    const downloaded = await isParcoursDownloaded(parcoursId);
+    const downloaded = await getParcours(parcoursId);
     if (!cancelRef.current) {
-      setState(downloaded ? 'downloaded' : 'idle');
+      if (downloaded) {
+        let outdated = false;
+        if (onlineUpdatedAt && downloaded.updatedAt) {
+          const onlineTime = new Date(onlineUpdatedAt).getTime();
+          const offlineTime = new Date(downloaded.updatedAt).getTime();
+          if (!isNaN(onlineTime) && !isNaN(offlineTime) && (onlineTime - offlineTime) > 2000) {
+            outdated = true;
+          }
+        }
+        setIsOutdated(outdated);
+        setState('downloaded');
+      } else {
+        setIsOutdated(false);
+        setState('idle');
+      }
     }
   };
 
@@ -72,6 +89,7 @@ export function DownloadButton({ parcoursId, onDownloaded, onPlay, isPreview = f
         setPct(100);
         setTimeout(() => {
           setState('downloaded');
+          setIsOutdated(false);
           onDownloaded?.();
         }, 400);
       }
@@ -122,20 +140,34 @@ export function DownloadButton({ parcoursId, onDownloaded, onPlay, isPreview = f
 
   if (state === 'downloaded') {
     return (
-      <View style={styles.row}>
-        {/* Bouton Jouer */}
-        <Pressable
-          style={[styles.playButton, { flex: 1 }]}
-          onPress={onPlay}
-        >
-          <Text style={styles.playIcon}>▶</Text>
-          <Text style={styles.playText}>Jouer</Text>
-        </Pressable>
+      <View style={styles.downloadedContainer}>
+        {isOutdated && (
+          <Pressable style={styles.updateWarningButton} onPress={handleDownload}>
+            <View style={styles.updateIconContainer}>
+              <Text style={styles.updateIcon}>🔄</Text>
+            </View>
+            <View style={styles.updateTextContainer}>
+              <Text style={styles.updateTitle}>Mise à jour disponible</Text>
+              <Text style={styles.updateSubtitle}>Toucher pour actualiser le téléchargement</Text>
+            </View>
+          </Pressable>
+        )}
 
-        {/* Bouton Supprimer */}
-        <Pressable style={styles.deleteButton} onPress={handleDelete}>
-          <Text style={styles.deleteText}>🗑</Text>
-        </Pressable>
+        <View style={styles.row}>
+          {/* Bouton Jouer */}
+          <Pressable
+            style={[styles.playButton, { flex: 1 }]}
+            onPress={onPlay}
+          >
+            <Text style={styles.playIcon}>▶</Text>
+            <Text style={styles.playText}>Jouer</Text>
+          </Pressable>
+
+          {/* Bouton Supprimer */}
+          <Pressable style={styles.deleteButton} onPress={handleDelete}>
+            <Text style={styles.deleteText}>🗑</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -166,6 +198,29 @@ export function DownloadButton({ parcoursId, onDownloaded, onPlay, isPreview = f
 const styles = StyleSheet.create({
   center: { alignItems: 'center', padding: 16 },
   row: { flexDirection: 'row', gap: 12 },
+  downloadedContainer: { gap: 10 },
+  updateWarningButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderColor: '#F59E0B',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    gap: 12,
+  },
+  updateIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  updateIcon: { fontSize: 18 },
+  updateTextContainer: { flex: 1 },
+  updateTitle: { fontSize: 14, fontWeight: '700', color: '#B45309' },
+  updateSubtitle: { fontSize: 12, color: '#D97706', marginTop: 2 },
 
   // Téléchargement
   downloadButton: {

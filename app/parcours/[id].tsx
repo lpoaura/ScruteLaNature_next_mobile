@@ -10,6 +10,7 @@ import {
   View,
   Alert,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -28,6 +29,8 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { apiService } from '@/src/services/api.service';
 import { DownloadButton } from '@/src/components/features/parcours/DownloadButton';
+import { getParcours } from '@/src/services/database.service';
+import { parcoursService } from '@/src/services/parcours.service';
 import { useGameStore } from '@/src/store/game.store';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useSettingsStore } from '@/src/store/settings.store';
@@ -149,6 +152,11 @@ export default function ParcoursDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [isOutdated, setIsOutdated] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Authentification
   const isGuest = useAuthStore((state) => state.isGuest);
@@ -220,6 +228,25 @@ export default function ParcoursDetailScreen() {
     if (id) loadParcours(id);
   }, [id]);
 
+  const checkOfflineVersion = useCallback(async (onlineData: ParcoursWithEtapes | null) => {
+    if (!id || !onlineData || !onlineData.updatedAt) return;
+    try {
+      const offlineData = await getParcours(id);
+      if (offlineData && offlineData.updatedAt) {
+        const offlineTime = new Date(offlineData.updatedAt).getTime();
+        const onlineTime = new Date(onlineData.updatedAt).getTime();
+        // Marge de 2 secondes pour valider la nouveauté en ligne
+        if (!isNaN(offlineTime) && !isNaN(onlineTime) && (onlineTime - offlineTime) > 2000) {
+          setIsOutdated(true);
+          return;
+        }
+      }
+      setIsOutdated(false);
+    } catch (e) {
+      console.warn('[ParcoursDetail] Erreur lors de la vérification de la version hors-ligne:', e);
+    }
+  }, [id]);
+
   const loadParcours = async (parcoursId: string) => {
     try {
       setLoading(true);
@@ -229,6 +256,7 @@ export default function ParcoursDetailScreen() {
         : `/mobile/parcours/${parcoursId}`;
       const data = await apiService.get<ParcoursWithEtapes>(url);
       setParcours(data);
+      await checkOfflineVersion(data);
     } catch {
       setError('Impossible de charger ce parcours.');
     } finally {
@@ -259,8 +287,37 @@ export default function ParcoursDetailScreen() {
   }, [id, preview, startParcours, router, parcours]);
 
   const handleDownloaded = useCallback(() => {
-    if (id) addDownloaded(id);
+    if (id) {
+      addDownloaded(id);
+      setIsOutdated(false);
+    }
   }, [id, addDownloaded]);
+
+  const handleUpdateOfflineParcours = async () => {
+    if (!id || updating) return;
+    setUpdating(true);
+    setUpdateProgress(0);
+    setUpdateSuccess(false);
+
+    try {
+      await parcoursService.download(
+        id,
+        (p) => setUpdateProgress(Math.round(p * 100)),
+        preview === 'true'
+      );
+      setUpdateSuccess(true);
+      setIsOutdated(false);
+      setRefreshTrigger(Date.now());
+      if (id) addDownloaded(id);
+      setTimeout(() => {
+        setUpdateSuccess(false);
+      }, 3500);
+    } catch (err) {
+      Alert.alert('Erreur de mise à jour', 'Impossible de mettre à jour le parcours hors-ligne pour le moment.');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   // ─── États de chargement / erreur ─────────────────────────────────────────
 
@@ -439,6 +496,59 @@ export default function ParcoursDetailScreen() {
             )}
           </View>
 
+          {/* ── Alerte : Version du parcours obsolète ──────────────────────────── */}
+          {(isOutdated || updateSuccess) && (
+            <Animated.View
+              entering={FadeInDown.springify()}
+              style={[
+                styles.outdatedBannerCard,
+                isDark && styles.darkOutdatedBannerCard,
+                updateSuccess && styles.successBannerCard,
+              ]}
+            >
+              <View style={styles.outdatedBannerHeader}>
+                <View style={[styles.outdatedBannerIconWrap, updateSuccess && styles.successBannerIconWrap]}>
+                  <Ionicons
+                    name={updateSuccess ? "checkmark-circle" : "alert-circle"}
+                    size={22}
+                    color={updateSuccess ? "#059669" : "#D97706"}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.outdatedBannerTitle, updateSuccess && styles.successBannerTitle, isDark && styles.darkText]}>
+                    {updateSuccess ? "Téléchargement à jour !" : "Mise à jour du parcours disponible"}
+                  </Text>
+                  <Text style={[styles.outdatedBannerDesc, isDark && styles.darkTextMuted]}>
+                    {updateSuccess
+                      ? "Vous disposez désormais de la version la plus récente hors-ligne."
+                      : "La LPO a publié une version plus récente de ce parcours (nouveaux contenus ou correctifs). Votre téléchargement actuel est obsolète."}
+                  </Text>
+                </View>
+              </View>
+
+              {!updateSuccess && (
+                <View style={styles.outdatedBannerActions}>
+                  {updating ? (
+                    <View style={styles.updatingProgressWrap}>
+                      <ActivityIndicator size="small" color="#D97706" />
+                      <Text style={[styles.updatingProgressText, isDark && styles.darkText]}>
+                        Mise à jour en cours… {updateProgress}%
+                      </Text>
+                    </View>
+                  ) : (
+                    <Pressable
+                      style={styles.updateActionBtn}
+                      onPress={handleUpdateOfflineParcours}
+                    >
+                      <Ionicons name="cloud-download-outline" size={18} color="#fff" />
+                      <Text style={styles.updateActionBtnText}>Mettre à jour mon téléchargement</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+            </Animated.View>
+          )}
+
           {/* Stats (distance / durée / étapes / jeux) */}
           <Animated.View entering={FadeInDown.springify()} style={styles.statsScrollWrapper}>
             <View style={styles.statsScrollContent}>
@@ -472,8 +582,13 @@ export default function ParcoursDetailScreen() {
               <DownloadButton
                 parcoursId={id}
                 onPlay={handlePlay}
-                onDownloaded={handleDownloaded}
+                onDownloaded={() => {
+                  handleDownloaded();
+                  setIsOutdated(false);
+                }}
                 isPreview={preview === 'true'}
+                onlineUpdatedAt={parcours.updatedAt}
+                refreshTrigger={refreshTrigger}
               />
             )}
 
@@ -1127,6 +1242,99 @@ const styles = StyleSheet.create({
   darkTextMuted: { color: '#94A3B8' },
   darkEtapeContent: { borderBottomColor: '#334155' },
   darkHiddenEtapesBanner: { backgroundColor: '#1E293B', borderColor: '#334155' },
+
+  // ── Bannière de version obsolète / mise à jour ──
+  outdatedBannerCard: {
+    marginHorizontal: 16,
+    marginTop: 6,
+    marginBottom: 14,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  darkOutdatedBannerCard: {
+    backgroundColor: 'rgba(217, 119, 6, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  successBannerCard: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  outdatedBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  outdatedBannerIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successBannerIconWrap: {
+    backgroundColor: '#D1FAE5',
+  },
+  outdatedBannerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#B45309',
+    marginBottom: 4,
+  },
+  successBannerTitle: {
+    color: '#047857',
+  },
+  outdatedBannerDesc: {
+    fontSize: 13.5,
+    color: '#92400E',
+    lineHeight: 19,
+  },
+  outdatedBannerActions: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(245, 158, 11, 0.25)',
+  },
+  updateActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D97706',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  updateActionBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14.5,
+  },
+  updatingProgressWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 8,
+  },
+  updatingProgressText: {
+    color: '#B45309',
+    fontWeight: '600',
+    fontSize: 14,
+  },
 });
 
 const markdownStyles = StyleSheet.create({
