@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   darkContainer: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0A0E11',
   },
   logoImage: {
     width: 250,

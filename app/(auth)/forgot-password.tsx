@@ -197,8 +197,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   returnButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  darkContainer: { backgroundColor: '#0F172A' },
+  darkContainer: { backgroundColor: '#0A0E11' },
   darkText: { color: '#F8FAFC' },
   darkTextMuted: { color: '#94A3B8' },
-  darkInput: { backgroundColor: '#1E293B', borderColor: '#334155', color: '#F8FAFC' },
+  darkInput: { backgroundColor: '#141B20', borderColor: '#202C35', color: '#F8FAFC' },
 });

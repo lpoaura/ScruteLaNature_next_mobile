@@ -7,6 +7,8 @@ import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
+import { Appearance } from 'react-native';
+import { useColorScheme as useNativeWindColorScheme } from 'nativewind';
 import { GluestackUIProvider } from '@/src/components/ui/gluestack-ui-provider';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useSettingsStore } from '@/src/store/settings.store';
@@ -66,11 +68,22 @@ function AuthGuard() {
 // ─── Layout Root ──────────────────────────────────────────────────────────────
 
 export default function RootLayout() {
-  const systemColorScheme = useColorScheme();
+  const { setColorScheme: setNativeWindColorScheme } = useNativeWindColorScheme();
+  const colorScheme = useColorScheme();
   const settingsTheme = useSettingsStore((state) => state.theme);
-  const colorScheme = settingsTheme === 'system' ? systemColorScheme : settingsTheme;
   const loadStoredAuth = useAuthStore((state) => state.loadStoredAuth);
   const router = useRouter();
+
+  // Synchroniser Appearance (React Native) et NativeWind avec le store
+  useEffect(() => {
+    if (settingsTheme === 'system') {
+      Appearance.setColorScheme(null);
+      setNativeWindColorScheme('system');
+    } else {
+      Appearance.setColorScheme(settingsTheme as 'light' | 'dark');
+      setNativeWindColorScheme(settingsTheme as 'light' | 'dark');
+    }
+  }, [settingsTheme, setNativeWindColorScheme]);
 
   // Contrôle de l'écran de démarrage custom
   const [showSplash, setShowSplash] = useState(true);

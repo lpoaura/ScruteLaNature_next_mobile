@@ -482,13 +482,13 @@ export default function SearchScreen() {
             </View>
 
           {/* Toggle Switch */}
-          <View style={[styles.toggleContainer, isDark && { backgroundColor: '#1E293B' }]}>
+          <View style={[styles.toggleContainer, isDark && { backgroundColor: '#141B20' }]}>
             <Pressable
               onPress={() => setMode('parcours')}
               style={[
                 styles.toggleButton,
                 mode === 'parcours' && styles.toggleButtonActive,
-                mode === 'parcours' && isDark && { backgroundColor: '#334155' },
+                mode === 'parcours' && isDark && { backgroundColor: '#202C35' },
               ]}
             >
               <Text
@@ -506,7 +506,7 @@ export default function SearchScreen() {
               style={[
                 styles.toggleButton,
                 mode === 'nearby' && styles.toggleButtonActive,
-                mode === 'nearby' && isDark && { backgroundColor: '#334155' },
+                mode === 'nearby' && isDark && { backgroundColor: '#202C35' },
               ]}
             >
               <Text
@@ -966,11 +966,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  darkContainer: { backgroundColor: '#0F172A' },
-  darkHeader: { backgroundColor: '#1E293B', borderBottomColor: '#334155' },
-  darkPanel: { backgroundColor: '#0F172A' },
-  darkCard: { backgroundColor: '#1E293B', borderColor: '#334155', shadowColor: '#000' },
-  darkSearchBar: { backgroundColor: '#1E293B', borderColor: '#334155' },
+  darkContainer: { backgroundColor: '#0A0E11' },
+  darkHeader: { backgroundColor: '#141B20', borderBottomColor: '#202C35' },
+  darkPanel: { backgroundColor: '#0A0E11' },
+  darkCard: { backgroundColor: '#141B20', borderColor: '#202C35', shadowColor: '#000' },
+  darkSearchBar: { backgroundColor: '#141B20', borderColor: '#202C35' },
   darkText: { color: '#F8FAFC' },
   darkTextMuted: { color: '#94A3B8' },
 });

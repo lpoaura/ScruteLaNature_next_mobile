@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   pseudo: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#141B20',
     marginBottom: 8,
   },
   levelBadge: {
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   navTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#141B20',
     marginBottom: 2,
   },
   navSubtitle: {
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#141B20',
     marginBottom: 16,
     marginLeft: 4,
   },
@@ -466,8 +466,8 @@ const styles = StyleSheet.create({
   badgeNameLocked: {
     color: '#94A3B8',
   },
-  darkContainer: { backgroundColor: '#0F172A' },
-  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000', borderColor: '#334155' },
+  darkContainer: { backgroundColor: '#0A0E11' },
+  darkCard: { backgroundColor: '#141B20', shadowColor: '#000', borderColor: '#202C35' },
   darkText: { color: '#F8FAFC' },
   darkTextMuted: { color: '#94A3B8' },
 });

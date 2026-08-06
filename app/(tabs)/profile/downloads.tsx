@@ -6,11 +6,13 @@ import { parcoursService } from '@/src/services/parcours.service';
 import { useGameStore } from '@/src/store/game.store';
 import { ChevronLeft, Inbox, Image as ImageIcon, RefreshCw, Trash2, AlertCircle } from 'lucide-react-native';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
 import { useState } from 'react';
 
 export default function DownloadsScreen() {
   const insets = useSafeAreaInsets();
+  const isDark = useColorScheme() === 'dark';
   const router = useRouter();
   const { data: downloadedData, isLoading, refresh } = useDownloadedParcours();
   const removeParcours = useGameStore((state) => state.removeParcours);
@@ -57,9 +59,9 @@ export default function DownloadsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-slate-50 dark:bg-slate-900" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-slate-50 dark:bg-[#0A0E11]" style={{ paddingTop: insets.top }}>
       {/* HEADER */}
-      <View className="px-4 py-4 flex-row items-center border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+      <View className="px-4 py-4 flex-row items-center border-b border-slate-200 dark:border-[#1A232B] bg-white dark:bg-[#0A0E11]">
         <Pressable onPress={() => router.back()} className="p-2 mr-2">
           <ChevronLeft size={24} color="#64748B" />
         </Pressable>
@@ -72,13 +74,13 @@ export default function DownloadsScreen() {
         <TabletWrapper maxWidth={768}>
           {isLoading ? (
             <View className="items-center justify-center py-20">
-              <ActivityIndicator size="large" color="#007E84" />
+              <ActivityIndicator size="large" color={isDark ? '#38BDF8' : '#007E84'} />
               <Text className="text-slate-500 mt-4">Chargement de vos parcours...</Text>
             </View>
           ) : downloadedData.length === 0 ? (
             <View className="items-center justify-center py-20 px-8">
-              <View className="bg-emerald-100 dark:bg-emerald-900/50 p-6 rounded-full mb-6">
-                <Inbox size={48} color="#007E84" />
+              <View className="bg-emerald-100 dark:bg-[#062A24]/80 p-6 rounded-full mb-6">
+                <Inbox size={48} color={isDark ? '#38BDF8' : '#007E84'} />
               </View>
               <Text className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2 text-center">
                 Aucun parcours téléchargé
@@ -92,9 +94,9 @@ export default function DownloadsScreen() {
               {downloadedData.map((item) => (
                 <View 
                   key={item.parcours.id} 
-                  className="bg-white dark:bg-slate-800 rounded-3xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 flex-row items-center"
+                  className="bg-white dark:bg-[#141B20] rounded-3xl p-4 shadow-sm border border-slate-100 dark:border-[#202C35] flex-row items-center"
                 >
-                  <View className="bg-slate-100 dark:bg-slate-700 w-16 h-16 rounded-2xl mr-4 overflow-hidden">
+                  <View className="bg-slate-100 dark:bg-[#202C35] w-16 h-16 rounded-2xl mr-4 overflow-hidden">
                     {item.localCoverImage || item.parcours.coverImage ? (
                       <Image 
                         source={{ uri: item.localCoverImage || (item.parcours.coverImage ? resolveMediaUrl(item.parcours.coverImage) : undefined) }} 
@@ -133,12 +135,12 @@ export default function DownloadsScreen() {
                       <Pressable 
                         onPress={() => handleUpdate(item.parcours.id)}
                         disabled={isUpdating === item.parcours.id}
-                        className="bg-emerald-100 dark:bg-emerald-900/50 p-3 rounded-full"
+                        className="bg-emerald-100 dark:bg-[#062A24]/80 p-3 rounded-full"
                       >
                         {isUpdating === item.parcours.id ? (
-                          <ActivityIndicator size="small" color="#007E84" />
+                          <ActivityIndicator size="small" color={isDark ? '#38BDF8' : '#007E84'} />
                         ) : (
-                          <RefreshCw size={20} color="#007E84" />
+                          <RefreshCw size={20} color={isDark ? '#38BDF8' : '#007E84'} />
                         )}
                       </Pressable>
                     )}

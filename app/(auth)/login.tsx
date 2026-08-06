@@ -237,8 +237,8 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   logoImage: {
-    width: 400,
-    height: 400,
+    width: 300,
+    height: 300,
     resizeMode: 'contain',
   },
   title: {
@@ -394,9 +394,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  darkContainer: { backgroundColor: '#0F172A' },
-  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000', borderColor: '#334155' },
+  darkContainer: { backgroundColor: '#0A0E11' },
+  darkCard: { backgroundColor: '#141B20', shadowColor: '#000', borderColor: '#202C35' },
   darkText: { color: '#F8FAFC' },
   darkTextMuted: { color: '#94A3B8' },
-  darkInput: { backgroundColor: '#1E293B', borderColor: '#334155', color: '#F8FAFC' },
+  darkInput: { backgroundColor: '#141B20', borderColor: '#202C35', color: '#F8FAFC' },
 });

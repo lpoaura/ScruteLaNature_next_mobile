@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
   heroWrapper: {
     height: HERO_HEIGHT,
     overflow: 'hidden',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#141B20',
   },
   heroImageContainer: {
     position: 'absolute',
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   darkBody: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0A0E11',
   },
 
   // ── Stats Row ──
@@ -850,8 +850,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.4)',
   },
   darkStatCardPremium: {
-    backgroundColor: '#1E293B',
-    borderColor: '#334155',
+    backgroundColor: '#141B20',
+    borderColor: '#202C35',
     shadowOpacity: 0.3,
   },
   statIconBadge: {
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   darkActionPanel: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#141B20',
   },
   inviteButtonPremium: {
     flexDirection: 'row',
@@ -906,8 +906,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   darkInviteButtonPremium: {
-    backgroundColor: '#0F172A',
-    borderColor: '#334155',
+    backgroundColor: '#0A0E11',
+    borderColor: '#202C35',
   },
   inviteButtonIconWrapper: {
     width: 36,
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#141B20',
   },
   offlineNoteContainer: {
     flexDirection: 'row',
@@ -964,7 +964,7 @@ const styles = StyleSheet.create({
   sectionTitlePremium: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#141B20',
   },
   descriptionPremium: {
     fontSize: 15,
@@ -1025,7 +1025,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#141B20',
   },
   description: {
     fontSize: 15,
@@ -1236,12 +1236,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  darkContainer: { backgroundColor: '#0F172A' },
-  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000' },
+  darkContainer: { backgroundColor: '#0A0E11' },
+  darkCard: { backgroundColor: '#141B20', shadowColor: '#000' },
   darkText: { color: '#F8FAFC' },
   darkTextMuted: { color: '#94A3B8' },
-  darkEtapeContent: { borderBottomColor: '#334155' },
-  darkHiddenEtapesBanner: { backgroundColor: '#1E293B', borderColor: '#334155' },
+  darkEtapeContent: { borderBottomColor: '#202C35' },
+  darkHiddenEtapesBanner: { backgroundColor: '#141B20', borderColor: '#202C35' },
 
   // ── Bannière de version obsolète / mise à jour ──
   outdatedBannerCard: {
