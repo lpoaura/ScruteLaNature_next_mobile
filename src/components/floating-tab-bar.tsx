@@ -149,14 +149,14 @@ function BackButton({ onPress, isDark }: { onPress: () => void; isDark: boolean 
                 // Fallback BlurView (iOS < 26, Web) ou Solid (Android)
                 <View style={styles.shadowContainer}>
                     {Platform.OS === 'android' ? (
-                        <View style={[styles.androidPill, isDark && { backgroundColor: '#1E293B', borderColor: '#334155' }]}>
+                        <View style={[styles.androidPill, isDark && { backgroundColor: '#141B20', borderColor: '#202C35' }]}>
                             {backContent}
                         </View>
                     ) : (
                         <BlurView
                             intensity={70}
                             tint={isDark ? "dark" : "light"}
-                            style={[styles.blurPill, isDark && { backgroundColor: 'rgba(30, 41, 59, 0.7)' }]}
+                            style={[styles.blurPill, isDark && { backgroundColor: 'rgba(20, 27, 32, 0.85)', borderColor: 'rgba(255, 255, 255, 0.08)' }]}
                         >
                             {backContent}
                         </BlurView>
@@ -240,7 +240,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                     >
                         {options.tabBarIcon?.({
                             focused: isFocused,
-                            color: isFocused ? (isDark ? '#7EC5C3' : '#0087CC') : (isDark ? '#94A3B8' : '#111'),
+                            color: isFocused ? (isDark ? '#38BDF8' : '#0087CC') : (isDark ? '#64748B' : '#111'),
                             size: 24,
                         })}
                     </TabButton>
@@ -280,14 +280,14 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
             {/* Pilule principale — les onglets */}
             <View style={styles.shadowContainer}>
                 {Platform.OS === 'android' ? (
-                    <View style={[styles.androidPill, isDark && { backgroundColor: '#1E293B', borderColor: '#334155' }]}>
+                    <View style={[styles.androidPill, isDark && { backgroundColor: '#141B20', borderColor: '#202C35' }]}>
                         {tabButtons}
                     </View>
                 ) : (
                     <BlurView
                         intensity={70}
                         tint={isDark ? "dark" : "light"}
-                        style={[styles.blurPill, isDark && { backgroundColor: 'rgba(30, 41, 59, 0.7)' }]}
+                        style={[styles.blurPill, isDark && { backgroundColor: 'rgba(20, 27, 32, 0.85)', borderColor: 'rgba(255, 255, 255, 0.08)' }]}
                     >
                         {tabButtons}
                     </BlurView>
@@ -362,7 +362,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.4)',
     },
     darkContainerFallbackBg: {
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        backgroundColor: '#141B20',
+        borderWidth: 1,
+        borderColor: '#202C35',
     },
 
     // ─── Boutons ───
@@ -406,9 +408,15 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.4)',
     },
     darkBackButtonFallbackBg: {
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        backgroundColor: '#141B20',
+        borderWidth: 1,
+        borderColor: '#202C35',
     },
-    darkTabLabelActive: { color: '#7EC5C3' },
-    darkTabLabelInactive: { color: '#94A3B8' },
-    darkActiveBackground: { backgroundColor: 'rgba(255, 255, 255, 0.15)' },
+    darkTabLabelActive: { color: '#38BDF8' },
+    darkTabLabelInactive: { color: '#64748B' },
+    darkActiveBackground: {
+        backgroundColor: 'rgba(56, 189, 248, 0.15)',
+        borderWidth: 1,
+        borderColor: 'rgba(56, 189, 248, 0.35)',
+    },
 });

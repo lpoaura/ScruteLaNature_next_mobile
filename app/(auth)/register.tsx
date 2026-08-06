@@ -438,9 +438,9 @@ const styles = StyleSheet.create({
   },
   successButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  darkContainer: { backgroundColor: '#0F172A' },
-  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000', borderColor: '#334155' },
+  darkContainer: { backgroundColor: '#0A0E11' },
+  darkCard: { backgroundColor: '#141B20', shadowColor: '#000', borderColor: '#202C35' },
   darkText: { color: '#F8FAFC' },
   darkTextMuted: { color: '#94A3B8' },
-  darkInput: { backgroundColor: '#1E293B', borderColor: '#334155', color: '#F8FAFC' },
+  darkInput: { backgroundColor: '#141B20', borderColor: '#202C35', color: '#F8FAFC' },
 });

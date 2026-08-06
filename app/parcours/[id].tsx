@@ -10,6 +10,7 @@ import {
   View,
   Alert,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -28,6 +29,8 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { apiService } from '@/src/services/api.service';
 import { DownloadButton } from '@/src/components/features/parcours/DownloadButton';
+import { getParcours } from '@/src/services/database.service';
+import { parcoursService } from '@/src/services/parcours.service';
 import { useGameStore } from '@/src/store/game.store';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useSettingsStore } from '@/src/store/settings.store';
@@ -40,7 +43,7 @@ import Markdown from 'react-native-markdown-display';
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const HERO_HEIGHT = 340;
+const HERO_HEIGHT = 370;
 const GREEN = '#0087CC';
 const GREEN_LIGHT = '#D8E8C5';
 const GREEN_MID = '#52B788';
@@ -149,6 +152,11 @@ export default function ParcoursDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [isOutdated, setIsOutdated] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Authentification
   const isGuest = useAuthStore((state) => state.isGuest);
@@ -191,8 +199,8 @@ export default function ParcoursDetailScreen() {
   const heroOverlayStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       scrollY.value,
-      [0, HERO_HEIGHT * 0.5],
-      [0.35, 0.75],
+      [0, HERO_HEIGHT * 0.7],
+      [0, 0.7],
       Extrapolation.CLAMP
     ),
   }));
@@ -220,6 +228,25 @@ export default function ParcoursDetailScreen() {
     if (id) loadParcours(id);
   }, [id]);
 
+  const checkOfflineVersion = useCallback(async (onlineData: ParcoursWithEtapes | null) => {
+    if (!id || !onlineData || !onlineData.updatedAt) return;
+    try {
+      const offlineData = await getParcours(id);
+      if (offlineData && offlineData.updatedAt) {
+        const offlineTime = new Date(offlineData.updatedAt).getTime();
+        const onlineTime = new Date(onlineData.updatedAt).getTime();
+        // Marge de 2 secondes pour valider la nouveauté en ligne
+        if (!isNaN(offlineTime) && !isNaN(onlineTime) && (onlineTime - offlineTime) > 2000) {
+          setIsOutdated(true);
+          return;
+        }
+      }
+      setIsOutdated(false);
+    } catch (e) {
+      console.warn('[ParcoursDetail] Erreur lors de la vérification de la version hors-ligne:', e);
+    }
+  }, [id]);
+
   const loadParcours = async (parcoursId: string) => {
     try {
       setLoading(true);
@@ -229,6 +256,7 @@ export default function ParcoursDetailScreen() {
         : `/mobile/parcours/${parcoursId}`;
       const data = await apiService.get<ParcoursWithEtapes>(url);
       setParcours(data);
+      await checkOfflineVersion(data);
     } catch {
       setError('Impossible de charger ce parcours.');
     } finally {
@@ -259,8 +287,37 @@ export default function ParcoursDetailScreen() {
   }, [id, preview, startParcours, router, parcours]);
 
   const handleDownloaded = useCallback(() => {
-    if (id) addDownloaded(id);
+    if (id) {
+      addDownloaded(id);
+      setIsOutdated(false);
+    }
   }, [id, addDownloaded]);
+
+  const handleUpdateOfflineParcours = async () => {
+    if (!id || updating) return;
+    setUpdating(true);
+    setUpdateProgress(0);
+    setUpdateSuccess(false);
+
+    try {
+      await parcoursService.download(
+        id,
+        (p) => setUpdateProgress(Math.round(p * 100)),
+        preview === 'true'
+      );
+      setUpdateSuccess(true);
+      setIsOutdated(false);
+      setRefreshTrigger(Date.now());
+      if (id) addDownloaded(id);
+      setTimeout(() => {
+        setUpdateSuccess(false);
+      }, 3500);
+    } catch (err) {
+      Alert.alert('Erreur de mise à jour', 'Impossible de mettre à jour le parcours hors-ligne pour le moment.');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   // ─── États de chargement / erreur ─────────────────────────────────────────
 
@@ -352,11 +409,22 @@ export default function ParcoursDetailScreen() {
         <View style={styles.heroWrapper}>
           <Animated.View style={[styles.heroImageContainer, heroImageStyle]}>
             {parcours.coverImage ? (
-              <Image
-                source={{ uri: resolveMediaUrl(parcours.coverImage) }}
-                style={styles.heroImage}
-                resizeMode="contain"
-              />
+              <>
+                {/* Arrière-plan flou d'ambiance pour enrober élégamment le format de l'image */}
+                <Image
+                  source={{ uri: resolveMediaUrl(parcours.coverImage) }}
+                  style={[StyleSheet.absoluteFillObject, { opacity: 0.55 }]}
+                  resizeMode="cover"
+                  blurRadius={Platform.OS === 'ios' ? 22 : 14}
+                />
+                <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.2)' }]} />
+                {/* Image principale visible en intégralité */}
+                <Image
+                  source={{ uri: resolveMediaUrl(parcours.coverImage) }}
+                  style={styles.heroImage}
+                  resizeMode="contain"
+                />
+              </>
             ) : (
               <View style={styles.heroPlaceholder}>
                 <Text style={{ fontSize: 90 }}>🌿</Text>
@@ -364,7 +432,7 @@ export default function ParcoursDetailScreen() {
             )}
           </Animated.View>
 
-          {/* Overlay gradient */}
+          {/* Overlay gradient au scroll uniquement */}
           <Animated.View style={[styles.heroGradient, heroOverlayStyle]} />
 
           <Pressable
@@ -381,50 +449,105 @@ export default function ParcoursDetailScreen() {
               <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>MODE TEST</Text>
             </View>
           )}
-
-          {/* Badge difficulté + titre */}
-          <View style={styles.heroBottom}>
-            <BlurView intensity={isDark ? 50 : 30} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFillObject} />
-            <View style={styles.heroBottomContent}>
-              <View style={styles.badgesRow}>
-                {diff && (
-                  <View style={[styles.diffBadge, { backgroundColor: diff.bg }]}>
-                    <Ionicons name="extension-puzzle" size={14} color={diff.color} />
-                    <Text style={[styles.diffText, { color: diff.color }]}>
-                      Énigmes : {diff.label}
-                    </Text>
-                  </View>
-                )}
-                {accessDiff && (
-                  <View style={[styles.diffBadge, { backgroundColor: accessDiff.bg }]}>
-                    <Ionicons name="walk" size={14} color={accessDiff.color} />
-                    <Text style={[styles.diffText, { color: accessDiff.color }]}>
-                      Terrain : {accessDiff.label}
-                    </Text>
-                  </View>
-                )}
-                {(parcours as any).isEscapeGame && (
-                  <View style={[styles.diffBadge, { backgroundColor: '#FFFBEB' }]}>
-                    <Ionicons name="lock-closed" size={14} color="#F59E0B" />
-                    <Text style={[styles.diffText, { color: '#F59E0B' }]}>
-                      Escape Game
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <Text style={styles.heroTitle}>{parcours.title}</Text>
-              {parcours.zonage && (
-                <View style={styles.zonageRow}>
-                  <Ionicons name="location" size={16} color={isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)"} />
-                  <Text style={[styles.zonageText, isDark ? {color: 'rgba(255,255,255,0.9)'} : {color: 'rgba(0,0,0,0.8)'}]}>{parcours.zonage.nom}</Text>
-                </View>
-              )}
-            </View>
-          </View>
         </View>
 
         {/* ── Corps ───────────────────────────────────────────────────────── */}
         <View style={[styles.body, isDark && styles.darkBody]}>
+          {/* En-tête informatif (badges, titre, lieu) placé proprement sous l'image */}
+          <View style={styles.headerInfoContainer}>
+            <View style={styles.badgesRow}>
+              {diff && (
+                <View style={[styles.diffBadge, { backgroundColor: diff.bg }]}>
+                  <Ionicons name="extension-puzzle" size={14} color={diff.color} />
+                  <Text style={[styles.diffText, { color: diff.color }]}>
+                    Énigmes : {diff.label}
+                  </Text>
+                </View>
+              )}
+              {accessDiff && (
+                <View style={[styles.diffBadge, { backgroundColor: accessDiff.bg }]}>
+                  <Ionicons name="walk" size={14} color={accessDiff.color} />
+                  <Text style={[styles.diffText, { color: accessDiff.color }]}>
+                    Terrain : {accessDiff.label}
+                  </Text>
+                </View>
+              )}
+              {(parcours as any).isEscapeGame && (
+                <View style={[styles.diffBadge, { backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A' }]}>
+                  <Ionicons name="lock-closed" size={14} color="#D97706" />
+                  <Text style={[styles.diffText, { color: '#B45309' }]}>
+                    Escape Game
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={[styles.pageTitle, isDark && styles.darkPageTitle]}>{parcours.title}</Text>
+
+            {parcours.zonage && (
+              <View style={styles.zonageRow}>
+                <View style={styles.zonageIconContainer}>
+                  <Ionicons name="location-sharp" size={15} color="#0087CC" />
+                </View>
+                <Text style={[styles.zonageText, isDark && styles.darkZonageText]}>
+                  {parcours.zonage.nom}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* ── Alerte : Version du parcours obsolète ──────────────────────────── */}
+          {(isOutdated || updateSuccess) && (
+            <Animated.View
+              entering={FadeInDown.springify()}
+              style={[
+                styles.outdatedBannerCard,
+                isDark && styles.darkOutdatedBannerCard,
+                updateSuccess && styles.successBannerCard,
+              ]}
+            >
+              <View style={styles.outdatedBannerHeader}>
+                <View style={[styles.outdatedBannerIconWrap, updateSuccess && styles.successBannerIconWrap]}>
+                  <Ionicons
+                    name={updateSuccess ? "checkmark-circle" : "alert-circle"}
+                    size={22}
+                    color={updateSuccess ? "#059669" : "#D97706"}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.outdatedBannerTitle, updateSuccess && styles.successBannerTitle, isDark && styles.darkText]}>
+                    {updateSuccess ? "Téléchargement à jour !" : "Mise à jour du parcours disponible"}
+                  </Text>
+                  <Text style={[styles.outdatedBannerDesc, isDark && styles.darkTextMuted]}>
+                    {updateSuccess
+                      ? "Vous disposez désormais de la version la plus récente hors-ligne."
+                      : "La LPO a publié une version plus récente de ce parcours (nouveaux contenus ou correctifs). Votre téléchargement actuel est obsolète."}
+                  </Text>
+                </View>
+              </View>
+
+              {!updateSuccess && (
+                <View style={styles.outdatedBannerActions}>
+                  {updating ? (
+                    <View style={styles.updatingProgressWrap}>
+                      <ActivityIndicator size="small" color="#D97706" />
+                      <Text style={[styles.updatingProgressText, isDark && styles.darkText]}>
+                        Mise à jour en cours… {updateProgress}%
+                      </Text>
+                    </View>
+                  ) : (
+                    <Pressable
+                      style={styles.updateActionBtn}
+                      onPress={handleUpdateOfflineParcours}
+                    >
+                      <Ionicons name="cloud-download-outline" size={18} color="#fff" />
+                      <Text style={styles.updateActionBtnText}>Mettre à jour mon téléchargement</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+            </Animated.View>
+          )}
 
           {/* Stats (distance / durée / étapes / jeux) */}
           <Animated.View entering={FadeInDown.springify()} style={styles.statsScrollWrapper}>
@@ -459,8 +582,13 @@ export default function ParcoursDetailScreen() {
               <DownloadButton
                 parcoursId={id}
                 onPlay={handlePlay}
-                onDownloaded={handleDownloaded}
+                onDownloaded={() => {
+                  handleDownloaded();
+                  setIsOutdated(false);
+                }}
                 isPreview={preview === 'true'}
+                onlineUpdatedAt={parcours.updatedAt}
+                refreshTrigger={refreshTrigger}
               />
             )}
 
@@ -588,13 +716,14 @@ const styles = StyleSheet.create({
   heroWrapper: {
     height: HERO_HEIGHT,
     overflow: 'hidden',
+    backgroundColor: '#141B20',
   },
   heroImageContainer: {
     position: 'absolute',
-    top: -HERO_HEIGHT * 0.4,
+    top: 0,
     left: 0,
     right: 0,
-    height: HERO_HEIGHT * 1.8,
+    height: HERO_HEIGHT,
   },
   heroImage: {
     width: '100%',
@@ -619,20 +748,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
     overflow: 'hidden',
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
-  heroBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    overflow: 'hidden',
-  },
-  heroBottomContent: {
+  headerInfoContainer: {
     paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 56,
-    gap: 8,
+    paddingTop: 22,
+    paddingBottom: 16,
+    gap: 12,
   },
   badgesRow: {
     flexDirection: 'row',
@@ -645,8 +767,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
     borderRadius: 20,
   },
   diffDot: {
@@ -659,25 +781,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.3,
   },
-  heroTitle: {
-    fontSize: 28,
+  pageTitle: {
+    fontSize: 26,
     fontWeight: '800',
-    color: '#fff',
-    lineHeight: 34,
-    letterSpacing: -0.5,
-    textShadowColor: 'rgba(0,0,0,0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    color: '#1F2937',
+    lineHeight: 32,
+    letterSpacing: -0.4,
+  },
+  darkPageTitle: {
+    color: '#F8FAFC',
   },
   zonageRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
+  },
+  zonageIconContainer: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   zonageText: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '500',
+    fontSize: 15,
+    color: '#4B5563',
+    fontWeight: '600',
+  },
+  darkZonageText: {
+    color: '#9CA3AF',
   },
 
   // ── Corps ──
@@ -686,12 +819,12 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   darkBody: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0A0E11',
   },
 
   // ── Stats Row ──
   statsScrollWrapper: {
-    marginTop: -24,
+    marginTop: 4,
     marginBottom: 24,
     zIndex: 10,
     paddingHorizontal: 16,
@@ -717,8 +850,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.4)',
   },
   darkStatCardPremium: {
-    backgroundColor: '#1E293B',
-    borderColor: '#334155',
+    backgroundColor: '#141B20',
+    borderColor: '#202C35',
     shadowOpacity: 0.3,
   },
   statIconBadge: {
@@ -760,7 +893,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   darkActionPanel: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#141B20',
   },
   inviteButtonPremium: {
     flexDirection: 'row',
@@ -773,8 +906,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   darkInviteButtonPremium: {
-    backgroundColor: '#0F172A',
-    borderColor: '#334155',
+    backgroundColor: '#0A0E11',
+    borderColor: '#202C35',
   },
   inviteButtonIconWrapper: {
     width: 36,
@@ -789,7 +922,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#141B20',
   },
   offlineNoteContainer: {
     flexDirection: 'row',
@@ -831,7 +964,7 @@ const styles = StyleSheet.create({
   sectionTitlePremium: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#141B20',
   },
   descriptionPremium: {
     fontSize: 15,
@@ -892,7 +1025,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#141B20',
   },
   description: {
     fontSize: 15,
@@ -1103,12 +1236,105 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  darkContainer: { backgroundColor: '#0F172A' },
-  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000' },
+  darkContainer: { backgroundColor: '#0A0E11' },
+  darkCard: { backgroundColor: '#141B20', shadowColor: '#000' },
   darkText: { color: '#F8FAFC' },
   darkTextMuted: { color: '#94A3B8' },
-  darkEtapeContent: { borderBottomColor: '#334155' },
-  darkHiddenEtapesBanner: { backgroundColor: '#1E293B', borderColor: '#334155' },
+  darkEtapeContent: { borderBottomColor: '#202C35' },
+  darkHiddenEtapesBanner: { backgroundColor: '#141B20', borderColor: '#202C35' },
+
+  // ── Bannière de version obsolète / mise à jour ──
+  outdatedBannerCard: {
+    marginHorizontal: 16,
+    marginTop: 6,
+    marginBottom: 14,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  darkOutdatedBannerCard: {
+    backgroundColor: 'rgba(217, 119, 6, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  successBannerCard: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  outdatedBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  outdatedBannerIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successBannerIconWrap: {
+    backgroundColor: '#D1FAE5',
+  },
+  outdatedBannerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#B45309',
+    marginBottom: 4,
+  },
+  successBannerTitle: {
+    color: '#047857',
+  },
+  outdatedBannerDesc: {
+    fontSize: 13.5,
+    color: '#92400E',
+    lineHeight: 19,
+  },
+  outdatedBannerActions: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(245, 158, 11, 0.25)',
+  },
+  updateActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D97706',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  updateActionBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14.5,
+  },
+  updatingProgressWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 8,
+  },
+  updatingProgressText: {
+    color: '#B45309',
+    fontWeight: '600',
+    fontSize: 14,
+  },
 });
 
 const markdownStyles = StyleSheet.create({

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView, View, Text, Pressable, Switch, Alert, TextInput, ActivityIndicator, useColorScheme } from 'react-native';
+import { StyleSheet, ScrollView, View, Text, Pressable, Switch, Alert, TextInput, ActivityIndicator, Appearance } from 'react-native';
+import { useColorScheme } from '@/src/hooks/use-color-scheme';
+import { useColorScheme as useNativeWindColorScheme } from 'nativewind';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/store/auth.store';
 import { useSettingsStore, ThemeType } from '@/src/store/settings.store';
@@ -10,7 +12,8 @@ import { ChevronLeft, User, Bell, Volume2, Vibrate, Moon, Download, LogOut, Tras
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
-  const systemColorScheme = useColorScheme();
+  const colorScheme = useColorScheme();
+  const { setColorScheme: setNativeWindColorScheme } = useNativeWindColorScheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
@@ -22,7 +25,18 @@ export default function SettingsScreen() {
     pushNotificationsEnabled, setPushNotificationsEnabled
   } = useSettingsStore();
 
-  const isDark = (theme === 'system' ? systemColorScheme : theme) === 'dark';
+  const isDark = colorScheme === 'dark';
+
+  const handleThemeChange = (newTheme: ThemeType) => {
+    setTheme(newTheme);
+    if (newTheme === 'system') {
+      Appearance.setColorScheme(null);
+      setNativeWindColorScheme('system');
+    } else {
+      Appearance.setColorScheme(newTheme);
+      setNativeWindColorScheme(newTheme);
+    }
+  };
   
   // Auth State
   const user = useAuthStore((state) => state.user);
@@ -228,7 +242,7 @@ export default function SettingsScreen() {
                 <Pressable 
                   key={t}
                   style={[styles.themeButton, isDark && styles.darkThemeButton, theme === t && styles.themeButtonActive]}
-                  onPress={() => setTheme(t)}
+                  onPress={() => handleThemeChange(t)}
                 >
                   <Text style={[styles.themeText, isDark && styles.darkTextMuted, theme === t && styles.themeTextActive]}>
                     {t === 'light' ? 'Clair' : t === 'dark' ? 'Sombre' : 'Système'}
@@ -465,14 +479,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 
-  darkContainer: { backgroundColor: '#0F172A' },
-  darkHeader: { backgroundColor: '#1E293B', borderBottomColor: '#334155' },
+  darkContainer: { backgroundColor: '#0A0E11' },
+  darkHeader: { backgroundColor: '#141B20', borderBottomColor: '#202C35' },
   darkText: { color: '#F8FAFC' },
   darkTextMuted: { color: '#94A3B8' },
-  darkCard: { backgroundColor: '#1E293B', shadowColor: '#000' },
-  darkIconContainer: { backgroundColor: '#334155' },
-  darkThemeButton: { backgroundColor: '#334155', borderColor: '#475569' },
+  darkCard: { backgroundColor: '#141B20', shadowColor: '#000' },
+  darkIconContainer: { backgroundColor: '#202C35' },
+  darkThemeButton: { backgroundColor: '#202C35', borderColor: '#475569' },
   darkCreateAccountCard: { backgroundColor: '#78350F', borderBottomColor: '#92400E' },
-  darkLogoutCard: { borderBottomColor: '#334155' },
+  darkLogoutCard: { borderBottomColor: '#202C35' },
   darkDeleteCard: { backgroundColor: '#7F1D1D' },
 });

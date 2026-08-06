@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 24, flexGrow: 1 },
   backButton: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 4 },
   backText: { color: GREEN, fontSize: 16, fontWeight: '600' },
-  title: { fontSize: 32, fontWeight: '800', color: '#1E293B', marginBottom: 8 },
+  title: { fontSize: 32, fontWeight: '800', color: '#141B20', marginBottom: 8 },
   subtitle: { fontSize: 16, color: '#64748B', marginBottom: 32, lineHeight: 24 },
   errorBox: {
     flexDirection: 'row',
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   errorText: { color: ERROR_COLOR, fontSize: 14, flex: 1, lineHeight: 20 },
   form: { gap: 20 },
   inputGroup: { gap: 8 },
-  label: { fontSize: 14, fontWeight: '600', color: '#334155' },
+  label: { fontSize: 14, fontWeight: '600', color: '#202C35' },
   input: {
     backgroundColor: '#fff',
     borderWidth: 1,
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#0F172A',
+    color: '#0A0E11',
   },
   button: {
     backgroundColor: GREEN,
@@ -200,12 +200,12 @@ const styles = StyleSheet.create({
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   successContainer: { flex: 1, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center', padding: 24 },
   successEmoji: { fontSize: 64, marginBottom: 24 },
-  successTitle: { fontSize: 24, fontWeight: '800', color: '#1E293B', marginBottom: 12, textAlign: 'center' },
+  successTitle: { fontSize: 24, fontWeight: '800', color: '#141B20', marginBottom: 12, textAlign: 'center' },
   successSubtitle: { fontSize: 16, color: '#64748B', textAlign: 'center', lineHeight: 24, marginBottom: 32 },
   successButton: { backgroundColor: GREEN, paddingVertical: 16, paddingHorizontal: 32, borderRadius: 12, width: '100%', alignItems: 'center' },
   successButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  darkContainer: { backgroundColor: '#0F172A' },
+  darkContainer: { backgroundColor: '#0A0E11' },
   darkText: { color: '#F8FAFC' },
   darkTextMuted: { color: '#94A3B8' },
-  darkInput: { backgroundColor: '#1E293B', borderColor: '#334155', color: '#F8FAFC' },
+  darkInput: { backgroundColor: '#141B20', borderColor: '#202C35', color: '#F8FAFC' },
 });

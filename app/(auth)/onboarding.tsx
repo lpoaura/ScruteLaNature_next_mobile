@@ -251,7 +251,7 @@ export default function OnboardingScreen() {
     const backgroundColor = interpolateColor(
       scrollX.value,
       SLIDES.map((_, i) => i * width),
-      SLIDES.map((s) => (isDark ? '#0F172A' : '#F8FAFC')) // Fond principal uniforme
+      SLIDES.map((s) => (isDark ? '#0A0E11' : '#F8FAFC')) // Fond principal uniforme
     );
     return { backgroundColor };
   });

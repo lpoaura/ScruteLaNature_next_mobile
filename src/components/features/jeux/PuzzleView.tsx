@@ -355,14 +355,14 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#0F172A',
+    color: '#0A0E11',
     marginBottom: 24,
     textAlign: 'center',
   },
   puzzleBoard: {
     backgroundColor: '#CBD5E1',
     borderWidth: 2,
-    borderColor: '#334155',
+    borderColor: '#202C35',
     marginBottom: 24,
     alignSelf: 'center',
     position: 'relative',

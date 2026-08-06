@@ -16,7 +16,7 @@ export default function CreditsScreen() {
       {/* Header */}
       <View style={[styles.header, isDark && styles.darkHeader]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={isDark ? '#F8FAFC' : '#1E293B'} />
+          <ArrowLeft size={24} color={isDark ? '#F8FAFC' : '#141B20'} />
         </Pressable>
         <Text style={[styles.headerTitle, isDark && styles.darkText]}>Partenaires & Crédits</Text>
         <View style={{ width: 40 }} />
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   darkContainer: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0A0E11',
   },
   header: {
     flexDirection: 'row',
@@ -131,8 +131,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
   },
   darkHeader: {
-    backgroundColor: '#1E293B',
-    borderBottomColor: '#334155',
+    backgroundColor: '#141B20',
+    borderBottomColor: '#202C35',
   },
   backButton: {
     padding: 8,
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#141B20',
   },
   scrollContent: {
     padding: 20,
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   darkSection: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#141B20',
     shadowColor: '#000',
   },
   sectionHeader: {
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#141B20',
   },
   sectionDescription: {
     fontSize: 14,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#334155',
+    color: '#202C35',
     textAlign: 'center',
   },
   footerText: {

@@ -101,7 +101,7 @@ export default function HistoryScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={isDark ? '#F8FAFC' : '#1E293B'} />
+          <ArrowLeft size={24} color={isDark ? '#F8FAFC' : '#141B20'} />
         </Pressable>
         <Text style={[styles.headerTitle, isDark && styles.darkText]}>Mon Historique</Text>
         <View style={{ width: 40 }} />
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   darkContainer: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0A0E11',
   },
   header: {
     flexDirection: 'row',
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#141B20',
   },
   darkText: {
     color: '#F8FAFC',
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#141B20',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   darkCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#141B20',
   },
   cardImage: {
     width: 80,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   darkCardImagePlaceholder: {
-    backgroundColor: '#334155',
+    backgroundColor: '#202C35',
   },
   cardContent: {
     flex: 1,
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#141B20',
     marginBottom: 4,
   },
   cardDate: {

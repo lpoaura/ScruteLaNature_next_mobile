@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#0A0E11',
     flex: 1,
     marginRight: 16,
   },
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 16,
     fontSize: 16,
-    color: '#334155',
+    color: '#202C35',
     minHeight: 120,
     textAlignVertical: 'top',
     marginBottom: 24,
