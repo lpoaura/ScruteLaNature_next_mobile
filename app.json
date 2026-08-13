@@ -10,11 +10,9 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "fr.lpo.scrutelanature"
+      "bundleIdentifier": "com.lpo.GameOfNature"
     },
     "android": {
-      "compileSdkVersion": 36,
-      "targetSdkVersion": 36,
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/Logo_bleu_SLN_padded.png",
@@ -23,7 +21,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "fr.lpo.scrutelanature",
+      "package": "com.lpo.GameOfNature",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
@@ -38,6 +36,16 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "34.0.0"
+          }
+        }
+      ],
       [
         "expo-splash-screen",
         {
