@@ -12,9 +12,10 @@ import { Ionicons } from '@expo/vector-icons';
 interface ZoomableImageProps {
   source: any;
   style?: StyleProp<ImageStyle>;
+  showExpandIcon?: boolean;
 }
 
-export function ZoomableImage({ source, style }: ZoomableImageProps) {
+export function ZoomableImage({ source, style, showExpandIcon = true }: ZoomableImageProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -106,9 +107,11 @@ export function ZoomableImage({ source, style }: ZoomableImageProps) {
           style={style} 
           resizeMode="cover" 
         />
-        <View style={styles.expandIconContainer}>
-          <Ionicons name="expand" size={20} color="white" />
-        </View>
+        {showExpandIcon && (
+          <View style={styles.expandIconContainer}>
+            <Ionicons name="expand" size={20} color="white" />
+          </View>
+        )}
       </Pressable>
 
       <Modal visible={isModalVisible} transparent={true} animationType="fade" onRequestClose={handleClose}>

@@ -15,6 +15,7 @@ import { useGameStore } from '@/src/store/game.store';
 import { useDownloadedParcours } from '@/src/hooks/use-downloaded-parcours';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { IconSymbol } from '@/src/components/ui/icon-symbol';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
 import { parcoursService } from '@/src/services/parcours.service';
 import { syncAnecdotes, getRandomAnecdote } from '@/src/services/anecdotes.service';
@@ -197,7 +198,7 @@ export default function DashboardScreen() {
           <View className="bg-emerald-50 dark:bg-[#141B20] border border-emerald-100 dark:border-[#202C35] rounded-3xl p-5 flex-row items-center shadow-sm">
             <View className="bg-emerald-200/50 dark:bg-[#062A24]/80 p-3 rounded-full mr-4 overflow-hidden h-14 w-14 flex items-center justify-center">
               {anecdote.imageUrl ? (
-                <Image source={{ uri: anecdote.imageUrl }} className="w-full h-full" resizeMode="contain" />
+                <ZoomableImage source={{ uri: anecdote.imageUrl }} style={{ width: '100%', height: '100%' }} showExpandIcon={false} />
               ) : (
                 <IconSymbol name="leaf.fill" size={24} color={isDark ? '#34D399' : '#059669'} />
               )}

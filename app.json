@@ -13,6 +13,8 @@
       "bundleIdentifier": "fr.lpo.scrutelanature"
     },
     "android": {
+      "compileSdkVersion": 36,
+      "targetSdkVersion": 36,
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/Logo_bleu_SLN_padded.png",
