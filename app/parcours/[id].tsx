@@ -267,24 +267,50 @@ export default function ParcoursDetailScreen() {
   const handlePlay = useCallback(() => {
     if (!id || !parcours) return;
     
-    const startGame = (mode: 'normal' | 'escape') => {
-      startParcours(id);
-      router.push({ pathname: '/parcours/jeu/[id]', params: { id, preview, mode } });
+    const promptGameMode = () => {
+      const startGame = (mode: 'normal' | 'escape') => {
+        startParcours(id);
+        router.push({ pathname: '/parcours/jeu/[id]', params: { id, preview, mode } });
+      };
+
+      if ((parcours as any).isEscapeGame) {
+        Alert.alert(
+          "Mode de jeu",
+          "Voulez-vous jouer en mode Escape Game (chronométré) ou en mode Balade Normale (libre) ?",
+          [
+            { text: "Balade Normale", onPress: () => startGame('normal'), style: "cancel" },
+            { text: "Escape Game", onPress: () => startGame('escape') }
+          ]
+        );
+      } else {
+        startGame('normal');
+      }
     };
 
-    if ((parcours as any).isEscapeGame) {
+    if (activeParcoursId === id && currentEtapeOrder > 1) {
       Alert.alert(
-        "Mode de jeu",
-        "Voulez-vous jouer en mode Escape Game (chronométré) ou en mode Balade Normale (libre) ?",
+        "Reprendre la balade",
+        `Vous êtes actuellement à l'étape ${currentEtapeOrder}. Voulez-vous reprendre où vous en étiez (en mode Balade Libre) ou tout recommencer depuis le début ?`,
         [
-          { text: "Balade Normale", onPress: () => startGame('normal'), style: "cancel" },
-          { text: "Escape Game", onPress: () => startGame('escape') }
+          { 
+            text: `Reprendre (Étape ${currentEtapeOrder})`, 
+            onPress: () => {
+              // Reprise sans réinitialiser le store, on force le mode normal comme suggéré par Béa
+              router.push({ pathname: '/parcours/jeu/[id]', params: { id, preview, mode: 'normal' } });
+            },
+          },
+          { 
+            text: "Recommencer", 
+            onPress: promptGameMode,
+            style: "destructive"
+          },
+          { text: "Annuler", style: "cancel" }
         ]
       );
     } else {
-      startGame('normal');
+      promptGameMode();
     }
-  }, [id, preview, startParcours, router, parcours]);
+  }, [id, preview, startParcours, router, parcours, activeParcoursId, currentEtapeOrder]);
 
   const handleDownloaded = useCallback(() => {
     if (id) {
@@ -552,10 +578,9 @@ export default function ParcoursDetailScreen() {
           {/* Stats (distance / durée / étapes / jeux) */}
           <Animated.View entering={FadeInDown.springify()} style={styles.statsScrollWrapper}>
             <View style={styles.statsScrollContent}>
-              {(parcours as any).isEscapeGame && (parcours as any).timeLimitMinutes != null ? (
-                <StatCard icon="timer-outline" value={`${(parcours as any).timeLimitMinutes} min`} label="Temps Limite" delay={0} isDark={isDark} />
-              ) : (
-                parcours.durationMin != null && <StatCard icon="time" value={`${parcours.durationMin} min`} label="Durée" delay={0} isDark={isDark} />
+              {parcours.durationMin != null && <StatCard icon="time" value={`${parcours.durationMin} min`} label="Durée" delay={0} isDark={isDark} />}
+              {(parcours as any).isEscapeGame && (parcours as any).timeLimitMinutes != null && (
+                <StatCard icon="timer-outline" value={`${(parcours as any).timeLimitMinutes} min`} label="Temps limite" delay={30} isDark={isDark} />
               )}
               {parcours.distanceKm != null && <StatCard icon="navigate" value={`${parcours.distanceKm.toFixed(1)} km`} label="Distance" delay={60} isDark={isDark} />}
               {etapes.length > 0 && <StatCard icon="map" value={`${etapes.length}`} label="Étapes" delay={120} isDark={isDark} />}
