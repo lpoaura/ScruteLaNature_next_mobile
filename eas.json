@@ -17,7 +17,12 @@
         "EXPO_PUBLIC_API_IMAGES": "https://api.scrutelanature.lpo-aura.org/"
       }
     },
-    "production": {}
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.scrutelanature.lpo-aura.org/api",
+        "EXPO_PUBLIC_API_IMAGES": "https://api.scrutelanature.lpo-aura.org/"
+      }
+    }
   },
   "submit": {
     "production": {}
