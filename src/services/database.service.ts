@@ -98,6 +98,7 @@ export function initDatabase(): Promise<void> {
       etapeId         TEXT NOT NULL,
       orderNum        INTEGER NOT NULL,
       type            TEXT NOT NULL,
+      titre           TEXT,
       question        TEXT NOT NULL,
       explication     TEXT,
       audioLocalPath  TEXT,
@@ -138,7 +139,14 @@ export function initDatabase(): Promise<void> {
   
   try {
     await _db.execAsync(`ALTER TABLE parcours ADD COLUMN isEscapeGame INTEGER NOT NULL DEFAULT 0;`);
-    await _db.execAsync(`ALTER TABLE parcours ADD COLUMN timeLimitMinutes INTEGER;`);
+  } catch (e) {}
+
+  try {
+    await _db.execAsync(`ALTER TABLE jeux ADD COLUMN titre TEXT;`);
+  } catch (e) {}
+  
+  try {
+    await _db.execAsync(`ALTER TABLE parcours ADD COLUMN isCoupDeCoeur INTEGER;`);
   } catch (e) {
     // L'erreur est normale si les colonnes existent déjà
   }
@@ -200,6 +208,7 @@ interface JeuSQLite {
   etapeId: string;
   orderNum: number;
   type: string;
+  titre: string | null;
   question: string;
   explication: string | null;
   audioLocalPath: string | null;
@@ -263,6 +272,7 @@ function rowToJeu(row: JeuSQLite): Jeu {
     etapeId: row.etapeId,
     order: row.orderNum,
     type: row.type as Jeu['type'],
+    titre: row.titre ?? undefined,
     question: row.question,
     explication: row.explication ?? undefined,
     audioLocalPath: row.audioLocalPath ?? undefined,
@@ -418,14 +428,15 @@ export async function insertJeu(jeu: Jeu): Promise<void> {
   const db = await getDbSafe();
   await db.runAsync(
     `INSERT OR REPLACE INTO jeux
-      (id, etapeId, orderNum, type, question, explication,
+      (id, etapeId, orderNum, type, titre, question, explication,
        audioLocalPath, imageLocalPath, donneesJeu, reponse)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       jeu.id,
       jeu.etapeId,
       jeu.order,
       jeu.type,
+      jeu.titre ?? null,
       jeu.question,
       jeu.explication ?? null,
       jeu.audioLocalPath ?? null,
