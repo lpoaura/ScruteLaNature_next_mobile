@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Scrute La Nature",
-    "slug": "scrute-la-nature",
+    "name": "Scrute la nature",
+    "slug": "LPOMobApp",
     "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Logo_bleu_SLN.png",
@@ -43,7 +43,7 @@
           "android": {
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
-            "buildToolsVersion": "34.0.0"
+            "buildToolsVersion": "36.0.0"
           }
         }
       ],
@@ -76,9 +76,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "07059e34-67b4-48fd-a066-84a2f995421a"
+        "projectId": "8caa5721-b096-47e9-b4b1-abdc4b019ed5"
       }
     },
-    "owner": "devlpo"
+    "owner": "lpo"
   }
 }
