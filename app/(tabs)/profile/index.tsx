@@ -194,12 +194,19 @@ export default function ProfileScreen() {
 
       {/* Badg'othèque (Mock) */}
       <View style={styles.sectionContainer}>
-        <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Badg'othèque</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <Text style={[styles.sectionTitle, { marginBottom: 0 }, isDark && styles.darkText]}>Badg'othèque</Text>
+          {!loadingBadges && allBadges.length > 12 && (
+            <Pressable onPress={() => router.push('/(tabs)/profile/badges')}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#0087CC' }}>Voir plus</Text>
+            </Pressable>
+          )}
+        </View>
         <View style={styles.badgesGrid}>
           {loadingBadges ? (
             <ActivityIndicator size="small" color="#0087CC" />
           ) : (
-            allBadges.map((badge) => {
+            allBadges.slice(0, 12).map((badge) => {
               const isUnlocked = user?.badges?.some((ub) => ub.badge.id === badge.id);
               const parcoursId = badge.parcours?.[0]?.id;
               
