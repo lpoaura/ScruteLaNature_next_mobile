@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, ImageStyle, StyleProp, Modal, Pressable } from 'react-native';
+import { StyleSheet, View, ImageStyle, StyleProp, Modal, Pressable, ImageResizeMode } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -13,9 +13,10 @@ interface ZoomableImageProps {
   source: any;
   style?: StyleProp<ImageStyle>;
   showExpandIcon?: boolean;
+  resizeMode?: ImageResizeMode;
 }
 
-export function ZoomableImage({ source, style, showExpandIcon = true }: ZoomableImageProps) {
+export function ZoomableImage({ source, style, showExpandIcon = true, resizeMode = 'contain' }: ZoomableImageProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -105,7 +106,7 @@ export function ZoomableImage({ source, style, showExpandIcon = true }: Zoomable
         <Animated.Image 
           source={source} 
           style={style} 
-          resizeMode="cover" 
+          resizeMode={resizeMode} 
         />
         {showExpandIcon && (
           <View style={styles.expandIconContainer}>
