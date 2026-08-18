@@ -516,7 +516,7 @@ export default function ParcoursDetailScreen() {
                   <Ionicons name="location-sharp" size={15} color="#0087CC" />
                 </View>
                 <Text style={[styles.zonageText, isDark && styles.darkZonageText]}>
-                  {parcours.zonage.nom}
+                  {parcours.zonage.nom}{parcours.zonage.code ? ` (${parcours.zonage.code})` : ''}
                 </Text>
               </View>
             )}
