@@ -9,9 +9,12 @@ interface GameQuestionProps {
 export function GameQuestion({ question }: GameQuestionProps) {
   if (!question) return null;
 
+  // On échappe les tirets en début de ligne pour éviter la transformation en liste à puces
+  const processedQuestion = question.replace(/^(\s*)-\s/gm, '$1\\- ');
+
   return (
     <Markdown style={markdownStyles}>
-      {question}
+      {processedQuestion}
     </Markdown>
   );
 }

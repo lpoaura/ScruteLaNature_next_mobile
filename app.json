@@ -2,7 +2,7 @@
   "expo": {
     "name": "Scrute la nature",
     "slug": "LPOMobApp",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "orientation": "default",
     "icon": "./assets/images/Logo_bleu_SLN.png",
     "scheme": "scrutelanature",
@@ -13,7 +13,7 @@
       "bundleIdentifier": "com.lpo.GameOfNature"
     },
     "android": {
-      "versionCode": 20,
+      "versionCode": 21,
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/Logo_bleu_SLN_padded.png",
