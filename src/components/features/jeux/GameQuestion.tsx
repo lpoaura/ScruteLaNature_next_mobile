@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 
 interface GameQuestionProps {
   question?: string;
@@ -9,14 +10,14 @@ export function GameQuestion({ question }: GameQuestionProps) {
   if (!question) return null;
 
   return (
-    <Text style={styles.questionText}>
+    <Markdown style={markdownStyles}>
       {question}
-    </Text>
+    </Markdown>
   );
 }
 
-const styles = StyleSheet.create({
-  questionText: {
+const markdownStyles = StyleSheet.create({
+  body: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#0087CC',
