@@ -197,7 +197,7 @@ export default function ProfileScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <Text style={[styles.sectionTitle, { marginBottom: 0 }, isDark && styles.darkText]}>Badg'othèque</Text>
           {!loadingBadges && allBadges.length > 12 && (
-            <Pressable onPress={() => router.push('/(tabs)/profile/badges')}>
+            <Pressable onPress={() => router.push('/(tabs)/profile/badges' as any)}>
               <Text style={{ fontSize: 14, fontWeight: '600', color: '#0087CC' }}>Voir plus</Text>
             </Pressable>
           )}

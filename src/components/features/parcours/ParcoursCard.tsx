@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Parcours } from '@/src/types/api.types';
+import { formatDuration } from '@/src/utils/format';
 
 const GREEN = '#0087CC';
 const GREEN_LIGHT = '#D8E8C5';
@@ -83,7 +84,7 @@ export function ParcoursCard({ parcours, isDownloaded = false }: ParcoursCardPro
           {parcours.durationMin != null && (
             <View style={styles.metaChip}>
               <Text style={styles.metaIcon}>⏱</Text>
-              <Text style={styles.metaText}>{parcours.durationMin} min</Text>
+              <Text style={styles.metaText}>{formatDuration(parcours.durationMin)}</Text>
             </View>
           )}
         </View>

@@ -27,6 +27,7 @@ import Animated, {
   FadeInDown,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { formatDuration } from '@/src/utils/format';
 import { apiService } from '@/src/services/api.service';
 import { DownloadButton } from '@/src/components/features/parcours/DownloadButton';
 import { getParcours } from '@/src/services/database.service';
@@ -578,7 +579,7 @@ export default function ParcoursDetailScreen() {
           {/* Stats (distance / durée / étapes / jeux) */}
           <Animated.View entering={FadeInDown.springify()} style={styles.statsScrollWrapper}>
             <View style={styles.statsScrollContent}>
-              {parcours.durationMin != null && <StatCard icon="time" value={`${parcours.durationMin} min`} label="Durée" delay={0} isDark={isDark} />}
+              {parcours.durationMin != null && <StatCard icon="time" value={formatDuration(parcours.durationMin)} label="Durée" delay={0} isDark={isDark} />}
               {(parcours as any).isEscapeGame && (parcours as any).timeLimitMinutes != null && (
                 <StatCard icon="timer-outline" value={`${(parcours as any).timeLimitMinutes} min`} label="Temps limite" delay={30} isDark={isDark} />
               )}
