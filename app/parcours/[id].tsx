@@ -581,7 +581,7 @@ export default function ParcoursDetailScreen() {
             <View style={styles.statsScrollContent}>
               {parcours.durationMin != null && <StatCard icon="time" value={formatDuration(parcours.durationMin)} label="Durée" delay={0} isDark={isDark} />}
               {(parcours as any).isEscapeGame && (parcours as any).timeLimitMinutes != null && (
-                <StatCard icon="timer-outline" value={`${(parcours as any).timeLimitMinutes} min`} label="Temps limite" delay={30} isDark={isDark} />
+                <StatCard icon="timer-outline" value={formatDuration((parcours as any).timeLimitMinutes)} label="Mode escape game" delay={30} isDark={isDark} />
               )}
               {parcours.distanceKm != null && <StatCard icon="navigate" value={`${parcours.distanceKm.toFixed(1)} km`} label="Distance" delay={60} isDark={isDark} />}
               {etapes.length > 0 && <StatCard icon="map" value={`${etapes.length}`} label="Étapes" delay={120} isDark={isDark} />}
