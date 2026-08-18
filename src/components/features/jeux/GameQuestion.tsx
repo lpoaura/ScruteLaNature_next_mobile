@@ -19,8 +19,7 @@ export function GameQuestion({ question }: GameQuestionProps) {
 const markdownStyles = StyleSheet.create({
   body: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#0087CC',
+    color: '#000000',
     marginBottom: 12,
   },
 });
