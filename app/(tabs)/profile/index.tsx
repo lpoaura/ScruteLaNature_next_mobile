@@ -192,9 +192,9 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      {/* Herbier des Badges (Mock) */}
+      {/* Badg'othèque (Mock) */}
       <View style={styles.sectionContainer}>
-        <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Herbier des Badges</Text>
+        <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Badg'othèque</Text>
         <View style={styles.badgesGrid}>
           {loadingBadges ? (
             <ActivityIndicator size="small" color="#0087CC" />
