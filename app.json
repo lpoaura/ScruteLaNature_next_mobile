@@ -44,11 +44,13 @@
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
             "buildToolsVersion": "36.0.0",
-            "enableProguardInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true,
+            "enableBundleCompression": true
           }
         }
       ],
+      "./plugins/withAndroidR8Optimization",
       [
         "expo-splash-screen",
         {
