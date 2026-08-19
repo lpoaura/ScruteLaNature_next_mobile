@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { parcoursService } from '@/src/services/parcours.service';
+import { formatDuration } from '@/src/utils/format';
 import { useSettingsStore } from '@/src/store/settings.store';
 import { useColorScheme } from 'react-native';
 import type { Parcours } from '@/src/types/api.types';
@@ -436,7 +437,7 @@ export default function SearchScreen() {
                 {isSelected && (
                   <View style={[styles.markerBubble, isDark && styles.darkCard, { marginBottom: 4 }]}>
                     <Text style={[styles.markerText, isDark && styles.darkText]} numberOfLines={1}>{p.title}</Text>
-                    <Text style={[styles.markerMeta, isDark && styles.darkTextMuted]}>{p.difficulty} • {p.durationMin} min</Text>
+                    <Text style={[styles.markerMeta, isDark && styles.darkTextMuted]}>{p.difficulty} • {formatDuration(p.durationMin)}</Text>
                     <Text style={{ fontSize: 10, color: '#0087CC', marginTop: 4, fontWeight: '700' }}>Voir le parcours ➔</Text>
                   </View>
                 )}
@@ -607,7 +608,7 @@ export default function SearchScreen() {
                       {p.title}
                     </Text>
                     <Text style={[styles.parcoursCardMeta, isDark && styles.darkTextMuted]}>
-                      {p.difficulty ?? 'Non défini'} • {p.durationMin ?? '?'} min
+                      {p.difficulty ?? 'Non défini'} • {formatDuration(p.durationMin)}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />

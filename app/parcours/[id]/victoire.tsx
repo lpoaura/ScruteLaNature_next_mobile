@@ -6,7 +6,8 @@ import LottieView from 'lottie-react-native';
 import { ReviewModal } from '@/src/components/features/reviews/ReviewModal';
 import { useSettingsStore } from '@/src/store/settings.store';
 import { useAuthStore } from '@/src/store/auth.store';
-import { useColorScheme } from 'react-native';
+import { useColorScheme } from '@/src/hooks/use-color-scheme';
+import { formatDuration } from '@/src/utils/format';
 
 export default function VictoireScreen() {
   const systemColorScheme = useColorScheme();
@@ -107,7 +108,7 @@ export default function VictoireScreen() {
             </View>
             <View style={[styles.statBox, isDark && styles.darkCard]}>
               <Clock size={24} color="#0087CC" />
-              <Text style={[styles.statValue, isDark && styles.darkText]}>{durationMin || '-'} min</Text>
+              <Text style={[styles.statValue, isDark && styles.darkText]}>{formatDuration(durationMin)}</Text>
               <Text style={[styles.statLabel, isDark && styles.darkTextMuted]}>Temps estimé</Text>
             </View>
           </View>

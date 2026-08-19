@@ -276,7 +276,7 @@ export default function SettingsScreen() {
           {isGuest && (
             <Pressable 
               style={[styles.card, styles.createAccountCard, isDark && styles.darkCreateAccountCard]}
-              onPress={() => router.replace('/(auth)/register')}
+              onPress={() => router.push('/(auth)/register')}
             >
               <ShieldAlert size={20} color="#D97706" style={{ marginRight: 8 }} />
               <Text style={styles.createAccountText}>Créer un compte pour sauvegarder</Text>

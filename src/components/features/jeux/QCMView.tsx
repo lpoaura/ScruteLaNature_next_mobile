@@ -231,7 +231,7 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
             >
               {qcmType === 'image' ? (
                 <View style={{ flex: 1, position: 'relative' }}>
-                  <Image source={{ uri: resolveMediaUrl(option) }} style={{ width: '100%', height: 140, borderRadius: 8 }} resizeMode="cover" />
+                  <Image source={{ uri: resolveMediaUrl(option) }} style={{ width: '100%', height: 140, borderRadius: 8 }} resizeMode="contain" />
                   {optionsCaptions[index] ? (
                     <View style={{ marginTop: 8, paddingHorizontal: 4 }}>
                       <Text style={[styles.optionText, { color: textColor, fontSize: 13, textAlign: 'center' }]} numberOfLines={2}>

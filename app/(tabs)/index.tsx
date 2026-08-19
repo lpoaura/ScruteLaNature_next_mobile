@@ -15,7 +15,9 @@ import { useGameStore } from '@/src/store/game.store';
 import { useDownloadedParcours } from '@/src/hooks/use-downloaded-parcours';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { IconSymbol } from '@/src/components/ui/icon-symbol';
+import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
+import { AnecdoteModal } from '@/src/components/ui/AnecdoteModal';
 import { parcoursService } from '@/src/services/parcours.service';
 import { syncAnecdotes, getRandomAnecdote } from '@/src/services/anecdotes.service';
 import type { Parcours, CommunityReview } from '@/src/types/api.types';
@@ -58,6 +60,7 @@ export default function DashboardScreen() {
   const [loadingCoupsDeCoeur, setLoadingCoupsDeCoeur] = useState(true);
 
   const [anecdote, setAnecdote] = useState<AnecdoteSQLite | null>(null);
+  const [isAnecdoteModalVisible, setIsAnecdoteModalVisible] = useState(false);
 
   const [communityFeed, setCommunityFeed] = useState<CommunityReview[]>([]);
   const [loadingFeed, setLoadingFeed] = useState(true);
@@ -193,23 +196,33 @@ export default function DashboardScreen() {
 
       {/* Bulle Nature (Le saviez-vous ?) */}
       {anecdote && (
-        <View className="px-6 mb-8">
-          <View className="bg-emerald-50 dark:bg-[#141B20] border border-emerald-100 dark:border-[#202C35] rounded-3xl p-5 flex-row items-center shadow-sm">
-            <View className="bg-emerald-200/50 dark:bg-[#062A24]/80 p-3 rounded-full mr-4 overflow-hidden h-14 w-14 flex items-center justify-center">
-              {anecdote.imageUrl ? (
-                <Image source={{ uri: anecdote.imageUrl }} className="w-full h-full" resizeMode="contain" />
-              ) : (
-                <IconSymbol name="leaf.fill" size={24} color={isDark ? '#34D399' : '#059669'} />
-              )}
-            </View>
-            <View className="flex-1">
-              <Text className="text-emerald-900 dark:text-emerald-100 font-bold mb-1">Le saviez-vous ?</Text>
-              <Text className="text-emerald-800 dark:text-emerald-200 text-sm leading-5">
-                {anecdote.content}
-              </Text>
-            </View>
+        <>
+          <View className="px-6 mb-8">
+            <Pressable 
+              onPress={() => setIsAnecdoteModalVisible(true)}
+              className="bg-emerald-50 dark:bg-[#141B20] border border-emerald-100 dark:border-[#202C35] rounded-3xl p-5 flex-row items-center shadow-sm active:opacity-80"
+            >
+              <View className="bg-emerald-200/50 dark:bg-[#062A24]/80 p-3 rounded-full mr-4 overflow-hidden h-14 w-14 flex items-center justify-center">
+                {anecdote.imageUrl ? (
+                  <Image source={{ uri: anecdote.imageUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                ) : (
+                  <IconSymbol name="leaf.fill" size={24} color={isDark ? '#34D399' : '#059669'} />
+                )}
+              </View>
+              <View className="flex-1">
+                <Text className="text-emerald-900 dark:text-emerald-100 font-bold mb-1">Le saviez-vous ?</Text>
+                <Text className="text-emerald-800 dark:text-emerald-200 text-sm leading-5" numberOfLines={3}>
+                  {anecdote.content}
+                </Text>
+              </View>
+            </Pressable>
           </View>
-        </View>
+          <AnecdoteModal 
+            visible={isAnecdoteModalVisible} 
+            onClose={() => setIsAnecdoteModalVisible(false)} 
+            anecdote={anecdote} 
+          />
+        </>
       )}
 
       {/* 2. Action Immédiate (Call to Action dynamique) */}

@@ -73,10 +73,11 @@ interface PuzzlePieceProps {
   cols: number;
   rows: number;
   nbPieces: number;
+  isSelected?: boolean;
   onPress: () => void;
 }
 
-function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, pieceSizeW, pieceSizeH, puzzleWidth, puzzleHeight, cols, rows, nbPieces, onPress }: PuzzlePieceProps) {
+function PuzzlePiece({ pieceValue, currentIndex, isRevealed, isSelected, imageSource, pieceSizeW, pieceSizeH, puzzleWidth, puzzleHeight, cols, rows, nbPieces, onPress }: PuzzlePieceProps) {
   const col = currentIndex % cols;
   const row = Math.floor(currentIndex / cols);
   
@@ -100,21 +101,12 @@ function PuzzlePiece({ pieceValue, currentIndex, isRevealed, imageSource, pieceS
     };
   });
 
-  // Toutes les valeurs >= nbPieces sont des cases vides
-  if (pieceValue >= nbPieces && !isRevealed) {
-    return (
-      <Animated.View style={[{ position: 'absolute', width: pieceSizeW, height: pieceSizeH }, animatedStyle]}>
-        <View style={styles.emptyPiece} />
-      </Animated.View>
-    );
-  }
-
   const originalRow = Math.floor(pieceValue / cols);
   const originalCol = pieceValue % cols;
 
   return (
     <Animated.View style={[{ position: 'absolute', width: pieceSizeW, height: pieceSizeH }, animatedStyle]}>
-      <Pressable style={styles.pieceBox} onPress={onPress}>
+      <Pressable style={[styles.pieceBox, isSelected && { borderWidth: 3, borderColor: '#0EA5E9' }]} onPress={onPress}>
         <View style={styles.imageMask}>
           {imageSource && (
             <Animated.Image 
@@ -142,21 +134,12 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
   const insets = useSafeAreaInsets();
   const [isRevealed, setIsRevealed] = useState(false);
   const [pieces, setPieces] = useState<number[]>([]);
+  const [selectedPieceIndex, setSelectedPieceIndex] = useState<number | null>(null);
   const { width } = useWindowDimensions();
 
   // Lire nbPieces depuis donneesJeu, fallback à 8 (3×3 classique)
   const nbPieces = (jeu.donneesJeu as any)?.nbPieces ?? 8;
   const { cols, rows, totalCells } = useMemo(() => getGridDimensions(nbPieces), [nbPieces]);
-  // La case vide "mobile" est toujours la dernière
-  const emptyValue = totalCells - 1;
-  // Les cases vides fixes sont les valeurs entre nbPieces et emptyValue-1
-  const fixedEmptyValues = useMemo(() => {
-    const fixed = new Set<number>();
-    for (let i = nbPieces; i < emptyValue; i++) {
-      fixed.add(i);
-    }
-    return fixed;
-  }, [nbPieces, emptyValue]);
 
   useEffect(() => {
     if (forceReveal) {
@@ -185,64 +168,34 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
   // Initialisation du puzzle
   useEffect(() => {
     let state = Array.from({ length: totalCells }, (_, i) => i);
-    let emptyIdx = state.indexOf(emptyValue);
-    let lastEmptyIdx = -1;
     
-    // Mélange par mouvements aléatoires — ne pas déplacer les cases vides fixes
-    for (let i = 0; i < 150; i++) {
-      const neighbors: number[] = [];
-      const row = Math.floor(emptyIdx / cols);
-      const col = emptyIdx % cols;
-      
-      if (row > 0) neighbors.push(emptyIdx - cols);
-      if (row < rows - 1) neighbors.push(emptyIdx + cols);
-      if (col > 0) neighbors.push(emptyIdx - 1);
-      if (col < cols - 1) neighbors.push(emptyIdx + 1);
-      
-      // Exclure les voisins qui contiennent une case vide fixe
-      const validNeighbors = neighbors.filter(n => 
-        n !== lastEmptyIdx && !fixedEmptyValues.has(state[n])
-      );
-      if (validNeighbors.length === 0) continue;
-      
-      const nextToMove = validNeighbors[Math.floor(Math.random() * validNeighbors.length)];
-        
-      [state[emptyIdx], state[nextToMove]] = [state[nextToMove], state[emptyIdx]];
-      lastEmptyIdx = emptyIdx;
-      emptyIdx = nextToMove;
+    // Mélange simple (Fisher-Yates)
+    for (let i = state.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [state[i], state[j]] = [state[j], state[i]];
     }
     
     setPieces(state);
-  }, [jeu, totalCells, cols, rows, emptyValue, fixedEmptyValues]);
+    setSelectedPieceIndex(null);
+  }, [jeu, totalCells, cols, rows]);
 
   const handlePressPiece = (index: number) => {
     if (isRevealed) return;
 
-    const emptyIndex = pieces.indexOf(emptyValue);
-    const pieceRow = Math.floor(index / cols);
-    const pieceCol = index % cols;
-    const emptyRow = Math.floor(emptyIndex / cols);
-    const emptyCol = emptyIndex % cols;
-
-    const isAdjacent = (Math.abs(pieceRow - emptyRow) === 1 && pieceCol === emptyCol) || 
-                       (Math.abs(pieceCol - emptyCol) === 1 && pieceRow === emptyRow);
-    
-    // Ne pas permettre de déplacer une case vide fixe
-    if (fixedEmptyValues.has(pieces[index])) return;
-
-    if (isAdjacent) {
+    if (selectedPieceIndex === null) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const newPieces = [...pieces];
-      [newPieces[index], newPieces[emptyIndex]] = [newPieces[emptyIndex], newPieces[index]];
-      setPieces(newPieces);
-      checkWin(newPieces);
+      setSelectedPieceIndex(index);
     } else {
-      // Secousse légère si on clique sur une pièce bloquée
-      shakeTranslateX.value = withSequence(
-        withTiming(-5, { duration: 50 }),
-        withTiming(5, { duration: 50 }),
-        withTiming(0, { duration: 50 })
-      );
+      if (selectedPieceIndex === index) {
+        setSelectedPieceIndex(null);
+      } else {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        const newPieces = [...pieces];
+        [newPieces[index], newPieces[selectedPieceIndex]] = [newPieces[selectedPieceIndex], newPieces[index]];
+        setPieces(newPieces);
+        setSelectedPieceIndex(null);
+        checkWin(newPieces);
+      }
     }
   };
 
@@ -271,17 +224,18 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
         {jeu.question ? (
           <GameQuestion question={jeu.question} />
         ) : (
-          <Text style={styles.questionText}>Reconstituez l'image en faisant glisser les pièces.</Text>
+          <Text style={styles.questionText}>Reconstituez l'image en touchant deux pièces pour les échanger.</Text>
         )}
 
         {/* ZONE DU PUZZLE */}
         <View style={[styles.puzzleBoard, { width: puzzleWidth, height: puzzleHeight }]}>
-          {pieces.map((pieceValue, index) => (
+          {pieces.map((val, i) => (
             <PuzzlePiece
-              key={`piece-${pieceValue}`}
-              pieceValue={pieceValue}
-              currentIndex={index}
+              key={val}
+              pieceValue={val}
+              currentIndex={i}
               isRevealed={isRevealed}
+              isSelected={selectedPieceIndex === i}
               imageSource={imageSource}
               pieceSizeW={pieceSizeW}
               pieceSizeH={pieceSizeH}
@@ -290,7 +244,7 @@ export function PuzzleView({ jeu, onSuccess, onFail, forceReveal }: PuzzleViewPr
               cols={cols}
               rows={rows}
               nbPieces={nbPieces}
-              onPress={() => handlePressPiece(index)}
+              onPress={() => handlePressPiece(i)}
             />
           ))}
         </View>

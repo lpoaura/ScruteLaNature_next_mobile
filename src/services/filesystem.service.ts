@@ -352,7 +352,8 @@ export async function downloadMapTiles(
     processed += batch.length;
     onProgress?.(processed / result.total);
 
-    if (i + BATCH_SIZE < result.total) {
+    const needsDelay = batchResults.some(r => r === 'downloaded' || r === 'failed');
+    if (needsDelay && i + BATCH_SIZE < result.total) {
       await new Promise<void>((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
     }
   }
