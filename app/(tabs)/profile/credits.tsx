@@ -26,7 +26,7 @@ export default function CreditsScreen() {
         
         {/* Intro */}
         <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.introSection}>
-          <Image source={require('@/assets/images/Logo_bleu_SLN.png')} style={styles.mainLogo} resizeMode="contain" />
+          <Image source={require('@/assets/images/new-logo.png')} style={styles.mainLogo} resizeMode="contain" />
           <Text style={[styles.introText, isDark && styles.darkTextMuted]}>
             L'application Scrute la Nature vous est proposée grâce au soutien et à la participation de nombreux acteurs engagés pour la biodiversité.
           </Text>
