@@ -34,6 +34,7 @@ import type { Parcours, Etape, Jeu } from '@/src/types/api.types';
 import { useGpsTrigger } from '@/src/hooks/use-gps-trigger';
 import { formatDistance, haversineDistance } from '@/src/utils/distance';
 import { CarnetDeBordModal } from '@/src/components/features/jeux/CarnetDeBordModal';
+import { ReportProblemModal } from '@/src/components/features/jeux/ReportProblemModal';
 import { MiniJeuxManager } from '@/src/components/features/jeux/MiniJeuxManager';
 import { calculateBoundingBox } from '@/src/utils/map';
 
@@ -255,6 +256,7 @@ export default function JeuParcoursScreen() {
 
   // ── Jeu ──
   const [isCarnetModalVisible, setIsCarnetModalVisible] = useState(false);
+  const [isReportModalVisible, setIsReportModalVisible] = useState(false);
   const [reachedEtape, setReachedEtape] = useState<Etape | null>(null);
   const [isPlayingGame, setIsPlayingGame] = useState(false);
 
@@ -644,6 +646,9 @@ export default function JeuParcoursScreen() {
           <Pressable style={styles.iconBtn} onPress={() => setIsCarnetModalVisible(true)}>
             <Ionicons name="book" size={24} color="#007E84" />
           </Pressable>
+          <Pressable style={styles.iconBtn} onPress={() => setIsReportModalVisible(true)}>
+            <Ionicons name="flag" size={24} color="#EF4444" />
+          </Pressable>
         </View>
         {timeLeft !== null && (
           <View style={{ backgroundColor: timeLeft < 60 ? '#EF4444' : '#F59E0B', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 5 }}>
@@ -725,6 +730,12 @@ export default function JeuParcoursScreen() {
         onClose={() => setIsCarnetModalVisible(false)} 
         currentEtapeOrder={currentEtapeOrder} 
         totalEtapes={data?.etapes.length || 1} 
+      />
+      <ReportProblemModal
+        visible={isReportModalVisible}
+        onClose={() => setIsReportModalVisible(false)}
+        parcoursId={id}
+        etapeId={currentEtape?.id}
       />
 
       {/* Mini-Jeux */}

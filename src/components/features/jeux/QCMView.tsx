@@ -204,7 +204,7 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
                   onPress={() => handleSelect(option, index)}
                   style={{ flex: 1, paddingVertical: 10 }}
                 >
-                  <Text style={[styles.optionText, { color: textColor }]} numberOfLines={1}>
+                  <Text style={[styles.optionText, { color: textColor }]}>
                     {optionsCaptions[index] ? optionsCaptions[index] : `Extrait audio ${index + 1}`}
                   </Text>
                 </Pressable>
@@ -234,7 +234,7 @@ export function QCMView({ jeu, onSuccess, onFail, forceReveal }: QCMViewProps) {
                   <Image source={{ uri: resolveMediaUrl(option) }} style={{ width: '100%', height: 140, borderRadius: 8 }} resizeMode="contain" />
                   {optionsCaptions[index] ? (
                     <View style={{ marginTop: 8, paddingHorizontal: 4 }}>
-                      <Text style={[styles.optionText, { color: textColor, fontSize: 13, textAlign: 'center' }]} numberOfLines={2}>
+                      <Text style={[styles.optionText, { color: textColor, fontSize: 13, textAlign: 'center' }]}>
                         {optionsCaptions[index]}
                       </Text>
                     </View>

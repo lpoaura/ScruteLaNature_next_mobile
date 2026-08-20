@@ -91,7 +91,7 @@ export default function LoginScreen() {
       >
         {/* Logo / Titre */}
         <View style={[styles.header, isDark && styles.darkCard]}>
-          <Image source={require('@/assets/images/Logo_bleu_SLN-ecritures.png')} style={styles.logoImage} />
+          <Image source={require('@/assets/images/new-logo.png')} style={styles.logoImage} />
           {/* <Text style={[styles.title, isDark && styles.darkText]}>Scrute la Nature</Text> */}
           <Text style={[styles.subtitle, isDark && styles.darkTextMuted]}>Application LPO — Balades Nature</Text>
         </View>

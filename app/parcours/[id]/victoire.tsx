@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, Animated, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { Trophy, Clock, CheckCircle, Share2, Star } from 'lucide-react-native';
+import { Trophy, Clock, CheckCircle, Share2, Star, Leaf } from 'lucide-react-native';
 import LottieView from 'lottie-react-native';
 import { ReviewModal } from '@/src/components/features/reviews/ReviewModal';
 import { useSettingsStore } from '@/src/store/settings.store';
@@ -120,6 +120,19 @@ export default function VictoireScreen() {
               <Text style={styles.badgeName}>{badgeName}</Text>
             </Animated.View>
           )}
+
+          <View style={[styles.ecoMessageContainer, isDark && styles.darkCard]}>
+            <View style={styles.ecoMessageHeader}>
+              <Leaf size={20} color="#10b981" />
+              <Text style={[styles.ecoMessageTitle, isDark && styles.darkText]}>Un petit geste pour la planète</Text>
+            </View>
+            <Text style={[styles.ecoMessageText, isDark && styles.darkTextMuted]}>
+              Pensez à supprimer le parcours (accès : Profil - Gérer mes téléchargements) ! Vous libérez de l'espace sur votre téléphone et il pourra durer plus longtemps.
+            </Text>
+            <Text style={[styles.ecoMessageText, { marginTop: 8, fontFamily: 'Nunito_700Bold' }, isDark && styles.darkText]}>
+              Avec un compte, votre score et votre progression seront bien sauvegardés.
+            </Text>
+          </View>
 
           <View style={styles.actionsContainer}>
             {!reviewSubmitted ? (
@@ -339,4 +352,30 @@ const styles = StyleSheet.create({
   darkText: { color: '#F8FAFC' },
   darkTextMuted: { color: '#94A3B8' },
   darkInput: { backgroundColor: '#141B20', borderColor: '#202C35', color: '#F8FAFC' },
+  ecoMessageContainer: {
+    backgroundColor: '#ecfdf5',
+    padding: 16,
+    borderRadius: 16,
+    width: '100%',
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#d1fae5',
+  },
+  ecoMessageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  ecoMessageTitle: {
+    fontSize: 16,
+    fontFamily: 'Nunito_700Bold',
+    color: '#047857',
+  },
+  ecoMessageText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_400Regular',
+    color: '#065f46',
+    lineHeight: 20,
+  },
 });

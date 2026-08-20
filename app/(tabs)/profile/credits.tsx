@@ -26,7 +26,7 @@ export default function CreditsScreen() {
         
         {/* Intro */}
         <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.introSection}>
-          <Image source={require('@/assets/images/Logo_bleu_SLN.png')} style={styles.mainLogo} resizeMode="contain" />
+          <Image source={require('@/assets/images/new-logo.png')} style={styles.mainLogo} resizeMode="contain" />
           <Text style={[styles.introText, isDark && styles.darkTextMuted]}>
             L'application Scrute la Nature vous est proposée grâce au soutien et à la participation de nombreux acteurs engagés pour la biodiversité.
           </Text>
@@ -45,14 +45,14 @@ export default function CreditsScreen() {
               <Image source={require('@/assets/images/logo_LPO_credits.png')} style={styles.logoImage} resizeMode="contain" />
               <Text style={[styles.logoText, isDark && styles.darkText]}>LPO Auvergne-Rhône-Alpes</Text>
             </View>
-            <View style={styles.logoItem}>
+            {/* <View style={styles.logoItem}>
               <Image source={require('@/assets/images/logo_Oelie_Sainte.jpg')} style={styles.logoImage} resizeMode="contain" />
               <Text style={[styles.logoText, isDark && styles.darkText]}>Oélié</Text>
             </View>
             <View style={styles.logoItem}>
               <Image source={require('@/assets/images/logo_LPO.png')} style={styles.logoImage} resizeMode="contain" />
               <Text style={[styles.logoText, isDark && styles.darkText]}>LPO France</Text>
-            </View>
+            </View> */}
           </View>
         </Animated.View>
 
@@ -69,13 +69,18 @@ export default function CreditsScreen() {
           </Text>
           <View style={styles.logosGrid}>
             <View style={styles.logoItem}>
-              <Image source={require('@/assets/images/Logo_France_Relance_vert.png')} style={styles.logoImage} resizeMode="contain" />
+              <Image source={require('@/assets/images/logo_France_Kit.png')} style={styles.logoImage} resizeMode="contain" />
             </View>
             <View style={styles.logoItem}>
               <Image source={require('@/assets/images/logo_OFB.png')} style={styles.logoImage} resizeMode="contain" />
             </View>
             <View style={styles.logoItem}>
-              <Image source={require('@/assets/images/logo_St_Metropole_gd.png')} style={styles.logoImage} resizeMode="contain" />
+              <Image source={require('@/assets/images/logo_Oelie_Sainte.jpg')} style={styles.logoImage} resizeMode="contain" />
+              <Text style={[styles.logoText, isDark && styles.darkText]}>Oélié</Text>
+            </View>
+            <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/logo_SEM_Engagee.png')} style={styles.logoImage} resizeMode="contain" />
+              <Text style={[styles.logoText, isDark && styles.darkText]}>Saint-Étienne Métropole</Text>
             </View>
           </View>
         </Animated.View>
@@ -92,13 +97,25 @@ export default function CreditsScreen() {
             L'application a été développée en collaboration avec les étudiants et les professionnels de :
           </Text>
           <View style={styles.logosGrid}>
+            
+            <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/logo_LPO.png')} style={styles.logoImage} resizeMode="contain" />
+              <Text style={[styles.logoText, isDark && styles.darkText]}>LPO France</Text>
+            </View>
+
+              <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/logo_LPO.png')} style={styles.logoImage} resizeMode="contain" />
+              <Text style={[styles.logoText, isDark && styles.darkText]}>LPO France</Text>
+            </View>
+
+            <View style={styles.logoItem}>
+              <Image source={require('@/assets/images/OISEAU_MAG_Junior26.png')} style={styles.logoImage} resizeMode="contain" />
+              <Text style={[styles.logoText, isDark && styles.darkText]}>L'oiseau Mag Junior</Text>
+            </View>
+
             <View style={styles.logoItem}>
               <Image source={require('@/assets/images/logo_Telecom_St_Etienne.png')} style={styles.logoImage} resizeMode="contain" />
-              <Text style={[styles.logoText, isDark && styles.darkText]}>Télécom Saint-Étienne</Text>
-            </View>
-            <View style={styles.logoItem}>
-              <Image source={require('@/assets/images/logo_SEM_Engagee.png')} style={styles.logoImage} resizeMode="contain" />
-              <Text style={[styles.logoText, isDark && styles.darkText]}>Saint-Étienne Métropole</Text>
+              <Text style={[styles.logoText, isDark && styles.darkText]}>Initialement développé par{'\n'}Télécom Saint-Étienne</Text>
             </View>
           </View>
         </Animated.View>
