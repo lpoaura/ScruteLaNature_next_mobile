@@ -15,9 +15,10 @@
     },
     "android": {
       "versionCode": 21,
+      "icon": "./assets/images/android-logo.png",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/new-logo.png",
+        "foregroundImage": "./assets/images/android-logo.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
