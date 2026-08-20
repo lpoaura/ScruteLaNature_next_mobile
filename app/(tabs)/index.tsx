@@ -18,6 +18,7 @@ import { IconSymbol } from '@/src/components/ui/icon-symbol';
 import { ZoomableImage } from '@/src/components/ui/ZoomableImage';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
 import { AnecdoteModal } from '@/src/components/ui/AnecdoteModal';
+import { PrincipesModal } from '@/src/components/ui/PrincipesModal';
 import { parcoursService } from '@/src/services/parcours.service';
 import { syncAnecdotes, getRandomAnecdote } from '@/src/services/anecdotes.service';
 import type { Parcours, CommunityReview } from '@/src/types/api.types';
@@ -61,6 +62,7 @@ export default function DashboardScreen() {
 
   const [anecdote, setAnecdote] = useState<AnecdoteSQLite | null>(null);
   const [isAnecdoteModalVisible, setIsAnecdoteModalVisible] = useState(false);
+  const [isPrincipesModalVisible, setIsPrincipesModalVisible] = useState(false);
 
   const [communityFeed, setCommunityFeed] = useState<CommunityReview[]>([]);
   const [loadingFeed, setLoadingFeed] = useState(true);
@@ -152,6 +154,7 @@ export default function DashboardScreen() {
   const activeParcours = downloadedData.find(d => d.parcours.id === activeParcoursId)?.parcours;
 
   return (
+    <>
     <ScrollView 
       className="flex-1 bg-slate-50 dark:bg-[#0A0E11]"
       contentContainerStyle={{ paddingTop: insets.top + 20, paddingBottom: 120, alignItems: 'center' }}
@@ -179,18 +182,29 @@ export default function DashboardScreen() {
           </View>
         </View>
         
-        {/* Indicateur de connexion */}
-        <View className="items-center ml-4">
-          <View className="bg-white dark:bg-[#141B20] p-2.5 rounded-full shadow-sm mb-1">
-            {isOnline ? (
-              <IconSymbol name="wifi" size={20} color={isDark ? '#34D399' : '#007E84'} />
-            ) : (
-              <IconSymbol name="wifi.slash" size={20} color="#EF4444" />
-            )}
+        <View className="flex-row items-center gap-4">
+          <Pressable onPress={() => setIsPrincipesModalVisible(true)} className="items-center">
+            <View className="bg-white dark:bg-[#141B20] p-1 rounded-full shadow-sm mb-1" style={{ width: 40, height: 40, justifyContent: 'center', alignItems: 'center' }}>
+              <Image source={require('@/assets/images/principes-icon.png')} style={{ width: 24, height: 24 }} resizeMode="contain" />
+            </View>
+            <Text className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+              Règles
+            </Text>
+          </Pressable>
+
+          {/* Indicateur de connexion */}
+          <View className="items-center">
+            <View className="bg-white dark:bg-[#141B20] p-2.5 rounded-full shadow-sm mb-1" style={{ width: 40, height: 40, justifyContent: 'center', alignItems: 'center' }}>
+              {isOnline ? (
+                <IconSymbol name="wifi" size={20} color={isDark ? '#34D399' : '#007E84'} />
+              ) : (
+                <IconSymbol name="wifi.slash" size={20} color="#EF4444" />
+              )}
+            </View>
+            <Text className={`text-[10px] font-bold ${isOnline ? 'text-emerald-600 dark:text-[#34D399]' : 'text-red-500 dark:text-red-400'}`}>
+              {isOnline ? 'En ligne' : 'Hors-ligne'}
+            </Text>
           </View>
-          <Text className={`text-[10px] font-bold ${isOnline ? 'text-emerald-600 dark:text-[#34D399]' : 'text-red-500 dark:text-red-400'}`}>
-            {isOnline ? 'En ligne' : 'Hors-ligne'}
-          </Text>
         </View>
       </View>
 
@@ -218,12 +232,17 @@ export default function DashboardScreen() {
             </Pressable>
           </View>
           <AnecdoteModal 
-            visible={isAnecdoteModalVisible} 
-            onClose={() => setIsAnecdoteModalVisible(false)} 
-            anecdote={anecdote} 
+            visible={isAnecdoteModalVisible}
+            onClose={() => setIsAnecdoteModalVisible(false)}
+            anecdote={anecdote}
           />
         </>
       )}
+
+      <PrincipesModal 
+        visible={isPrincipesModalVisible} 
+        onClose={() => setIsPrincipesModalVisible(false)} 
+      />
 
       {/* 2. Action Immédiate (Call to Action dynamique) */}
       <View className="px-6 mb-10">
