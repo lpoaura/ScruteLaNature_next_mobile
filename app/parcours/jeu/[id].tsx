@@ -734,7 +734,7 @@ export default function JeuParcoursScreen() {
       <ReportProblemModal
         visible={isReportModalVisible}
         onClose={() => setIsReportModalVisible(false)}
-        parcoursId={extractParam(params.id)}
+        parcoursId={id}
         etapeId={currentEtape?.id}
       />
 
