@@ -5,6 +5,7 @@ import { useDownloadedParcours } from '@/src/hooks/use-downloaded-parcours';
 import { parcoursService } from '@/src/services/parcours.service';
 import { useGameStore } from '@/src/store/game.store';
 import { ChevronLeft, Inbox, Image as ImageIcon, RefreshCw, Trash2, AlertCircle } from 'lucide-react-native';
+import { deleteParcours } from '@/src/services/database.service';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
@@ -31,6 +32,7 @@ export default function DownloadsScreen() {
           onPress: async () => {
             try {
               setIsDeleting(id);
+              await deleteParcours(id);
               await parcoursService.deleteLocal(id);
               removeParcours(id);
               // refresh() sera appelé automatiquement grâce à l'abonnement dans useDownloadedParcours
