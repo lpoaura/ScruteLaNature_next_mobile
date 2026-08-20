@@ -109,7 +109,7 @@ export default function CreditsScreen() {
             </View>
 
             <View style={styles.logoItem}>
-              <Image source={require('@/assets/images/OISEAU MAG Junior26.jpg')} style={styles.logoImage} resizeMode="contain" />
+              <Image source={require('@/assets/images/OISEAU_MAG_Junior26.png')} style={styles.logoImage} resizeMode="contain" />
               <Text style={[styles.logoText, isDark && styles.darkText]}>L'oiseau Mag Junior</Text>
             </View>
 
