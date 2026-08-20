@@ -81,7 +81,7 @@ export default function DashboardScreen() {
       try {
         setLoadingFeed(true);
         const data = await socialService.getCommunityFeed();
-        setCommunityFeed(data);
+        setCommunityFeed(data.slice(0, 3));
       } catch (err) {
         console.error('Erreur chargement communauté', err);
       } finally {
