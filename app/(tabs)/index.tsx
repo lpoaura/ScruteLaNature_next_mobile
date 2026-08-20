@@ -154,7 +154,6 @@ export default function DashboardScreen() {
   const activeParcours = downloadedData.find(d => d.parcours.id === activeParcoursId)?.parcours;
 
   return (
-    <>
     <ScrollView 
       className="flex-1 bg-slate-50 dark:bg-[#0A0E11]"
       contentContainerStyle={{ paddingTop: insets.top + 20, paddingBottom: 120, alignItems: 'center' }}
