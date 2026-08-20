@@ -41,6 +41,7 @@ export function DownloadButton({ parcoursId, onDownloaded, onPlay, isPreview = f
   const cancelRef = useRef(false);
 
   useEffect(() => {
+    cancelRef.current = false;
     checkDownloadStatus();
     return () => { cancelRef.current = true; };
   }, [parcoursId, onlineUpdatedAt, refreshTrigger]);
