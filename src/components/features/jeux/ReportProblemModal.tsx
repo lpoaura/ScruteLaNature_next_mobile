@@ -3,7 +3,7 @@ import { Modal, View, Text, StyleSheet, TextInput, Pressable, ActivityIndicator,
 import { X, AlertTriangle } from 'lucide-react-native';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { useSettingsStore } from '@/src/store/settings.store';
-import { apiClient } from '@/src/lib/api-client';
+import { apiService } from '@/src/services/api.service';
 
 interface ReportProblemModalProps {
   visible: boolean;
@@ -31,14 +31,11 @@ export function ReportProblemModal({ visible, onClose, parcoursId, etapeId }: Re
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await apiClient('/signalements', {
-        method: 'POST',
-        body: JSON.stringify({
-          type,
-          description,
-          parcoursId,
-          etapeId,
-        }),
+      await apiService.post('/signalements', {
+        type,
+        description,
+        parcoursId,
+        etapeId,
       });
       Alert.alert('Merci !', 'Votre signalement a été envoyé à l\'équipe avec succès.');
       onClose();
