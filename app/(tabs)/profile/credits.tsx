@@ -115,7 +115,7 @@ export default function CreditsScreen() {
 
             <View style={styles.logoItem}>
               <Image source={require('@/assets/images/logo_Telecom_St_Etienne.png')} style={styles.logoImage} resizeMode="contain" />
-              <Text style={[styles.logoText, isDark && styles.darkText]}>Initialiament developpé par <br/> Télécom Saint-Étienne</Text>
+              <Text style={[styles.logoText, isDark && styles.darkText]}>Initialement développé par{'\n'}Télécom Saint-Étienne</Text>
             </View>
           </View>
         </Animated.View>
