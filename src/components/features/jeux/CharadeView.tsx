@@ -138,8 +138,8 @@ export function CharadeView({ jeu, onSuccess, onFail, forceReveal }: CharadeView
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      behavior='padding'
+      keyboardVerticalOffset={90}
     >
       <Animated.View entering={SlideInRight.springify()} style={[styles.container, shakeStyle]}>
         <ScrollView 
