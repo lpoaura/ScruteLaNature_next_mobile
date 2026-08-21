@@ -459,7 +459,7 @@ export default function SearchScreen() {
           clusterRadius={40}
           clusterMaxZoom={14}
           onPress={(event: any) => {
-            const feature = event?.features?.[0];
+            const feature = event?.nativeEvent?.features?.[0];
             if (!feature) return;
 
             if (feature?.properties?.cluster) {
@@ -491,7 +491,7 @@ export default function SearchScreen() {
             id="default-marker-layer"
             filter={['!', ['get', 'hasBadge']]}
             style={{
-              circleRadius: 14,
+              circleRadius: 10,
               circleColor: '#007E84',
               circleStrokeColor: '#FFFFFF',
               circleStrokeWidth: 3,
@@ -504,7 +504,7 @@ export default function SearchScreen() {
             filter={['get', 'hasBadge']}
             style={{
               iconImage: ['get', 'badgeImageId'],
-              iconSize: 0.15,
+              iconSize: 0.08,
               iconAllowOverlap: true,
               iconIgnorePlacement: true,
             }}
@@ -515,7 +515,7 @@ export default function SearchScreen() {
             id="cluster-circles"
             filter={['has', 'point_count']}
             style={{
-              circleRadius: 20,
+              circleRadius: 16,
               circleColor: '#0087CC',
               circleStrokeColor: '#FFFFFF',
               circleStrokeWidth: 3,
@@ -526,7 +526,7 @@ export default function SearchScreen() {
             filter={['has', 'point_count']}
             style={{
               textField: '{point_count}',
-              textSize: 15,
+              textSize: 13,
               textColor: '#FFFFFF',
             }}
           />
