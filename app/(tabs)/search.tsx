@@ -617,20 +617,6 @@ export default function SearchScreen() {
             </View>
           )}
 
-          {/* Action Card */}
-          {searchQuery.length === 0 && (
-            <View style={[styles.actionCard, isDark && styles.darkCard]}>
-              <View style={styles.actionCardContent}>
-                <Text style={[styles.actionCardTitle, isDark && styles.darkText]}>Contribuer à la carte</Text>
-                <Text style={[styles.actionCardSubtitle, isDark && styles.darkTextMuted]}>
-                  Vous connaissez un lieu intéressant ? Partagez-le avec la communauté.
-                </Text>
-              </View>
-              <Pressable style={styles.actionCardButton}>
-                <Text style={styles.actionCardButtonText}>+ Ajouter</Text>
-              </Pressable>
-            </View>
-          )}
 
           {/* Aucun résultat de recherche */}
           {(searchQuery.length > 0 || selectedCategory) && filteredListParcours.length === 0 && (

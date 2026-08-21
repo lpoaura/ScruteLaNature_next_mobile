@@ -212,7 +212,7 @@ export default function FriendsScreen() {
   return (
     <KeyboardAvoidingView 
       style={[styles.container, isDark && styles.darkContainer, { paddingTop: insets.top }]} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior='padding'
     >
       <Stack.Screen options={{ headerShown: false }} />
 

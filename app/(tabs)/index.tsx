@@ -81,7 +81,7 @@ export default function DashboardScreen() {
       try {
         setLoadingFeed(true);
         const data = await socialService.getCommunityFeed();
-        setCommunityFeed(data);
+        setCommunityFeed(data.slice(0, 3));
       } catch (err) {
         console.error('Erreur chargement communauté', err);
       } finally {
@@ -372,9 +372,11 @@ export default function DashboardScreen() {
       <View className="mt-8 mb-4">
         <View className="px-6 flex-row justify-between items-center mb-4">
           <Text className="text-lg font-bold text-slate-800 dark:text-slate-100">La Vie de la Communauté</Text>
-          <Pressable>
-            <Text className="text-emerald-600 dark:text-[#38BDF8] font-semibold">Voir tout</Text>
-          </Pressable>
+          <Link href="/community" asChild>
+            <Pressable>
+              <Text className="text-emerald-600 dark:text-[#38BDF8] font-semibold">Voir tout</Text>
+            </Pressable>
+          </Link>
         </View>
 
         <View className="px-6 gap-4">

@@ -29,7 +29,7 @@ export function EcoGesteView({ jeu, onSuccess }: EcoGesteViewProps) {
     <Animated.View entering={SlideInRight.springify()} style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max((insets?.bottom || 0) + 40, 120) }]} showsVerticalScrollIndicator={false}>
       <View style={styles.headerBadge}>
-        <Ionicons name="leaf" size={24} color="#007E84" />
+        <Ionicons name="leaf" size={24} color="#059669" />
         {jeu.titre ? <Text style={styles.title}>{jeu.titre}</Text> : null}
       </View>
       
@@ -90,17 +90,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#D1FAE5',
     alignSelf: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 100,
     marginBottom: 24,
   },
   title: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0087CC',
+    color: '#059669',
+    textAlign: 'center',
   },
   image: {
     width: '100%',

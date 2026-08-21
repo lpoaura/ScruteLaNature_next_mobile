@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Animated, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Animated, ScrollView, Alert, Share } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Trophy, Clock, CheckCircle, Share2, Star, Leaf } from 'lucide-react-native';
 import LottieView from 'lottie-react-native';
@@ -73,9 +73,17 @@ export default function VictoireScreen() {
     ]).start();
   }, []);
 
-  const handleShare = () => {
-    // Tâche future : API de partage native
-    alert('Partage à venir !');
+  const handleShare = async () => {
+    try {
+      const message = `Je viens de terminer un super parcours nature avec l'appli Scrute la nature !\nJ'ai obtenu un score de ${score}/${maxScore} en ${formatDuration(durationMin)}.\nRejoins-moi sur l'app ! 🌿🦉`;
+      
+      await Share.share({
+        message,
+        title: 'Ma victoire LPO',
+      });
+    } catch (error: any) {
+      Alert.alert('Erreur', 'Impossible de partager pour le moment.');
+    }
   };
 
   return (

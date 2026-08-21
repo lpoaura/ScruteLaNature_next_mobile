@@ -12,8 +12,10 @@ export const socialService = {
   /**
    * Récupérer le flux d'actualité de la communauté (10 derniers avis)
    */
-  getCommunityFeed: (): Promise<import('@/src/types/api.types').CommunityReview[]> =>
-    apiService.get<import('@/src/types/api.types').CommunityReview[]>('/mobile/community/feed'),
+  getCommunityFeed: (parcoursId?: string): Promise<import('@/src/types/api.types').CommunityReview[]> => {
+    const url = parcoursId ? `/mobile/community/feed?parcoursId=${parcoursId}` : '/mobile/community/feed';
+    return apiService.get<import('@/src/types/api.types').CommunityReview[]>(url);
+  },
 
   /**
    * Rechercher des utilisateurs par pseudo
