@@ -20,6 +20,8 @@ import {
   RasterSource,
   Layer,
   Marker,
+  GeoJSONSource,
+  Images,
 } from '@maplibre/maplibre-react-native';
 // Désactiver le message de télémétrie MapLibre (n'est plus nécessaire en v11)
 // MapLibreGL.setAccessToken(null);
@@ -359,6 +361,42 @@ export default function SearchScreen() {
     applyCategoryFilter(p)
   );
 
+  const badgesImages = React.useMemo(() => {
+    const dict: Record<string, string> = {};
+    filteredMapParcours.forEach(p => {
+      if (p.badge?.imageUrl) {
+        dict[`badge-${p.id}`] = resolveMediaUrl(p.badge.imageUrl);
+      }
+    });
+    return dict;
+  }, [filteredMapParcours]);
+
+  const geoJsonData = React.useMemo(() => {
+    return {
+      type: 'FeatureCollection',
+      features: filteredMapParcours.map((p) => {
+        const firstEtape = (p as any).etapes?.[0];
+        const lat = firstEtape?.latitude;
+        const lng = firstEtape?.longitude;
+        if (!lat || !lng) return null;
+        return {
+          type: 'Feature',
+          id: p.id,
+          geometry: {
+            type: 'Point',
+            coordinates: [lng, lat],
+          },
+          properties: {
+            id: p.id,
+            hasBadge: !!p.badge?.imageUrl,
+            badgeImageId: `badge-${p.id}`,
+            cluster: false,
+          },
+        };
+      }).filter(Boolean),
+    };
+  }, [filteredMapParcours]);
+
   // Phase de chargement — afficher un placeholder léger au lieu de bloquer le menu
   if (!isReady) {
     return (
@@ -408,48 +446,112 @@ export default function SearchScreen() {
         {/* Position GPS de l'utilisateur - Gérée uniquement par le composant natif pour éviter les sauts de puce */}
         {hasLocationPermission && <UserLocation animated />}
 
-        {/* Marqueurs des parcours */}
-        {filteredMapParcours.map((p) => {
-          const firstEtape = (p as any).etapes?.[0];
-          const lat = firstEtape?.latitude;
-          const lng = firstEtape?.longitude;
-          if (!lat || !lng) return null;
-          
-          const isSelected = selectedMarkerId === p.id;
-          
-          return (
-            <Marker
-              id={p.id}
-              key={p.id}
-              lngLat={[lng, lat]}
-              anchor="bottom"
-              style={{ zIndex: isSelected ? 10 : 1 }}
-              onPress={() => {
-                lastMarkerPressRef.current = Date.now();
-                if (isSelected) {
-                  handleParcoursSelect(p.id);
-                } else {
-                  setSelectedMarkerId(p.id);
-                }
-              }}
-            >
-              <View style={[styles.markerContainer, { paddingHorizontal: 24, paddingTop: 32, paddingBottom: 2 }]}>
-                {isSelected && (
-                  <View style={[styles.markerBubble, isDark && styles.darkCard, { marginBottom: 4 }]}>
-                    <Text style={[styles.markerText, isDark && styles.darkText]} numberOfLines={1}>{p.title}</Text>
-                    <Text style={[styles.markerMeta, isDark && styles.darkTextMuted]}>{p.difficulty} • {formatDuration(p.durationMin)}</Text>
+        <Images images={badgesImages} />
+
+        <GeoJSONSource
+          id="parcours-source"
+          data={geoJsonData as any}
+          cluster={true}
+          clusterRadius={40}
+          clusterMaxZoom={14}
+          onPress={(event: any) => {
+            const feature = event.features[0];
+            if (!feature) return;
+
+            if (feature.properties?.cluster) {
+              const [lng, lat] = feature.geometry.coordinates;
+              cameraRef.current?.easeTo({
+                center: [lng, lat],
+                zoom: 12,
+                duration: 500
+              });
+              return;
+            }
+
+            const pId = feature.properties?.id;
+            if (pId) {
+              lastMarkerPressRef.current = Date.now();
+              if (selectedMarkerId === pId) {
+                handleParcoursSelect(pId);
+              } else {
+                setSelectedMarkerId(pId);
+              }
+            }
+          }}
+        >
+          {/* Cercle par défaut pour les parcours sans badge */}
+          <Layer type="circle"
+            id="default-marker-layer"
+            filter={['!', ['get', 'hasBadge']]}
+            style={{
+              circleRadius: 14,
+              circleColor: '#007E84',
+              circleStrokeColor: '#FFFFFF',
+              circleStrokeWidth: 3,
+            }}
+          />
+
+          {/* Badge pour les parcours avec badge */}
+          <Layer type="symbol"
+            id="badge-marker-layer"
+            filter={['get', 'hasBadge']}
+            style={{
+              iconImage: ['get', 'badgeImageId'],
+              iconSize: 0.15,
+              iconAllowOverlap: true,
+              iconIgnorePlacement: true,
+            }}
+          />
+
+          {/* Clusters */}
+          <Layer type="circle"
+            id="cluster-circles"
+            filter={['has', 'point_count']}
+            style={{
+              circleRadius: 20,
+              circleColor: '#0087CC',
+              circleStrokeColor: '#FFFFFF',
+              circleStrokeWidth: 3,
+            }}
+          />
+          <Layer type="symbol"
+            id="cluster-counts"
+            filter={['has', 'point_count']}
+            style={{
+              textField: '{point_count}',
+              textSize: 15,
+              textColor: '#FFFFFF',
+            }}
+          />
+        </GeoJSONSource>
+
+        {/* Bulle info sur le parcours sélectionné */}
+        {selectedMarkerId && (
+          (() => {
+            const sp = filteredMapParcours.find(p => p.id === selectedMarkerId);
+            if (!sp) return null;
+            const lat = (sp as any).etapes?.[0]?.latitude;
+            const lng = (sp as any).etapes?.[0]?.longitude;
+            if (!lat || !lng) return null;
+
+            return (
+              <Marker
+                id="selected-popover"
+                lngLat={[lng, lat]}
+                anchor="bottom"
+                style={{ zIndex: 100 }}
+              >
+                <View style={[styles.markerContainer, { paddingBottom: 16 }]}>
+                  <View style={[styles.markerBubble, isDark && styles.darkCard]}>
+                    <Text style={[styles.markerText, isDark && styles.darkText]} numberOfLines={1}>{sp.title}</Text>
+                    <Text style={[styles.markerMeta, isDark && styles.darkTextMuted]}>{sp.difficulty} • {formatDuration(sp.durationMin)}</Text>
                     <Text style={{ fontSize: 10, color: '#0087CC', marginTop: 4, fontWeight: '700' }}>Voir le parcours ➔</Text>
                   </View>
-                )}
-                {isSelected ? (
-                  <Ionicons name="location" size={36} color="#0087CC" />
-                ) : (
-                  <Ionicons name="location" size={32} color="#007E84" />
-                )}
-              </View>
-            </Marker>
-          );
-        })}
+                </View>
+              </Marker>
+            );
+          })()
+        )}
       </Map>
 
 

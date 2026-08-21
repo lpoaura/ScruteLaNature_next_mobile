@@ -39,9 +39,9 @@ export default function CommunityScreen() {
 
       // Extract unique parcours from the feed for the filter dropdown
       if (!selectedParcours) {
-        const uniqueParcours = Array.from(new Set(data.map(item => item.parcours.id)))
+        const uniqueParcours = Array.from(new Set(data.map(item => (item.parcours as any).id)))
           .map(id => {
-            const p = data.find(item => item.parcours.id === id)?.parcours;
+            const p = data.find(item => (item.parcours as any).id === id)?.parcours;
             return { id, title: p?.title || '' };
           });
         setParcoursList(uniqueParcours);
