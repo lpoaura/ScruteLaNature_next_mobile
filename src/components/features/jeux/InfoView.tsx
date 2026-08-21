@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Image, } from 'react-native';
+import { Audio } from 'expo-av';
 import { ScrollView } from 'react-native-gesture-handler';
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,12 +17,59 @@ interface InfoViewProps {
 
 export function InfoView({ jeu, onSuccess }: InfoViewProps) {
   const insets = useSafeAreaInsets();
+  const [isPlayingAudio, setIsPlayingAudio] = React.useState(false);
+  const soundRef = React.useRef<Audio.Sound | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+    };
+  }, []);
+
   // En mode hors-ligne, on privilégie l'image téléchargée localement, sinon l'URL réseau
   const imageSource = jeu.imageLocalPath 
     ? { uri: jeu.imageLocalPath.startsWith('file://') ? jeu.imageLocalPath : `file://${jeu.imageLocalPath}` } 
     : jeu.imageUrl 
       ? { uri: resolveMediaUrl(jeu.imageUrl) } 
       : null;
+
+  const audioSource = jeu.audioLocalPath
+    ? { uri: jeu.audioLocalPath.startsWith('file://') ? jeu.audioLocalPath : `file://${jeu.audioLocalPath}` }
+    : jeu.audioUrl
+      ? { uri: resolveMediaUrl(jeu.audioUrl) }
+      : null;
+
+  const toggleMainAudio = async () => {
+    if (!audioSource) return;
+    try {
+      if (isPlayingAudio) {
+        if (soundRef.current) {
+          await soundRef.current.pauseAsync();
+          setIsPlayingAudio(false);
+        }
+      } else {
+        if (!soundRef.current) {
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: audioSource.uri },
+            { shouldPlay: true },
+            (status) => {
+              if (status.isLoaded && status.didJustFinish) {
+                setIsPlayingAudio(false);
+              }
+            }
+          );
+          soundRef.current = sound;
+        } else {
+          await soundRef.current.playAsync();
+        }
+        setIsPlayingAudio(true);
+      }
+    } catch (error) {
+      console.error("Error playing audio:", error);
+    }
+  };
 
   return (
     <Animated.View entering={SlideInRight.springify()} style={styles.container}>
@@ -37,9 +85,18 @@ export function InfoView({ jeu, onSuccess }: InfoViewProps) {
           </Animated.View>
         )}
 
-        {(jeu.question || jeu.explication) && (
+        {(jeu.question || jeu.explication || audioSource) && (
           <View style={styles.contentCard}>
-            <GameQuestion question={jeu.question} />
+            {audioSource && (
+              <Pressable style={styles.audioButton} onPress={toggleMainAudio}>
+                <Ionicons name={isPlayingAudio ? "pause" : "volume-medium"} size={24} color="white" />
+                <Text style={styles.audioButtonText}>
+                  {isPlayingAudio ? "Mettre en pause" : "Écouter l'audio"}
+                </Text>
+              </Pressable>
+            )}
+
+            {jeu.question && <GameQuestion question={jeu.question} />}
             {jeu.explication && (
               <Text style={styles.explicationText}>{jeu.explication}</Text>
             )}
@@ -99,6 +156,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#4B5563',
     lineHeight: 24,
+  },
+  audioButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0087CC',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 20,
+    shadowColor: '#0087CC',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  audioButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   button: {
     flexDirection: 'row',
