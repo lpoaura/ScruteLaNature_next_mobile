@@ -75,7 +75,7 @@ export default function VictoireScreen() {
 
   const handleShare = async () => {
     try {
-      const message = `Je viens de terminer un super parcours nature avec l'appli Game of Nature LPO !\nJ'ai obtenu un score de ${score}/${maxScore} en ${formatDuration(durationMin)}.\nRejoins-moi sur l'app ! 🌿🦉`;
+      const message = `Je viens de terminer un super parcours nature avec l'appli Scrute la nature !\nJ'ai obtenu un score de ${score}/${maxScore} en ${formatDuration(durationMin)}.\nRejoins-moi sur l'app ! 🌿🦉`;
       
       await Share.share({
         message,
