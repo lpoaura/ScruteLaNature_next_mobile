@@ -331,7 +331,7 @@ export default function SearchScreen() {
   // Rendu
   // ============================================================================
 
-  const applyCategoryFilter = (p: Parcours) => {
+  const applyCategoryFilter = React.useCallback((p: Parcours) => {
     if (!selectedCategory) return true;
     switch (selectedCategory) {
       case 'FACILE': return p.difficulty === 'FACILE';
@@ -343,23 +343,27 @@ export default function SearchScreen() {
       case 'ESCAPE': return (p as any).isEscapeGame === true;
       default: return true;
     }
-  };
+  }, [selectedCategory]);
 
-  const filteredMapParcours = allMapParcours.filter(p => 
-    (!searchQuery || 
-    p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))) &&
-    applyCategoryFilter(p)
-  );
+  const filteredMapParcours = React.useMemo(() => {
+    return allMapParcours.filter(p => 
+      (!searchQuery || 
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))) &&
+      applyCategoryFilter(p)
+    );
+  }, [allMapParcours, searchQuery, applyCategoryFilter]);
   
-  const filteredListParcours = parcours.filter(p => 
-    (!searchQuery || 
-    p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))) &&
-    applyCategoryFilter(p)
-  );
+  const filteredListParcours = React.useMemo(() => {
+    return parcours.filter(p => 
+      (!searchQuery || 
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))) &&
+      applyCategoryFilter(p)
+    );
+  }, [parcours, searchQuery, applyCategoryFilter]);
 
   const badgesImages = React.useMemo(() => {
     const dict: Record<string, string> = {};
