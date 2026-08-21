@@ -459,20 +459,23 @@ export default function SearchScreen() {
           clusterRadius={40}
           clusterMaxZoom={14}
           onPress={(event: any) => {
-            const feature = event.features[0];
+            const feature = event?.features?.[0];
             if (!feature) return;
 
-            if (feature.properties?.cluster) {
-              const [lng, lat] = feature.geometry.coordinates;
-              cameraRef.current?.easeTo({
-                center: [lng, lat],
-                zoom: 12,
-                duration: 500
-              });
+            if (feature?.properties?.cluster) {
+              const coords = feature?.geometry?.coordinates;
+              if (coords && Array.isArray(coords)) {
+                const [lng, lat] = coords;
+                cameraRef.current?.easeTo({
+                  center: [lng, lat],
+                  zoom: 12,
+                  duration: 500
+                });
+              }
               return;
             }
 
-            const pId = feature.properties?.id;
+            const pId = feature?.properties?.id;
             if (pId) {
               lastMarkerPressRef.current = Date.now();
               if (selectedMarkerId === pId) {
