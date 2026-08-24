@@ -547,14 +547,15 @@ export default function SearchScreen() {
                 lngLat={[lng, lat]}
                 anchor="bottom"
                 style={{ zIndex: 100 }}
+                onPress={() => handleParcoursSelect(sp.id)}
               >
-                <View style={[styles.markerContainer, { paddingBottom: 16 }]}>
+                <Pressable onPress={() => handleParcoursSelect(sp.id)} style={[styles.markerContainer, { paddingBottom: 16 }]}>
                   <View style={[styles.markerBubble, isDark && styles.darkCard]}>
                     <Text style={[styles.markerText, isDark && styles.darkText]} numberOfLines={1}>{sp.title}</Text>
                     <Text style={[styles.markerMeta, isDark && styles.darkTextMuted]}>{sp.difficulty} • {formatDuration(sp.durationMin)}</Text>
                     <Text style={{ fontSize: 10, color: '#0087CC', marginTop: 4, fontWeight: '700' }}>Voir le parcours ➔</Text>
                   </View>
-                </View>
+                </Pressable>
               </Marker>
             );
           })()
