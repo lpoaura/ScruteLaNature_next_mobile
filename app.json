@@ -2,7 +2,7 @@
   "expo": {
     "name": "Scrute la nature",
     "slug": "LPOMobApp",
-    "version": "3.0.1",
+    "version": "3.1.0",
     "orientation": "default",
     "icon": "./assets/images/new-logo.png",
     "scheme": "scrutelanature",
@@ -14,7 +14,7 @@
       "icon": "./assets/images/ios-logo.png"
     },
     "android": {
-      "versionCode": 21,
+      "versionCode": 22,
       "icon": "./assets/images/android-logo.png",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
