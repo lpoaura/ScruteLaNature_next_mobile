@@ -1,48 +1,48 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Dimensions,
-  ActivityIndicator,
-  InteractionManager,
-  Image,
-} from 'react-native';
 import {
   Camera,
   CameraRef,
-  Map,
-  MapRef,
-  UserLocation,
-  RasterSource,
-  Layer,
-  Marker,
   GeoJSONSource,
   Images,
+  Layer,
+  Map,
+  MapRef,
+  Marker,
+  RasterSource,
+  UserLocation,
 } from '@maplibre/maplibre-react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  InteractionManager,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 // Désactiver le message de télémétrie MapLibre (n'est plus nécessaire en v11)
 // MapLibreGL.setAccessToken(null);
-import * as Location from 'expo-location';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { parcoursService } from '@/src/services/parcours.service';
-import { formatDuration } from '@/src/utils/format';
-import { useSettingsStore } from '@/src/store/settings.store';
-import { useColorScheme } from 'react-native';
-import type { Parcours } from '@/src/types/api.types';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useIsFocused } from '@react-navigation/native';
 import { TabletWrapper } from '@/src/components/layout/TabletWrapper';
 import { resolveMediaUrl } from '@/src/services/filesystem.service';
+import { parcoursService } from '@/src/services/parcours.service';
+import { useSettingsStore } from '@/src/store/settings.store';
+import type { Parcours } from '@/src/types/api.types';
+import { formatDuration } from '@/src/utils/format';
+import { Ionicons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
+import * as Location from 'expo-location';
+import { router } from 'expo-router';
+import { useColorScheme } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // ============================================================================
 // Types & Données
@@ -119,8 +119,8 @@ export default function SearchScreen() {
       damping: 25,
       stiffness: 200,
       mass: 0.8,
-    
-});
+
+    });
   };
 
   const panGesture = React.useMemo(
@@ -178,15 +178,15 @@ export default function SearchScreen() {
     }
     const task = InteractionManager.runAfterInteractions(() => {
       setIsReady(true);
-    
-});
+
+    });
     return () => task.cancel();
   }, [isFocused]);
 
   // ── Localisation — lancée APRÈS le montage des composants lourds ──
   useEffect(() => {
     if (!isReady || !isFocused) return;
-    
+
     let locationSubscription: Location.LocationSubscription | null = null;
     let isMounted = true;
 
@@ -220,10 +220,10 @@ export default function SearchScreen() {
           (pos) => {
             if (!isMounted) return;
             const freshLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            
+
             // Ne recentrer la caméra automatiquement que si on n'avait aucune position avant
             const shouldCenter = !userLocation && !lastKnown;
-            
+
             setUserLocation(freshLoc);
 
             if (shouldCenter) {
@@ -278,12 +278,12 @@ export default function SearchScreen() {
           lat: userLocation.lat,
           lng: userLocation.lng,
           radius: 20000,
-        
-});
+
+        });
         setParcours(nearby);
       } else if (mode === 'parcours') {
         const all = await parcoursService.search({
-});
+        });
         setParcours(all);
       }
     } catch (e) {
@@ -294,8 +294,9 @@ export default function SearchScreen() {
   }, [mode, userLocation]);
 
   const handleParcoursSelect = useCallback((id: string) => {
-    router.push({ pathname: '/parcours/[id]', params: { id } 
-});
+    router.push({
+      pathname: '/parcours/[id]', params: { id }
+    });
   }, []);
 
   const handleCenterLocation = useCallback(async () => {
@@ -346,21 +347,21 @@ export default function SearchScreen() {
   }, [selectedCategory]);
 
   const filteredMapParcours = React.useMemo(() => {
-    return allMapParcours.filter(p => 
-      (!searchQuery || 
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))) &&
+    return allMapParcours.filter(p =>
+      (!searchQuery ||
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))) &&
       applyCategoryFilter(p)
     );
   }, [allMapParcours, searchQuery, applyCategoryFilter]);
-  
+
   const filteredListParcours = React.useMemo(() => {
-    return parcours.filter(p => 
-      (!searchQuery || 
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))) &&
+    return parcours.filter(p =>
+      (!searchQuery ||
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (p.zonage?.nom && p.zonage.nom.toLowerCase().includes(searchQuery.toLowerCase()))) &&
       applyCategoryFilter(p)
     );
   }, [parcours, searchQuery, applyCategoryFilter]);
@@ -487,47 +488,54 @@ export default function SearchScreen() {
           }}
         >
           {/* Cercle par défaut pour les parcours sans badge */}
-          <Layer type="circle"
+          <Layer
+            type="circle"
             id="default-marker-layer"
             filter={['!', ['get', 'hasBadge']]}
-            style={{
-              circleRadius: 10,
-              circleColor: '#007E84',
-              circleStrokeColor: '#FFFFFF',
-              circleStrokeWidth: 3,
+            paint={{
+              'circle-radius': 10,
+              'circle-color': '#007E84',
+              'circle-stroke-color': '#FFFFFF',
+              'circle-stroke-width': 3,
             }}
           />
 
           {/* Badge pour les parcours avec badge */}
-          <Layer type="symbol"
+          <Layer
+            type="symbol"
             id="badge-marker-layer"
             filter={['get', 'hasBadge']}
-            style={{
-              iconImage: ['get', 'badgeImageId'],
-              iconSize: 0.08,
-              iconAllowOverlap: true,
-              iconIgnorePlacement: true,
+            layout={{
+              'icon-image': ['get', 'badgeImageId'],
+              'icon-size': 0.08,
+              'icon-allow-overlap': true,
+              'icon-ignore-placement': true,
             }}
           />
 
           {/* Clusters */}
-          <Layer type="circle"
+          <Layer
+            type="circle"
             id="cluster-circles"
             filter={['has', 'point_count']}
-            style={{
-              circleRadius: 16,
-              circleColor: '#0087CC',
-              circleStrokeColor: '#FFFFFF',
-              circleStrokeWidth: 3,
+            paint={{
+              'circle-radius': 16,
+              'circle-color': '#0087CC',
+              'circle-stroke-color': '#FFFFFF',
+              'circle-stroke-width': 3,
             }}
           />
-          <Layer type="symbol"
+
+          <Layer
+            type="symbol"
             id="cluster-counts"
             filter={['has', 'point_count']}
-            style={{
-              textField: '{point_count}',
-              textSize: 13,
-              textColor: '#FFFFFF',
+            layout={{
+              'text-field': '{point_count}',
+              'text-size': 13,
+            }}
+            paint={{
+              'text-color': '#FFFFFF',
             }}
           />
         </GeoJSONSource>
@@ -592,152 +600,152 @@ export default function SearchScreen() {
               <Text style={styles.panelTitle}>Scrute La Nature</Text>
             </View>
 
-          {/* Toggle Switch */}
-          <View style={[styles.toggleContainer, isDark && { backgroundColor: '#141B20' }]}>
-            <Pressable
-              onPress={() => setMode('parcours')}
-              style={[
-                styles.toggleButton,
-                mode === 'parcours' && styles.toggleButtonActive,
-                mode === 'parcours' && isDark && { backgroundColor: '#202C35' },
-              ]}
-            >
-              <Text
+            {/* Toggle Switch */}
+            <View style={[styles.toggleContainer, isDark && { backgroundColor: '#141B20' }]}>
+              <Pressable
+                onPress={() => setMode('parcours')}
                 style={[
-                  styles.toggleText,
-                  mode === 'parcours' && styles.toggleTextActive,
-                  mode === 'parcours' && isDark && { color: '#F8FAFC' },
+                  styles.toggleButton,
+                  mode === 'parcours' && styles.toggleButtonActive,
+                  mode === 'parcours' && isDark && { backgroundColor: '#202C35' },
                 ]}
               >
-                Parcours
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setMode('nearby')}
-              style={[
-                styles.toggleButton,
-                mode === 'nearby' && styles.toggleButtonActive,
-                mode === 'nearby' && isDark && { backgroundColor: '#202C35' },
-              ]}
-            >
-              <Text
+                <Text
+                  style={[
+                    styles.toggleText,
+                    mode === 'parcours' && styles.toggleTextActive,
+                    mode === 'parcours' && isDark && { color: '#F8FAFC' },
+                  ]}
+                >
+                  Parcours
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setMode('nearby')}
                 style={[
-                  styles.toggleText,
-                  mode === 'nearby' && styles.toggleTextActive,
-                  mode === 'nearby' && isDark && { color: '#F8FAFC' },
+                  styles.toggleButton,
+                  mode === 'nearby' && styles.toggleButtonActive,
+                  mode === 'nearby' && isDark && { backgroundColor: '#202C35' },
                 ]}
               >
-                Autour de moi
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* Indicateur de chargement */}
-          {isLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#0087CC" />
-              <Text style={styles.loadingText}>Chargement…</Text>
+                <Text
+                  style={[
+                    styles.toggleText,
+                    mode === 'nearby' && styles.toggleTextActive,
+                    mode === 'nearby' && isDark && { color: '#F8FAFC' },
+                  ]}
+                >
+                  Autour de moi
+                </Text>
+              </Pressable>
             </View>
-          )}
 
-          {/* Résultat pour le mode nearby */}
-          {mode === 'nearby' && !isLoading && (
-            <View style={styles.resultInfo}>
-              <Ionicons name="navigate-circle-outline" size={20} color="#0087CC" />
-              <Text style={styles.resultInfoText}>
-                {parcours.length > 0
-                  ? `${parcours.length} parcours trouvé${parcours.length > 1 ? 's' : ''} à proximité`
-                  : 'Aucun parcours trouvé dans un rayon de 20 km'}
-              </Text>
+            {/* Indicateur de chargement */}
+            {isLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#0087CC" />
+                <Text style={styles.loadingText}>Chargement…</Text>
+              </View>
+            )}
+
+            {/* Résultat pour le mode nearby */}
+            {mode === 'nearby' && !isLoading && (
+              <View style={styles.resultInfo}>
+                <Ionicons name="navigate-circle-outline" size={20} color="#0087CC" />
+                <Text style={styles.resultInfoText}>
+                  {parcours.length > 0
+                    ? `${parcours.length} parcours trouvé${parcours.length > 1 ? 's' : ''} à proximité`
+                    : 'Aucun parcours trouvé dans un rayon de 20 km'}
+                </Text>
+              </View>
+            )}
+
+            {/* Search Bar */}
+            <View style={[styles.searchBar, isDark && styles.darkSearchBar]}>
+              <Ionicons name="location-outline" size={24} color="#9CA3AF" />
+              <TextInput
+                style={[styles.searchInput, isDark && styles.darkText]}
+                placeholder="Où voulez-vous vous balader ?"
+                placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
             </View>
-          )}
 
-          {/* Search Bar */}
-          <View style={[styles.searchBar, isDark && styles.darkSearchBar]}>
-            <Ionicons name="location-outline" size={24} color="#9CA3AF" />
-            <TextInput
-              style={[styles.searchInput, isDark && styles.darkText]}
-              placeholder="Où voulez-vous vous balader ?"
-              placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-
-          {/* Contenu affiché seulement si on ne recherche pas */}
-          {searchQuery.length === 0 && (
-            <>
-              {/* Categories Grid */}
-              <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Catégories</Text>
-              <View style={styles.categoriesGrid}>
-                {CATEGORIES.map((cat) => (
-                  <Pressable
-                    key={cat.id}
-                    style={styles.categoryItem}
-                    onPress={() => {
-                      setSelectedCategory(prev => prev === cat.id ? null : cat.id);
-                    }}
-                  >
-                    <View
-                      style={[
-                        styles.categoryIcon,
-                        { backgroundColor: selectedCategory === cat.id ? cat.color : `${cat.color}20` },
-                      ]}
+            {/* Contenu affiché seulement si on ne recherche pas */}
+            {searchQuery.length === 0 && (
+              <>
+                {/* Categories Grid */}
+                <Text style={[styles.sectionTitle, isDark && styles.darkText]}>Catégories</Text>
+                <View style={styles.categoriesGrid}>
+                  {CATEGORIES.map((cat) => (
+                    <Pressable
+                      key={cat.id}
+                      style={styles.categoryItem}
+                      onPress={() => {
+                        setSelectedCategory(prev => prev === cat.id ? null : cat.id);
+                      }}
                     >
-                      <Ionicons name={cat.icon as any} size={24} color={selectedCategory === cat.id ? '#FFF' : cat.color} />
+                      <View
+                        style={[
+                          styles.categoryIcon,
+                          { backgroundColor: selectedCategory === cat.id ? cat.color : `${cat.color}20` },
+                        ]}
+                      >
+                        <Ionicons name={cat.icon as any} size={24} color={selectedCategory === cat.id ? '#FFF' : cat.color} />
+                      </View>
+                      <Text style={[styles.categoryLabel, isDark && styles.darkTextMuted, selectedCategory === cat.id && { fontWeight: '700', color: isDark ? '#FFF' : '#111827' }]}>{cat.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+              </>
+            )}
+
+            {/* Liste des parcours (mode nearby ou recherche active) */}
+            {(mode === 'nearby' || searchQuery.length > 0 || selectedCategory) && filteredListParcours.length > 0 && (
+              <View style={styles.parcoursListSection}>
+                <Text style={[styles.sectionTitle, isDark && styles.darkText]}>
+                  {(searchQuery.length > 0 || selectedCategory) ? 'Résultats de recherche' : 'Parcours à proximité'}
+                </Text>
+                {filteredListParcours.map((p) => (
+                  <Pressable
+                    key={p.id}
+                    style={[styles.parcoursCard, isDark && styles.darkCard]}
+                    onPress={() => handleParcoursSelect(p.id)}
+                  >
+                    <View style={styles.parcoursCardIcon}>
+                      {p.coverImage ? (
+                        <Image source={{ uri: resolveMediaUrl(p.coverImage) }} style={styles.parcoursImage} />
+                      ) : (
+                        <Ionicons name="trail-sign-outline" size={24} color="#0087CC" />
+                      )}
                     </View>
-                    <Text style={[styles.categoryLabel, isDark && styles.darkTextMuted, selectedCategory === cat.id && { fontWeight: '700', color: isDark ? '#FFF' : '#111827' }]}>{cat.label}</Text>
+                    <View style={styles.parcoursCardInfo}>
+                      <Text style={[styles.parcoursCardTitle, isDark && styles.darkText]} numberOfLines={1}>
+                        {p.title}
+                      </Text>
+                      <Text style={[styles.parcoursCardMeta, isDark && styles.darkTextMuted]}>
+                        {p.difficulty ?? 'Non défini'} • {formatDuration(p.durationMin)}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                   </Pressable>
                 ))}
               </View>
-
-            </>
-          )}
-
-          {/* Liste des parcours (mode nearby ou recherche active) */}
-          {(mode === 'nearby' || searchQuery.length > 0 || selectedCategory) && filteredListParcours.length > 0 && (
-            <View style={styles.parcoursListSection}>
-              <Text style={[styles.sectionTitle, isDark && styles.darkText]}>
-                {(searchQuery.length > 0 || selectedCategory) ? 'Résultats de recherche' : 'Parcours à proximité'}
-              </Text>
-              {filteredListParcours.map((p) => (
-                <Pressable
-                  key={p.id}
-                  style={[styles.parcoursCard, isDark && styles.darkCard]}
-                  onPress={() => handleParcoursSelect(p.id)}
-                >
-                  <View style={styles.parcoursCardIcon}>
-                    {p.coverImage ? (
-                      <Image source={{ uri: resolveMediaUrl(p.coverImage) }} style={styles.parcoursImage} />
-                    ) : (
-                      <Ionicons name="trail-sign-outline" size={24} color="#0087CC" />
-                    )}
-                  </View>
-                  <View style={styles.parcoursCardInfo}>
-                    <Text style={[styles.parcoursCardTitle, isDark && styles.darkText]} numberOfLines={1}>
-                      {p.title}
-                    </Text>
-                    <Text style={[styles.parcoursCardMeta, isDark && styles.darkTextMuted]}>
-                      {p.difficulty ?? 'Non défini'} • {formatDuration(p.durationMin)}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                </Pressable>
-              ))}
-            </View>
-          )}
+            )}
 
 
-          {/* Aucun résultat de recherche */}
-          {(searchQuery.length > 0 || selectedCategory) && filteredListParcours.length === 0 && (
-            <View style={styles.resultInfo}>
-              <Ionicons name="search-outline" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
-              <Text style={[styles.resultInfoText, { color: '#6B7280' }]}>
-                Aucun parcours ne correspond à vos critères.
-              </Text>
-            </View>
-          )}
-        </ScrollView>
+            {/* Aucun résultat de recherche */}
+            {(searchQuery.length > 0 || selectedCategory) && filteredListParcours.length === 0 && (
+              <View style={styles.resultInfo}>
+                <Ionicons name="search-outline" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                <Text style={[styles.resultInfoText, { color: '#6B7280' }]}>
+                  Aucun parcours ne correspond à vos critères.
+                </Text>
+              </View>
+            )}
+          </ScrollView>
         </TabletWrapper>
       </Animated.View>
     </View>
