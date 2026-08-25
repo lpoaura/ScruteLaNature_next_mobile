@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 7.0.0"
+    "version": ">= 7.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -18,10 +19,7 @@
       }
     },
     "production": {
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.scrutelanature.lpo-aura.org/api",
-        "EXPO_PUBLIC_API_IMAGES": "https://api.scrutelanature.lpo-aura.org/"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
