@@ -2,13 +2,15 @@ import {
   Camera,
   CameraRef,
   GeoJSONSource,
+  type GeoJSONSourceRef,
   Images,
   Layer,
   Map,
   MapRef,
   Marker,
   RasterSource,
-  UserLocation,
+  type StyleSpecification,
+  UserLocation
 } from '@maplibre/maplibre-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -83,10 +85,20 @@ const DEFAULT_REGION = {
   longitudeDelta: 10,
 };
 
+// Le fond OSM est ajouté avec RasterSource plus bas. MapLibre a néanmoins
+// besoin d'un style JSON valide pour initialiser ses sources et ses calques.
+const EMPTY_MAP_STYLE: StyleSpecification = {
+  version: 8,
+  glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+  sources: {},
+  layers: [],
+};
+
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
+  const parcoursSourceRef = useRef<GeoJSONSourceRef>(null);
   const isFocused = useIsFocused();
   const systemColorScheme = useColorScheme();
   const settingsTheme = useSettingsStore((state: any) => state.theme);
@@ -422,7 +434,7 @@ export default function SearchScreen() {
         style={StyleSheet.absoluteFillObject}
         logoPosition={{ bottom: -100, right: -100 }}
         attributionPosition={{ bottom: -100, right: -100 }}
-        mapStyle=""
+        mapStyle={EMPTY_MAP_STYLE}
         onPress={() => {
           if (Date.now() - lastMarkerPressRef.current > 300) {
             setSelectedMarkerId(null);
@@ -454,22 +466,31 @@ export default function SearchScreen() {
         <Images images={badgesImages} />
 
         <GeoJSONSource
+          ref={parcoursSourceRef}
           id="parcours-source"
           data={geoJsonData as any}
           cluster={true}
-          clusterRadius={40}
-          clusterMaxZoom={14}
-          onPress={(event: any) => {
+          clusterRadius={50}
+          clusterMinPoints={2}
+          clusterMaxZoom={17}
+          onPress={async (event: any) => {
             const feature = event?.nativeEvent?.features?.[0];
             if (!feature) return;
 
             if (feature?.properties?.cluster) {
               const coords = feature?.geometry?.coordinates;
-              if (coords && Array.isArray(coords)) {
+              const clusterId = feature?.properties?.cluster_id;
+              if (coords && Array.isArray(coords) && typeof clusterId === 'number') {
                 const [lng, lat] = coords;
+                const zoom = await parcoursSourceRef.current
+                  ?.getClusterExpansionZoom(clusterId)
+                  .catch(() => 12);
+
+                lastMarkerPressRef.current = Date.now();
+                setSelectedMarkerId(null);
                 cameraRef.current?.easeTo({
                   center: [lng, lat],
-                  zoom: 12,
+                  zoom: zoom ?? 12,
                   duration: 500
                 });
               }
@@ -491,7 +512,12 @@ export default function SearchScreen() {
           <Layer
             type="circle"
             id="default-marker-layer"
-            filter={['!', ['get', 'hasBadge']]}
+            afterId="osm-layer"
+            filter={[
+              'all',
+              ['!=', ['get', 'cluster'], true],
+              ['==', ['get', 'hasBadge'], false],
+            ]}
             paint={{
               'circle-radius': 10,
               'circle-color': '#007E84',
@@ -504,7 +530,12 @@ export default function SearchScreen() {
           <Layer
             type="symbol"
             id="badge-marker-layer"
-            filter={['get', 'hasBadge']}
+            afterId="default-marker-layer"
+            filter={[
+              'all',
+              ['!=', ['get', 'cluster'], true],
+              ['==', ['get', 'hasBadge'], true],
+            ]}
             layout={{
               'icon-image': ['get', 'badgeImageId'],
               'icon-size': 0.08,
@@ -517,9 +548,10 @@ export default function SearchScreen() {
           <Layer
             type="circle"
             id="cluster-circles"
-            filter={['has', 'point_count']}
+            afterId="badge-marker-layer"
+            filter={['==', ['get', 'cluster'], true]}
             paint={{
-              'circle-radius': 16,
+              'circle-radius': 22,
               'circle-color': '#0087CC',
               'circle-stroke-color': '#FFFFFF',
               'circle-stroke-width': 3,
@@ -529,10 +561,14 @@ export default function SearchScreen() {
           <Layer
             type="symbol"
             id="cluster-counts"
-            filter={['has', 'point_count']}
+            afterId="cluster-circles"
+            filter={['==', ['get', 'cluster'], true]}
             layout={{
-              'text-field': '{point_count}',
-              'text-size': 13,
+              'text-field': ['to-string', ['get', 'point_count_abbreviated']],
+              'text-font': ['Open Sans Semibold'],
+              'text-size': 14,
+              'text-allow-overlap': true,
+              'text-ignore-placement': true,
             }}
             paint={{
               'text-color': '#FFFFFF',
