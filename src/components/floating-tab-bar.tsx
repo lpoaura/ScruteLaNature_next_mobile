@@ -1,5 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { BottomTabBarProps } from "expo-router/js-tabs";
 import { BlurView } from 'expo-blur';
 import {
     GlassContainer,

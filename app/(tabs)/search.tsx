@@ -34,7 +34,7 @@ import { useSettingsStore } from '@/src/store/settings.store';
 import type { Parcours } from '@/src/types/api.types';
 import { formatDuration } from '@/src/utils/format';
 import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from "expo-router/react-navigation";
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useColorScheme } from 'react-native';

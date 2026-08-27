@@ -94,7 +94,7 @@ Avant chaque nouveau build destiné à la production (`eas build -p all --profil
 
 ### 2. Mettre à jour Expo (SDK Bump)
 Pour passer à la version supérieure d'Expo (ex: SDK 54 vers 55) :
-1. Lancez la commande officielle : `npx expo upgrade`
+1. Suivez la procédure officielle d'Expo: https://docs.expo.dev/workflow/upgrading-expo-sdk-walkthrough/
 2. Expo mettra automatiquement à jour `package.json` avec les versions natives compatibles.
 3. Supprimez le cache et réinstallez : `rm -rf node_modules package-lock.json && npm install`
 4. Re-compilez toujours un Dev Client natif pour tester : `npx expo run:android`

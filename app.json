@@ -7,7 +7,6 @@
     "icon": "./assets/images/new-logo.png",
     "scheme": "scrutelanature",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.lpo.GameOfNature",
@@ -21,7 +20,6 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.lpo.GameOfNature",
       "permissions": [
@@ -70,7 +68,11 @@
           "locationWhenInUsePermission": "L'application a besoin d'accéder à votre position pour vous centrer sur la carte et trouver des parcours autour de vous."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
